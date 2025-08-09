@@ -54,6 +54,7 @@ std::ostream &operator<<(std::ostream &output, const Token &token) {
     type_str = "default";
     break;
   }
+  if (token.type_ != DEFAULT)
   output << std::setw(25) << type_str << ": " << token.str_ << " at ln " << token.row_ << ", col " << token.column_;
   return output;
 }
