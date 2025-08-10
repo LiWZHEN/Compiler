@@ -74,6 +74,7 @@ MatchResult RegexMatcher::MatchRawStringLiteral() {
   return {};
 }
 
+/*
 MatchResult RegexMatcher::MatchByteLiteral() {
   boost::smatch matches;
   if (boost::regex_search(str_.begin() + start_, str_.end(), matches, REGEX_BYTE_LITERAL, boost::regex_constants::match_continuous)) {
@@ -133,6 +134,7 @@ MatchResult RegexMatcher::MatchRawByteStringLiteral() {
   }
   return {};
 }
+*/
 
 MatchResult RegexMatcher::MatchCStringLiteral() {
   boost::smatch matches;
