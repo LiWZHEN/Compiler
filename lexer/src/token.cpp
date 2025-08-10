@@ -1,7 +1,7 @@
 #include "token.h"
 #include <iomanip>
 
-Token::Token(type type, std::string str, int row, int column) {
+Token::Token(type type, const std::string &str, int row, int column) {
   type_ = type;
   str_ = str;
   row_ = row;
@@ -23,7 +23,7 @@ std::ostream &operator<<(std::ostream &output, const Token &token) {
   case RAW_STRING_LITERAL:
     type_str = "raw string literal";
     break;
-  case BYTE_LITERAL:
+  /*case BYTE_LITERAL:
     type_str = "byte literal";
     break;
   case BYTE_STRING_LITERAL:
@@ -31,7 +31,7 @@ std::ostream &operator<<(std::ostream &output, const Token &token) {
     break;
   case RAW_BYTE_STRING_LITERAL:
     type_str = "raw byte string literal";
-    break;
+    break;*/
   case C_STRING_LITERAL:
     type_str = "c string literal";
     break;

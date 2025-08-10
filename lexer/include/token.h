@@ -13,8 +13,8 @@ class Token {
   std::string str_;
   int row_, column_;
 public:
-  Token() = default;
-  Token(type type, std::string str, int row, int column);
+  Token() = delete;
+  Token(type type, const std::string &str, int row, int column);
   friend std::ostream &operator<<(std::ostream &output, const Token &token);
 };
 
