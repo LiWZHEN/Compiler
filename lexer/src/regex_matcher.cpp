@@ -278,7 +278,7 @@ MatchResult RegexMatcher::GetNext() {
   if (tmp.matched_str_.length() > result.matched_str_.length()) {
     result = tmp;
   }
-  tmp = MatchByteLiteral();
+  /*tmp = MatchByteLiteral();
   if (tmp.matched_str_.length() > result.matched_str_.length()) {
     result = tmp;
   }
@@ -289,7 +289,7 @@ MatchResult RegexMatcher::GetNext() {
   tmp = MatchRawByteStringLiteral();
   if (tmp.matched_str_.length() > result.matched_str_.length()) {
     result = tmp;
-  }
+  }*/
   tmp = MatchCStringLiteral();
   if (tmp.matched_str_.length() > result.matched_str_.length()) {
     result = tmp;
@@ -327,6 +327,7 @@ MatchResult RegexMatcher::GetNext() {
     result = tmp;
   }
   if (result.matched_str_.empty()) {
+    std::cerr << "No matched type!\n";
     throw "No matched type!";
   }
   return result;
