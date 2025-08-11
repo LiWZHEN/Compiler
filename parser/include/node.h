@@ -12,6 +12,8 @@ enum NodeType {
 };
 
 class Node {
+public:
+  ~Node();
 protected:
   std::vector<Node *> children_;
   std::vector<NodeType> type_;

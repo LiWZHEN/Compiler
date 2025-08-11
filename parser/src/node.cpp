@@ -1,6 +1,15 @@
 #include "node.h"
 #include "item.h"
 
+Node::~Node() {
+  for (auto &it : children_) {
+    delete it;
+    it = nullptr;
+  }
+  children_.resize(0);
+  type_.resize(0);
+}
+
 Crate::Crate(const std::vector<Token> &tokens, int &ptr) {
   int cnt = 0;
   try {
