@@ -16,6 +16,14 @@ type Token::GetType() const {
   return type_;
 }
 
+int Token::GetLine() const {
+  return row_;
+}
+
+int Token::GetColumn() const {
+  return column_;
+}
+
 std::ostream &operator<<(std::ostream &output, const Token &token) {
   std::string type_str;
   switch (token.type_) {
