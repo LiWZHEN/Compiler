@@ -8,6 +8,14 @@ Token::Token(type type, const std::string &str, int row, int column) {
   column_ = column;
 }
 
+const std::string &Token::GetStr() const {
+  return str_;
+}
+
+type Token::GetType() const {
+  return type_;
+}
+
 std::ostream &operator<<(std::ostream &output, const Token &token) {
   std::string type_str;
   switch (token.type_) {

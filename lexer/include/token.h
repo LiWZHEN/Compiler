@@ -15,6 +15,8 @@ class Token {
 public:
   Token() = delete;
   Token(type type, const std::string &str, int row, int column);
+  [[nodiscard]] const std::string &GetStr() const;
+  [[nodiscard]] type GetType() const;
   friend std::ostream &operator<<(std::ostream &output, const Token &token);
 };
 
