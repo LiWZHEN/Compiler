@@ -8,7 +8,10 @@
 enum NodeType {
   type_crate, type_item, type_module, type_function, type_struct, type_enumeration,
   type_constant_item, type_trait, type_implementation, type_keyword, type_identifier,
-  type_punctuation
+  type_punctuation, type_generic_params, type_function_parameters, type_function_return_type,
+  type_where_clause, type_block_expression, type_struct_fields, type_enum_variants,
+  type_type, type_expression, type_type_param_bounds, type_associated_item,
+  type_type_path
 };
 
 class Node {
