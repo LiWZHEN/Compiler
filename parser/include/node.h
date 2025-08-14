@@ -11,7 +11,7 @@ enum NodeType {
   type_punctuation, type_generic_params, type_function_parameters, type_function_return_type,
   type_where_clause, type_block_expression, type_struct_fields, type_enum_variants,
   type_type, type_expression, type_type_param_bounds, type_associated_item,
-  type_type_path
+  type_type_path, type_generic_param
 };
 
 class Node {
