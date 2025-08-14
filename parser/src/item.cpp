@@ -663,6 +663,7 @@ Implementation::Implementation(const std::vector<Token> &tokens, int &ptr) {
         }
         children_.resize(size_before_try);
         type_.resize(size_before_try);
+        cnt = size_before_try;
         std::cerr << "Implementation: Successfully handle the failed try of matching TraitImpl.\n";
       }
     }
