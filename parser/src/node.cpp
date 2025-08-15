@@ -194,73 +194,73 @@ void Node::ThrowErr(NodeType node_type, const std::string &info, bool is_ending 
       std::cerr << "Item: ";
       break;
     case type_function:
-      std::cerr << "Crate: ";
+      std::cerr << "Function: ";
       break;
     case type_struct:
-      std::cerr << "Item: ";
+      std::cerr << "Struct: ";
       break;
     case type_enumeration:
-      std::cerr << "Crate: ";
+      std::cerr << "Enumeration: ";
       break;
     case type_constant_item:
-      std::cerr << "Item: ";
+      std::cerr << "ConstantItem: ";
       break;
     case type_trait:
-      std::cerr << "Crate: ";
+      std::cerr << "Trait: ";
       break;
     case type_implementation:
-      std::cerr << "Item: ";
+      std::cerr << "Implementation: ";
       break;
     case type_keyword:
-      std::cerr << "Crate: ";
+      std::cerr << "Keyword: ";
       break;
     case type_identifier:
-      std::cerr << "Item: ";
+      std::cerr << "Identifier: ";
       break;
     case type_punctuation:
-      std::cerr << "Crate: ";
+      std::cerr << "Punctuation: ";
       break;
     case type_generic_params:
-      std::cerr << "Item: ";
+      std::cerr << "GenericParams: ";
       break;
     case type_function_parameters:
-      std::cerr << "Crate: ";
+      std::cerr << "FunctionParameters: ";
       break;
     case type_function_return_type:
-      std::cerr << "Item: ";
+      std::cerr << "ReturnType: ";
       break;
     case type_where_clause:
-      std::cerr << "Crate: ";
+      std::cerr << "WhereClause: ";
       break;
     case type_block_expression:
-      std::cerr << "Item: ";
+      std::cerr << "BlockExpression: ";
       break;
     case type_struct_fields:
-      std::cerr << "Crate: ";
+      std::cerr << "StructFields: ";
       break;
     case type_enum_variants:
-      std::cerr << "Item: ";
+      std::cerr << "EnumVariants: ";
       break;
     case type_type:
-      std::cerr << "Crate: ";
+      std::cerr << "Type: ";
       break;
     case type_expression:
-      std::cerr << "Item: ";
+      std::cerr << "Expression: ";
       break;
     case type_type_param_bounds:
-      std::cerr << "Crate: ";
+      std::cerr << "TypeParamBounds: ";
       break;
     case type_associated_item:
-      std::cerr << "Item: ";
+      std::cerr << "AssociatedItem: ";
       break;
     case type_type_path:
-      std::cerr << "Crate: ";
+      std::cerr << "TypePath: ";
       break;
     case type_generic_param:
-      std::cerr << "Item: ";
+      std::cerr << "GenericParam: ";
       break;
     case type_self_param:
-      std::cerr << "Crate: ";
+      std::cerr << "SelfParam: ";
       break;
     case type_shorthand_self:
       std::cerr << "ShorthandSelf: ";
