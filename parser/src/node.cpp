@@ -76,11 +76,11 @@ void Node::AddChild(NodeType node_type) {
       children_[target] = new Punctuation(tokens_[ptr_], ptr_);
       type_.push_back(type_punctuation);
       break;
-    case type_generic_params :
+    /*case type_generic_params :
       children_.push_back(nullptr);
       children_[target] = new GenericParams(tokens_, ptr_);
       type_.push_back(type_generic_params);
-      break;
+      break;*/
     case type_function_parameters :
       children_.push_back(nullptr);
       children_[target] = new FunctionParameters(tokens_, ptr_);
@@ -91,11 +91,11 @@ void Node::AddChild(NodeType node_type) {
       children_[target] = new FunctionReturnType(tokens_, ptr_);
       type_.push_back(type_function_return_type);
       break;
-    case type_where_clause :
+    /*case type_where_clause :
       children_.push_back(nullptr);
       children_[target] = new WhereClause(tokens_, ptr_);
       type_.push_back(type_where_clause);
-      break;
+      break;*/
     case type_block_expression :
       children_.push_back(nullptr);
       children_[target] = new BlockExpression(tokens_, ptr_);
@@ -217,18 +217,18 @@ void Node::ThrowErr(const NodeType node_type, const std::string &info) {
     case type_punctuation:
       std::cerr << "Punctuation: ";
       break;
-    case type_generic_params:
+    /*case type_generic_params:
       std::cerr << "GenericParams: ";
-      break;
+      break;*/
     case type_function_parameters:
       std::cerr << "FunctionParameters: ";
       break;
     case type_function_return_type:
       std::cerr << "ReturnType: ";
       break;
-    case type_where_clause:
+    /*case type_where_clause:
       std::cerr << "WhereClause: ";
-      break;
+      break;*/
     case type_block_expression:
       std::cerr << "BlockExpression: ";
       break;
