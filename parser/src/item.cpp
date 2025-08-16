@@ -1,721 +1,307 @@
 #include "item.h"
-#include "module.h"
-#include "functions.h"
-#include "structs.h"
-#include "enumerations.h"
-#include "constant_items.h"
-#include "trait.h"
-#include "implementation.h"
 
-Module::Module(const std::vector<Token> &tokens, int &ptr) {
+Function::Function(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
+  const int ptr_before_try = ptr_;
   try {
-    int cnt = 0;
-    // mod
-    if (tokens[ptr].GetStr() != "mod") {
-      std::cerr << "line " << tokens[ptr].GetLine() << ", column " << tokens[ptr].GetColumn() << ": Module: There is no keyword \"mod\".\n";
-      throw "";
+    // const?
+    if (tokens[ptr].GetStr() == "const") {
+      AddChild(type_keyword);
     }
-    children_.push_back(nullptr);
-    children_[cnt] = new Keyword(tokens[ptr], ptr);
-    type_.push_back(type_keyword);
-    ++cnt;
     if (ptr >= tokens.size()) {
-      std::cerr << "Module: file ends before the module is completed.\n";
-      throw "";
+      ThrowErr(type_function, "");
     }
-    if (tokens[ptr].GetType() != IDENTIFIER_OR_KEYWORD) {
-      std::cerr << "line " << tokens[ptr].GetLine() << ", column " << tokens[ptr].GetColumn() << ": Module: There is no identifier after keyword \"mod\".\n";
-      throw "";
-    }
-    // IDENTIFIER
-    children_.push_back(nullptr);
-    children_[cnt] = new Identifier(tokens[ptr], ptr);
-    type_.push_back(type_identifier);
-    ++cnt;
-    if (ptr >= tokens.size()) {
-      std::cerr << "Module: file ends before the module is completed.\n";
-      throw "";
-    }
-    if (tokens[ptr].GetStr() == ";") {
-      children_.push_back(nullptr);
-      children_[cnt] = new Punctuation(tokens[ptr], ptr);
-      type_.push_back(type_punctuation);
-      ++cnt;
-    } else if (tokens[ptr].GetStr() == "{") {
-      children_.push_back(nullptr);
-      children_[cnt] = new Punctuation(tokens[ptr], ptr);
-      type_.push_back(type_punctuation);
-      ++cnt;
-      if (ptr >= tokens.size()) {
-        std::cerr << "Module: file ends before the module is completed.\n";
-        throw "";
-      }
-      while (tokens[ptr].GetStr() != "}") {
-        children_.push_back(nullptr);
-        children_[cnt] = new Item(tokens, ptr);
-        type_.push_back(type_item);
-        ++cnt;
-        if (ptr >= tokens.size()) {
-          std::cerr << "Module: file ends before the module is completed.\n";
-          throw "";
-        }
-      }
-      children_.push_back(nullptr);
-      children_[cnt] = new Punctuation(tokens[ptr], ptr);
-      type_.push_back(type_punctuation);
-      ++cnt;
-    } else {
-      std::cerr << "line " << tokens[ptr].GetLine() << ", column " << tokens[ptr].GetColumn() << ": Module: There is neither \";\" nor \"{\" after identifier.\n";
-      throw "";
-    }
-  } catch (...) {
-    for (auto &it : children_) {
-      delete it;
-      it = nullptr;
-    }
-    throw "";
-  }
-}
-
-Function::Function(const std::vector<Token> &tokens, int &ptr) {
-  try {
-    int cnt = 0;
     // fn
     if (tokens[ptr].GetStr() != "fn") {
-      std::cerr << "line " << tokens[ptr].GetLine() << ", column " << tokens[ptr].GetColumn() << ": Function: There is no keyword \"fn\".\n";
-      throw "";
+      ThrowErr(type_function, "Expect \"fn\".");
     }
-    children_.push_back(nullptr);
-    children_[cnt] = new Keyword(tokens[ptr], ptr);
-    type_.push_back(type_keyword);
-    ++cnt;
+    AddChild(type_keyword);
     if (ptr >= tokens.size()) {
-      std::cerr << "Function: file ends before the function is completed.\n";
-      throw "";
-    }
-    if (tokens[ptr].GetType() != IDENTIFIER_OR_KEYWORD) {
-      std::cerr << "line " << tokens[ptr].GetLine() << ", column " << tokens[ptr].GetColumn() << ": Function: There is no identifier after keyword \"fn\".\n";
-      throw "";
+      ThrowErr(type_function, "");
     }
     // IDENTIFIER
-    children_.push_back(nullptr);
-    children_[cnt] = new Identifier(tokens[ptr], ptr);
-    type_.push_back(type_identifier);
-    ++cnt;
+    if (tokens[ptr].GetType() != IDENTIFIER_OR_KEYWORD) {
+      ThrowErr(type_function, "Expect IDENTIFIER.");
+    }
+    AddChild(type_identifier);
     if (ptr >= tokens.size()) {
-      std::cerr << "Function: file ends before the function is completed.\n";
-      throw "";
+      ThrowErr(type_function, "");
     }
-    if (tokens[ptr].GetStr() == "<") {
-      // GenericParams
-      children_.push_back(nullptr);
-      children_[cnt] = new GenericParams(tokens, ptr);
-      type_.push_back(type_generic_params);
-      ++cnt;
-      if (ptr >= tokens.size()) {
-        std::cerr << "Function: file ends before the function is completed.\n";
-        throw "";
-      }
-    }
+    // (
     if (tokens[ptr].GetStr() != "(") {
-      std::cerr << "line " << tokens[ptr].GetLine() << ", column " << tokens[ptr].GetColumn() << ": Function: There is no \"(\" of a function.\n";
-      throw "";
+      ThrowErr(type_function, "Expect \"(\".");
     }
-    children_.push_back(nullptr);
-    children_[cnt] = new Punctuation(tokens[ptr], ptr);
-    type_.push_back(type_punctuation);
-    ++cnt;
+    AddChild(type_punctuation);
     if (ptr >= tokens.size()) {
-      std::cerr << "Function: file ends before the function is completed.\n";
-      throw "";
+      ThrowErr(type_function, "");
     }
+    // FunctionParameters?
     if (tokens[ptr].GetStr() != ")") {
-      children_.push_back(nullptr);
-      children_[cnt] = new FunctionParameters(tokens, ptr);
-      type_.push_back(type_function_parameters);
-      ++cnt;
+      AddChild(type_function_parameters);
       if (ptr >= tokens.size()) {
-        std::cerr << "Function: file ends before the function is completed.\n";
-        throw "";
+        ThrowErr(type_function, "");
       }
     }
+    // )
     if (tokens[ptr].GetStr() != ")") {
-      std::cerr << "line " << tokens[ptr].GetLine() << ", column " << tokens[ptr].GetColumn() << ": Function: Cannot find \")\" after function parameters.\n";
-      throw "";
+      ThrowErr(type_function, "Expect \")\".");
     }
-    children_.push_back(nullptr);
-    children_[cnt] = new Punctuation(tokens[ptr], ptr);
-    type_.push_back(type_punctuation);
-    ++cnt;
+    AddChild(type_punctuation);
     if (ptr >= tokens.size()) {
-      std::cerr << "Function: file ends before the function is completed.\n";
-      throw "";
+      ThrowErr(type_function, "");
     }
+    // FunctionReturnType?
     if (tokens[ptr].GetStr() == "->") {
-      children_.push_back(nullptr);
-      children_[cnt] = new FunctionReturnType(tokens, ptr);
-      type_.push_back(type_function_return_type);
-      ++cnt;
+      AddChild(type_function_return_type);
       if (ptr >= tokens.size()) {
-        std::cerr << "Function: file ends before the function is completed.\n";
-        throw "";
+        ThrowErr(type_function, "");
       }
     }
-    if (tokens[ptr].GetStr() == "where") {
-      children_.push_back(nullptr);
-      children_[cnt] = new WhereClause(tokens, ptr);
-      type_.push_back(type_where_clause);
-      ++cnt;
-      if (ptr >= tokens.size()) {
-        std::cerr << "Function: file ends before the function is completed.\n";
-        throw "";
-      }
-    }
+    // ;|BlockExpression
     if (tokens[ptr].GetStr() == ";") {
-      children_.push_back(nullptr);
-      children_[cnt] = new Punctuation(tokens[ptr], ptr);
-      type_.push_back(type_punctuation);
-      ++cnt;
+      AddChild(type_punctuation);
     } else if (tokens[ptr].GetStr() == "{") {
-      children_.push_back(nullptr);
-      children_[cnt] = new BlockExpression(tokens, ptr);
-      type_.push_back(type_block_expression);
-      ++cnt;
+      AddChild(type_block_expression);
     } else {
-      std::cerr << "line " << tokens[ptr].GetLine() << ", column " << tokens[ptr].GetColumn() << ": Function: There is neither \";\" nor block expression at the end of function definition.\n";
-      throw "";
+      ThrowErr(type_function, "Expect \";\" or BlockExpression.");
     }
   } catch (...) {
-    for (auto &it : children_) {
-      delete it;
-      it = nullptr;
-    }
+    Restore(0, ptr_before_try);
     throw "";
   }
 }
 
-Struct::Struct(const std::vector<Token> &tokens, int &ptr) {
+Struct::Struct(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
+  const int ptr_before_try = ptr_;
   try {
-    int cnt = 0;
     // struct
     if (tokens[ptr].GetStr() != "struct") {
-      std::cerr << "line " << tokens[ptr].GetLine() << ", column " << tokens[ptr].GetColumn() << ": Struct: There is no keyword \"struct\".\n";
-      throw "";
+      ThrowErr(type_struct, "Expect \"struct\".");
     }
-    children_.push_back(nullptr);
-    children_[cnt] = new Keyword(tokens[ptr], ptr);
-    type_.push_back(type_keyword);
-    ++cnt;
+    AddChild(type_keyword);
     if (ptr >= tokens.size()) {
-      std::cerr << "Struct: file ends before the struct is completed.\n";
-      throw "";
-    }
-    if (tokens[ptr].GetType() != IDENTIFIER_OR_KEYWORD) {
-      std::cerr << "line " << tokens[ptr].GetLine() << ", column " << tokens[ptr].GetColumn() << ": Struct: There is no identifier after keyword \"struct\".\n";
-      throw "";
+      ThrowErr(type_struct, "");
     }
     // IDENTIFIER
-    children_.push_back(nullptr);
-    children_[cnt] = new Identifier(tokens[ptr], ptr);
-    type_.push_back(type_identifier);
-    ++cnt;
+    if (tokens[ptr].GetType() != IDENTIFIER_OR_KEYWORD) {
+      ThrowErr(type_struct, "Expect IDENTIFIER.");
+    }
+    AddChild(type_identifier);
     if (ptr >= tokens.size()) {
-      std::cerr << "Struct: file ends before the struct is completed.\n";
-      throw "";
-    }
-    if (tokens[ptr].GetStr() == "<") {
-      // GenericParams
-      children_.push_back(nullptr);
-      children_[cnt] = new GenericParams(tokens, ptr);
-      type_.push_back(type_generic_params);
-      ++cnt;
-      if (ptr >= tokens.size()) {
-        std::cerr << "Struct: file ends before the struct is completed.\n";
-        throw "";
-      }
-    }
-    if (tokens[ptr].GetStr() == "where") {
-      // WhereClause
-      children_.push_back(nullptr);
-      children_[cnt] = new WhereClause(tokens, ptr);
-      type_.push_back(type_where_clause);
-      ++cnt;
-      if (ptr >= tokens.size()) {
-        std::cerr << "Struct: file ends before the struct is completed.\n";
-        throw "";
-      }
+      ThrowErr(type_struct, "");
     }
     if (tokens[ptr].GetStr() == ";") {
-      children_.push_back(nullptr);
-      children_[cnt] = new Punctuation(tokens[ptr], ptr);
-      type_.push_back(type_punctuation);
-      ++cnt;
+      // ;
+      AddChild(type_punctuation);
     } else if (tokens[ptr].GetStr() == "{") {
-      children_.push_back(nullptr);
-      children_[cnt] = new Punctuation(tokens[ptr], ptr);
-      type_.push_back(type_punctuation);
-      ++cnt;
+      // {StructFields?}
+      // {
+      AddChild(type_punctuation);
       if (ptr >= tokens.size()) {
-        std::cerr << "Struct: file ends before the struct is completed.\n";
-        throw "";
+        ThrowErr(type_struct, "");
       }
       if (tokens[ptr].GetStr() != "}") {
         // StructFields
-        children_.push_back(nullptr);
-        children_[cnt] = new StructFields(tokens, ptr);
-        type_.push_back(type_struct_fields);
-        ++cnt;
+        AddChild(type_struct_fields);
         if (ptr >= tokens.size()) {
-          std::cerr << "Struct: file ends before the struct is completed.\n";
-          throw "";
+          ThrowErr(type_struct, "");
         }
       }
+      // }
       if (tokens[ptr].GetStr() != "}") {
-        std::cerr << "line " << tokens[ptr].GetLine() << ", column " << tokens[ptr].GetColumn() << ": Struct: There is no \"}\" following the struct fields.\n";
-        throw "";
+        ThrowErr(type_struct, "Expect \"}\".");
       }
-      children_.push_back(nullptr);
-      children_[cnt] = new Punctuation(tokens[ptr], ptr);
-      type_.push_back(type_punctuation);
-      ++cnt;
+      AddChild(type_punctuation);
     } else {
-      std::cerr << "line " << tokens[ptr].GetLine() << ", column " << tokens[ptr].GetColumn() << ": Function: There is neither \";\" nor \"{ StructFields }\" at the end of struct definition.\n";
-      throw "";
+      ThrowErr(type_struct, R"(Expect ";" or "{StructFields?}".)");
     }
   } catch (...) {
-    for (auto &it : children_) {
-      delete it;
-      it = nullptr;
-    }
+    Restore(0, ptr_before_try);
     throw "";
   }
 }
 
-Enumeration::Enumeration(const std::vector<Token> &tokens, int &ptr) {
+Enumeration::Enumeration(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
+  const int ptr_before_try = ptr_;
   try {
-    int cnt = 0;
     // enum
     if (tokens[ptr].GetStr() != "enum") {
-      std::cerr << "line " << tokens[ptr].GetLine() << ", column " << tokens[ptr].GetColumn() << ": Enumeration: There is no keyword \"enum\".\n";
-      throw "";
+      ThrowErr(type_enumeration, "Expect \"enum\".");
     }
-    children_.push_back(nullptr);
-    children_[cnt] = new Keyword(tokens[ptr], ptr);
-    type_.push_back(type_keyword);
-    ++cnt;
+    AddChild(type_keyword);
     if (ptr >= tokens.size()) {
-      std::cerr << "Enumeration: file ends before the enumeration is completed.\n";
-      throw "";
-    }
-    if (tokens[ptr].GetType() != IDENTIFIER_OR_KEYWORD) {
-      std::cerr << "line " << tokens[ptr].GetLine() << ", column " << tokens[ptr].GetColumn() << ": Enumeration: There is no identifier after keyword \"enum\".\n";
-      throw "";
+      ThrowErr(type_enumeration, "");
     }
     // IDENTIFIER
-    children_.push_back(nullptr);
-    children_[cnt] = new Identifier(tokens[ptr], ptr);
-    type_.push_back(type_identifier);
-    ++cnt;
+    if (tokens[ptr].GetType() != IDENTIFIER_OR_KEYWORD) {
+      ThrowErr(type_enumeration, "Expect IDENTIFIER.");
+    }
+    AddChild(type_identifier);
     if (ptr >= tokens.size()) {
-      std::cerr << "Enumeration: file ends before the enumeration is completed.\n";
-      throw "";
+      ThrowErr(type_enumeration, "");
     }
-    if (tokens[ptr].GetStr() == "<") {
-      // GenericParams
-      children_.push_back(nullptr);
-      children_[cnt] = new GenericParams(tokens, ptr);
-      type_.push_back(type_generic_params);
-      ++cnt;
-      if (ptr >= tokens.size()) {
-        std::cerr << "Enumeration: file ends before the enumeration is completed.\n";
-        throw "";
-      }
-    }
-    if (tokens[ptr].GetStr() == "where") {
-      // where
-      children_.push_back(nullptr);
-      children_[cnt] = new WhereClause(tokens, ptr);
-      type_.push_back(type_where_clause);
-      ++cnt;
-      if (ptr >= tokens.size()) {
-        std::cerr << "Enumeration: file ends before the enumeration is completed.\n";
-        throw "";
-      }
-    }
+    // {
     if (tokens[ptr].GetStr() != "{") {
-      std::cerr << "line " << tokens[ptr].GetLine() << ", column " << tokens[ptr].GetColumn() << ": Enumeration: Cannot find \"{\".\n";
-      throw "";
+      ThrowErr(type_enumeration, "Expect \"{\".");
     }
-    children_.push_back(nullptr);
-    children_[cnt] = new Punctuation(tokens[ptr], ptr);
-    type_.push_back(type_punctuation);
-    ++cnt;
+    AddChild(type_punctuation);
     if (ptr >= tokens.size()) {
-      std::cerr << "Enumeration: file ends before the enumeration is completed.\n";
-      throw "";
+      ThrowErr(type_enumeration, "");
     }
+    // EnumVariants?
     if (tokens[ptr].GetStr() != "}") {
-      children_.push_back(nullptr);
-      children_[cnt] = new EnumVariants(tokens, ptr);
-      type_.push_back(type_enum_variants);
-      ++cnt;
+      // EnumVariants
+      AddChild(type_enum_variants);
       if (ptr >= tokens.size()) {
-        std::cerr << "Enumeration: file ends before the enumeration is completed.\n";
-        throw "";
+        ThrowErr(type_enumeration, "");
       }
     }
+    // }
     if (tokens[ptr].GetStr() != "}") {
-      std::cerr << "line " << tokens[ptr].GetLine() << ", column " << tokens[ptr].GetColumn() << ": Enumeration: Cannot find the \"}\" following enum variants.\n";
-      throw "";
+      ThrowErr(type_enumeration, "Expect \"}\".");
     }
-    children_.push_back(nullptr);
-    children_[cnt] = new Punctuation(tokens[ptr], ptr);
-    type_.push_back(type_punctuation);
-    ++cnt;
+    AddChild(type_punctuation);
   } catch (...) {
-    for (auto &it : children_) {
-      delete it;
-      it = nullptr;
-    }
+    Restore(0, ptr_before_try);
     throw "";
   }
 }
 
-ConstantItem::ConstantItem(const std::vector<Token> &tokens, int &ptr) {
+ConstantItem::ConstantItem(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
+  const int ptr_before_try = ptr_;
   try {
-    int cnt = 0;
     // const
     if (tokens[ptr].GetStr() != "const") {
-      std::cerr << "line " << tokens[ptr].GetLine() << ", column " << tokens[ptr].GetColumn() << ": ConstantItem: There is no keyword \"const\".\n";
-      throw "";
+      ThrowErr(type_constant_item, "Expect \"const\".");
     }
-    children_.push_back(nullptr);
-    children_[cnt] = new Keyword(tokens[ptr], ptr);
-    type_.push_back(type_keyword);
-    ++cnt;
+    AddChild(type_keyword);
     if (ptr >= tokens.size()) {
-      std::cerr << "ConstantItem: file ends before the constant item is completed.\n";
-      throw "";
+      ThrowErr(type_constant_item, "");
     }
-    if (tokens[ptr].GetStr() == "_") {
-      children_.push_back(nullptr);
-      children_[cnt] = new Punctuation(tokens[ptr], ptr);
-      type_.push_back(type_punctuation);
-      ++cnt;
-    } else if (tokens[ptr].GetType() == IDENTIFIER_OR_KEYWORD) {
-      children_.push_back(nullptr);
-      children_[cnt] = new Identifier(tokens[ptr], ptr);
-      type_.push_back(type_identifier);
-      ++cnt;
+    // IDENTIFIER
+    if (tokens[ptr].GetType() == IDENTIFIER_OR_KEYWORD) {
+      AddChild(type_identifier);
     } else {
-      std::cerr << "line " << tokens[ptr].GetLine() << ", column " << tokens[ptr].GetColumn() << ": ConstantItem: There is neither \"_\" or identifier following \"const\".\n";
-      throw "";
+      ThrowErr(type_constant_item, "Expect IDENTIFIER.");
     }
     if (ptr >= tokens.size()) {
-      std::cerr << "ConstantItem: file ends before the constant item is completed.\n";
-      throw "";
+      ThrowErr(type_constant_item, "");
     }
+    // :
     if (tokens[ptr].GetStr() != ":") {
-      std::cerr << "line " << tokens[ptr].GetLine() << ", column " << tokens[ptr].GetColumn() << ": ConstantItem: expect \":\".\n";
-      throw "";
+      ThrowErr(type_constant_item, "Expect \":\".");
     }
-    children_.push_back(nullptr);
-    children_[cnt] = new Punctuation(tokens[ptr], ptr);
-    type_.push_back(type_punctuation);
-    ++cnt;
+    AddChild(type_punctuation);
     if (ptr >= tokens.size()) {
-      std::cerr << "ConstantItem: file ends before the constant item is completed.\n";
-      throw "";
+      ThrowErr(type_constant_item, "");
     }
-    children_.push_back(nullptr);
-    children_[cnt] = new Type(tokens, ptr);
-    type_.push_back(type_type);
-    ++cnt;
+    // Type
+    AddChild(type_type);
     if (ptr >= tokens.size()) {
-      std::cerr << "ConstantItem: file ends before the constant item is completed.\n";
-      throw "";
+      ThrowErr(type_constant_item, "");
     }
+    // (=Expression)?
     if (tokens[ptr].GetStr() == "=") {
-      children_.push_back(nullptr);
-      children_[cnt] = new Punctuation(tokens[ptr], ptr);
-      type_.push_back(type_punctuation);
-      ++cnt;
+      // =
+      AddChild(type_punctuation);
       if (ptr >= tokens.size()) {
-        std::cerr << "ConstantItem: file ends before the constant item is completed.\n";
-        throw "";
+        ThrowErr(type_constant_item, "");
       }
-      children_.push_back(nullptr);
-      children_[cnt] = new Expression(tokens, ptr);
-      type_.push_back(type_expression);
-      ++cnt;
+      // Expression
+      AddChild(type_expression);
       if (ptr >= tokens.size()) {
-        std::cerr << "ConstantItem: file ends before the constant item is completed.\n";
-        throw "";
+        ThrowErr(type_constant_item, "");
       }
     }
+    // ;
     if (tokens[ptr].GetStr() != ";") {
-      std::cerr << "line " << tokens[ptr].GetLine() << ", column " << tokens[ptr].GetColumn() << ": ConstantItem: expect \";\".\n";
-      throw "";
+      ThrowErr(type_constant_item, "Expect \";\".");
     }
-    children_.push_back(nullptr);
-    children_[cnt] = new Punctuation(tokens[ptr], ptr);
-    type_.push_back(type_punctuation);
-    ++cnt;
+    AddChild(type_punctuation);
   } catch (...) {
-    for (auto &it : children_) {
-      delete it;
-      it = nullptr;
-    }
+    Restore(0, ptr_before_try);
     throw "";
   }
 }
 
-Trait::Trait(const std::vector<Token> &tokens, int &ptr) {
+Trait::Trait(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
+  const int ptr_before_try = ptr_;
   try {
-    int cnt = 0;
     // trait
     if (tokens[ptr].GetStr() != "trait") {
-      std::cerr << "line " << tokens[ptr].GetLine() << ", column " << tokens[ptr].GetColumn() << ": Trait: There is no keyword \"trait\".\n";
-      throw "";
+      ThrowErr(type_trait, "Expect \"trait\".");
     }
-    children_.push_back(nullptr);
-    children_[cnt] = new Keyword(tokens[ptr], ptr);
-    type_.push_back(type_keyword);
-    ++cnt;
+    AddChild(type_keyword);
     if (ptr >= tokens.size()) {
-      std::cerr << "Trait: file ends before the trait is completed.\n";
-      throw "";
+      ThrowErr(type_trait, "");
     }
+    // IDENTIFIER
     if (tokens[ptr].GetType() != IDENTIFIER_OR_KEYWORD) {
-      std::cerr << "line " << tokens[ptr].GetLine() << ", column " << tokens[ptr].GetColumn() << ": Trait: There is no identifier following the keyword \"trait\".\n";
-      throw "";
+      ThrowErr(type_trait, "Expect IDENTIFIER.");
     }
-    children_.push_back(nullptr);
-    children_[cnt] = new Identifier(tokens[ptr], ptr);
-    type_.push_back(type_identifier);
-    ++cnt;
+    AddChild(type_identifier);
     if (ptr >= tokens.size()) {
-      std::cerr << "Trait: file ends before the trait is completed.\n";
-      throw "";
+      ThrowErr(type_trait, "");
     }
-    if (tokens[ptr].GetStr() == "<") {
-      // GenericParams
-      children_.push_back(nullptr);
-      children_[cnt] = new GenericParams(tokens, ptr);
-      type_.push_back(type_generic_params);
-      ++cnt;
-      if (ptr >= tokens.size()) {
-        std::cerr << "Trait: file ends before the trait is completed.\n";
-        throw "";
-      }
-    }
-    if (tokens[ptr].GetStr() == ":") {
-      // : TypeParamBounds?
-      children_.push_back(nullptr);
-      children_[cnt] = new Punctuation(tokens[ptr], ptr);
-      type_.push_back(type_punctuation);
-      ++cnt;
-      if (ptr >= tokens.size()) {
-        std::cerr << "Trait: file ends before the trait is completed.\n";
-        throw "";
-      }
-      if (tokens[ptr].GetStr() != "where" && tokens[ptr].GetStr() != "{") {
-        children_.push_back(nullptr);
-        children_[cnt] = new TypeParamBounds(tokens, ptr);
-        type_.push_back(type_type_param_bounds);
-        ++cnt;
-        if (ptr >= tokens.size()) {
-          std::cerr << "Trait: file ends before the trait is completed.\n";
-          throw "";
-        }
-      }
-    }
-    if (tokens[ptr].GetStr() == "where") {
-      children_.push_back(nullptr);
-      children_[cnt] = new WhereClause(tokens, ptr);
-      type_.push_back(type_where_clause);
-      ++cnt;
-      if (ptr >= tokens.size()) {
-        std::cerr << "Trait: file ends before the trait is completed.\n";
-        throw "";
-      }
-    }
+    // {
     if (tokens[ptr].GetStr() != "{") {
-      std::cerr << "line " << tokens[ptr].GetLine() << ", column " << tokens[ptr].GetColumn() << ": Trait: Expect \"{\".\n";
-      throw "";
+      ThrowErr(type_trait, "Expect \"{\".");
     }
-    children_.push_back(nullptr);
-    children_[cnt] = new Punctuation(tokens[ptr], ptr);
-    type_.push_back(type_punctuation);
-    ++cnt;
+    AddChild(type_punctuation);
     if (ptr >= tokens.size()) {
-      std::cerr << "Trait: file ends before the trait is completed.\n";
-      throw "";
+      ThrowErr(type_trait, "");
     }
+    // AssociatedItem*
     while (tokens[ptr].GetStr() != "}") {
-      children_.push_back(nullptr);
-      children_[cnt] = new AssociatedItem(tokens, ptr);
-      type_.push_back(type_associated_item);
-      ++cnt;
+      // AssociatedItem
+      AddChild(type_associated_item);
       if (ptr >= tokens.size()) {
-        std::cerr << "Trait: file ends before the trait is completed.\n";
-        throw "";
+        ThrowErr(type_trait, "");
       }
     }
-    children_.push_back(nullptr);
-    children_[cnt] = new Punctuation(tokens[ptr], ptr);
-    type_.push_back(type_punctuation);
-    ++cnt;
+    // }
+    AddChild(type_punctuation);
   } catch (...) {
-    for (auto &it : children_) {
-      delete it;
-      it = nullptr;
-    }
+    Restore(0, ptr_before_try);
     throw "";
   }
 }
 
-Implementation::Implementation(const std::vector<Token> &tokens, int &ptr) {
+Implementation::Implementation(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
+  const int ptr_before_try = ptr_;
   try {
-    int cnt = 0;
     // impl
     if (tokens[ptr].GetStr() != "impl") {
-      std::cerr << "line " << tokens[ptr].GetLine() << ", column " << tokens[ptr].GetColumn() << ": Implementation: There is no keyword \"impl\".\n";
-      throw "";
+      ThrowErr(type_implementation, "Expect \"impl\".");
     }
-    children_.push_back(nullptr);
-    children_[cnt] = new Keyword(tokens[ptr], ptr);
-    type_.push_back(type_keyword);
-    ++cnt;
+    AddChild(type_keyword);
     if (ptr >= tokens.size()) {
-      std::cerr << "Implementation: file ends before the implementation is completed.\n";
-      throw "";
+      ThrowErr(type_implementation, "");
     }
-    if (tokens[ptr].GetStr() == "<") {
-      children_.push_back(nullptr);
-      children_[cnt] = new GenericParams(tokens, ptr);
-      type_.push_back(type_generic_params);
-      ++cnt;
-      if (ptr >= tokens.size()) {
-        std::cerr << "Implementation: file ends before the implementation is completed.\n";
-        throw "";
-      }
+    if (ptr + 1 >= tokens.size()) {
+      ThrowErr(type_implementation, "Incomplete implementation type.");
     }
-    if (tokens[ptr].GetStr() == "!") {
+    if (tokens[ptr + 1].GetStr() == "for") {
       // TraitImpl
-      children_.push_back(nullptr);
-      children_[cnt] = new Punctuation(tokens[ptr], ptr);
-      type_.push_back(type_punctuation);
-      ++cnt;
-      if (ptr >= tokens.size()) {
-        std::cerr << "Implementation: file ends before the implementation is completed.\n";
-        throw "";
-      }
-      children_.push_back(nullptr);
-      children_[cnt] = new TypePath(tokens, ptr);
-      type_.push_back(type_type_path);
-      ++cnt;
-      if (ptr >= tokens.size()) {
-        std::cerr << "Implementation: file ends before the implementation is completed.\n";
-        throw "";
-      }
-      if (tokens[ptr].GetStr() != "for") {
-        std::cerr << "line " << tokens[ptr].GetLine() << ", column " << tokens[ptr].GetColumn() << ": Implementation: Expect keyword \"for\".\n";
-        throw "";
-      }
-      children_.push_back(nullptr);
-      children_[cnt] = new Keyword(tokens[ptr], ptr);
-      type_.push_back(type_keyword);
-      ++cnt;
-      if (ptr >= tokens.size()) {
-        std::cerr << "Implementation: file ends before the implementation is completed.\n";
-        throw "";
-      }
-    } else {
-      int size_before_try = cnt;
-      try {
-        // try to match the TraitImpl type
-        children_.push_back(nullptr);
-        children_[cnt] = new TypePath(tokens, ptr);
-        type_.push_back(type_type_path);
-        ++cnt;
-        if (ptr >= tokens.size()) {
-          std::cerr << "Implementation: file ends before the implementation is completed.\n";
-          throw "";
-        }
-        if (tokens[ptr].GetStr() != "for") {
-          std::cerr << "line " << tokens[ptr].GetLine() << ", column " << tokens[ptr].GetColumn() << ": Implementation: Expect keyword \"for\".\n";
-          throw "";
-        }
-        children_.push_back(nullptr);
-        children_[cnt] = new Keyword(tokens[ptr], ptr);
-        type_.push_back(type_keyword);
-        ++cnt;
-        if (ptr >= tokens.size()) {
-          std::cerr << "Implementation: file ends before the implementation is completed.\n";
-          throw "";
-        }
-      } catch (...) {
-        // failure: cannot match TraitImpl type
-        for (int i = size_before_try; i < children_.size(); ++i) {
-          delete children_[i];
-          children_[i] = nullptr;
-        }
-        children_.resize(size_before_try);
-        type_.resize(size_before_try);
-        cnt = size_before_try;
-        std::cerr << "Implementation: Successfully handle the failed try of matching TraitImpl.\n";
-      }
+      AddChild(type_identifier);
+      AddChild(type_keyword);
     }
-    children_.push_back(nullptr);
-    children_[cnt] = new Type(tokens, ptr);
-    type_.push_back(type_type);
-    ++cnt;
     if (ptr >= tokens.size()) {
-      std::cerr << "Implementation: file ends before the implementation is completed.\n";
-      throw "";
+      ThrowErr(type_implementation, "");
     }
-    if (tokens[ptr].GetStr() == "where") {
-      children_.push_back(nullptr);
-      children_[cnt] = new WhereClause(tokens, ptr);
-      type_.push_back(type_where_clause);
-      ++cnt;
-      if (ptr >= tokens.size()) {
-        std::cerr << "Implementation: file ends before the implementation is completed.\n";
-        throw "";
-      }
-    }
-    if (tokens[ptr].GetStr() != "{") {
-      std::cerr << "line " << tokens[ptr].GetLine() << ", column " << tokens[ptr].GetColumn() << ": Implementation: Expect \"{\".\n";
-      throw "";
-    }
-    children_.push_back(nullptr);
-    children_[cnt] = new Punctuation(tokens[ptr], ptr);
-    type_.push_back(type_punctuation);
-    ++cnt;
+    AddChild(type_type);
     if (ptr >= tokens.size()) {
-      std::cerr << "Implementation: file ends before the implementation is completed.\n";
-      throw "";
+      ThrowErr(type_implementation, "");
     }
-    while (tokens[ptr].GetStr() != "}") {
-      children_.push_back(nullptr);
-      children_[cnt] = new AssociatedItem(tokens, ptr);
-      type_.push_back(type_associated_item);
-      ++cnt;
-      if (ptr >= tokens.size()) {
-        std::cerr << "Implementation: file ends before the implementation is completed.\n";
-        throw "";
-      }
+    AddChild(type_punctuation);
+    while (ptr < tokens.size() && tokens[ptr].GetStr() != "}") {
+      AddChild(type_associated_item);
     }
-    children_.push_back(nullptr);
-    children_[cnt] = new Punctuation(tokens[ptr], ptr);
-    type_.push_back(type_punctuation);
-    ++cnt;
+    if (ptr >= tokens.size()) {
+      ThrowErr(type_implementation, "");
+    }
+    AddChild(type_punctuation);
   } catch (...) {
-    for (auto &it : children_) {
-      delete it;
-      it = nullptr;
-    }
+    Restore(0, ptr_before_try);
     throw "";
   }
 }
