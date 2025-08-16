@@ -18,13 +18,16 @@ enum NodeType {
 
 class Node {
 public:
+  Node(const std::vector<Token> &tokens, int &ptr);
   ~Node();
 protected:
-  void AddChild(NodeType node_type, const std::vector<Token> &tokens, int &ptr);
-  void ThrowErr(NodeType node_type, const std::string &info, bool is_ending, int line, int column);
-  void Restore(int size_before_try);
+  void AddChild(NodeType node_type);
+  void ThrowErr(NodeType node_type, const std::string &info);
+  void Restore(int size_before_try, int ptr_before_try);
   std::vector<Node *> children_;
   std::vector<NodeType> type_;
+  const std::vector<Token> &tokens_;
+  int &ptr_;
 };
 
 class Crate : public Node {
