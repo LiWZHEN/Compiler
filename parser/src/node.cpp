@@ -185,7 +185,7 @@ void Node::AddChild(NodeType node_type, const std::vector<Token> &tokens, int &p
   }
 }
 
-void Node::ThrowErr(NodeType node_type, const std::string &info, bool is_ending = true, int line = 0, int column = 0) {
+void Node::ThrowErr(const NodeType node_type, const std::string &info, const bool is_ending = true, const int line, const int column) {
   switch (node_type) {
     case type_crate:
       std::cerr << "Crate: ";
@@ -323,7 +323,7 @@ Item::Item(const std::vector<Token> &tokens, int &ptr) {
       AddChild(type_enumeration, tokens, ptr);
     } else if (next_token == "const") {
       if (ptr + 1 >= tokens.size()) {
-        ThrowErr(type_item, "", true);
+        ThrowErr(type_item, "", true, 0, 0);
       }
       if (tokens[ptr + 1].GetStr() == "fn") {
         AddChild(type_function, tokens, ptr);
