@@ -196,13 +196,13 @@ MatchResult RegexMatcher::MatchIntegerLiteral() {
   return {};
 }
 
-MatchResult RegexMatcher::MatchFloatLiteral() {
+/*MatchResult RegexMatcher::MatchFloatLiteral() {
   boost::smatch matches;
   if (boost::regex_search(str_.begin() + start_, str_.end(), matches, REGEX_FLOAT_LITERAL, boost::regex_constants::match_continuous)) {
     return {matches[0], FLOAT_LITERAL};
   }
   return {};
-}
+}*/
 
 MatchResult RegexMatcher::MatchPunctuation() {
   boost::smatch matches;
@@ -302,10 +302,10 @@ MatchResult RegexMatcher::GetNext() {
   if (tmp.matched_str_.length() > result.matched_str_.length()) {
     result = tmp;
   }
-  tmp = MatchFloatLiteral();
+  /*tmp = MatchFloatLiteral();
   if (tmp.matched_str_.length() > result.matched_str_.length()) {
     result = tmp;
-  }
+  }*/
   tmp = MatchPunctuation();
   if (tmp.matched_str_.length() > result.matched_str_.length()) {
     result = tmp;
