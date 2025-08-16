@@ -1,208 +1,125 @@
 #include "functions.h"
-#include "generic_params.h"
-#include "module.h"
-#include "function_parameters.h"
-#include "constant_items.h"
-#include "where_clause.h"
-#include "block_expression.h"
 
-GenericParams::GenericParams(const std::vector<Token> &tokens, int &ptr) {
+/*GenericParams::GenericParams(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
+  const int ptr_before_try = ptr;
   try {
-    int cnt = 0;
     // <
     if (tokens[ptr].GetStr() != "<") {
-      std::cerr << "line " << tokens[ptr].GetLine() << ", column " << tokens[ptr].GetColumn() << ": GenericParams: Expect \"<\".\n";
-      throw "";
+      ThrowErr(type_generic_params, "Expect \"<\".");
     }
-    children_.push_back(nullptr);
-    children_[cnt] = new Punctuation(tokens[ptr], ptr);
-    type_.push_back(type_punctuation);
-    ++cnt;
+    AddChild(type_punctuation);
     if (ptr >= tokens.size()) {
-      std::cerr << "GenericParams: file ends before the generic params is completed.\n";
-      throw "";
+      ThrowErr(type_generic_params, "");
     }
     if (tokens[ptr].GetStr() != ">") {
-      children_.push_back(nullptr);
-      children_[cnt] = new GenericParam(tokens, ptr);
-      type_.push_back(type_generic_param);
-      ++cnt;
+      AddChild(type_generic_param);
       if (ptr >= tokens.size()) {
-        std::cerr << "GenericParams: file ends before the generic params is completed.\n";
-        throw "";
+        ThrowErr(type_generic_params, "");
       }
       while (true) {
         if (tokens[ptr].GetStr() != ",") {
           break;
         }
-        children_.push_back(nullptr);
-        children_[cnt] = new Punctuation(tokens[ptr], ptr);
-        type_.push_back(type_punctuation);
-        ++cnt;
+        AddChild(type_punctuation);
         if (ptr >= tokens.size()) {
-          std::cerr << "GenericParams: file ends before the generic params is completed.\n";
-          throw "";
+          ThrowErr(type_generic_params, "");
         }
         if (tokens[ptr].GetStr() == ">") {
           break;
         }
-        children_.push_back(nullptr);
-        children_[cnt] = new GenericParam(tokens, ptr);
-        type_.push_back(type_generic_param);
-        ++cnt;
+        AddChild(type_generic_param);
         if (ptr >= tokens.size()) {
-          std::cerr << "GenericParams: file ends before the generic params is completed.\n";
-          throw "";
+          ThrowErr(type_generic_params, "");
         }
       }
     }
     if (tokens[ptr].GetStr() != ">") {
-      std::cerr << "line " << tokens[ptr].GetLine() << ", column " << tokens[ptr].GetColumn() << ": GenericParams: Expect \">\".\n";
-      throw "";
+      ThrowErr(type_generic_params, "Expect \">\".");
     }
-    children_.push_back(nullptr);
-    children_[cnt] = new Punctuation(tokens[ptr], ptr);
-    type_.push_back(type_punctuation);
-    ++cnt;
+    AddChild(type_punctuation);
   } catch (...) {
-    for (auto &it : children_) {
-      delete it;
-      it = nullptr;
-    }
+    Restore(0, ptr_before_try);
     throw "";
   }
-}
+}*/
 
-FunctionParameters::FunctionParameters(const std::vector<Token> &tokens, int &ptr) {
+FunctionParameters::FunctionParameters(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
+  const int ptr_before_try = ptr;
   try {
-    int cnt = 0;
     try {
       // (SelfParam,)?FunctionParam(,FunctionParam)*,?
       try {
         // SelfParam,
-        children_.push_back(nullptr);
-        children_[cnt] = new SelfParam(tokens, ptr);
-        type_.push_back(type_self_param);
-        ++cnt;
+        AddChild(type_self_param);
         if (ptr >= tokens.size()) {
-          std::cerr << "FunctionParameters: file ends before the function parameters is completed.\n";
-          throw "";
+          ThrowErr(type_function_parameters, "");
         }
         if (tokens[ptr].GetStr() != ",") {
-          std::cerr << "FunctionParameters: Expect \",\".\n";
+          ThrowErr(type_function_parameters, "Expect \",\".");
         }
-        children_.push_back(nullptr);
-        children_[cnt] = new Punctuation(tokens[ptr], ptr);
-        type_.push_back(type_punctuation);
-        ++cnt;
+        AddChild(type_punctuation);
         if (ptr >= tokens.size()) {
-          std::cerr << "FunctionParameters: file ends before the function parameters is completed.\n";
-          throw "";
+          ThrowErr(type_function_parameters, "");
         }
       } catch (...) {
-        for (auto &it : children_) {
-          delete it;
-          it = nullptr;
-        }
-        children_.resize(0);
-        type_.resize(0);
-        cnt = 0;
+        Restore(0, ptr_before_try);
         std::cerr << "FunctionParameters: Successfully handle the failure.\n";
       }
       // FunctionParam
-      children_.push_back(nullptr);
-      children_[cnt] = new FunctionParam(tokens, ptr);
-      type_.push_back(type_function_param);
-      ++cnt;
+      AddChild(type_function_param);
       // (,FunctionParam)*,?
       while (ptr < tokens.size()) {
         if (tokens[ptr].GetStr() != ",") {
           return;
         }
-        children_.push_back(nullptr);
-        children_[cnt] = new Punctuation(tokens[ptr], ptr);
-        type_.push_back(type_punctuation);
-        ++cnt;
+        AddChild(type_punctuation);
         if (ptr >= tokens.size()) {
           return;
         }
-        const int size_before_try = cnt;
+        const int size_before_trying_function_param = static_cast<int>(children_.size()),
+            ptr_before_trying_function_param = ptr;
         try {
-          children_.push_back(nullptr);
-          children_[cnt] = new FunctionParam(tokens, ptr);
-          type_.push_back(type_function_param);
-          ++cnt;
+          AddChild(type_function_param);
         } catch (...) {
-          for (int i = size_before_try; i < children_.size(); ++i) {
-            delete children_[i];
-            children_[i] = nullptr;
-          }
-          children_.resize(size_before_try);
-          type_.resize(size_before_try);
-          cnt = size_before_try;
+          Restore(size_before_trying_function_param, ptr_before_trying_function_param);
           std::cerr << "FunctionParameters: Successfully handle the try-failure.\n";
           return;
         }
       }
     } catch (...) {
-      for (auto &it : children_) {
-        delete it;
-        it = nullptr;
-      }
-      children_.resize(0);
-      type_.resize(0);
-      cnt = 0;
+      Restore(0, ptr_before_try);
       std::cerr << "FunctionParameters: Successfully handle the failure.\n";
       // SelfParam,?
-      children_.push_back(nullptr);
-      children_[cnt] = new SelfParam(tokens, ptr);
-      type_.push_back(type_self_param);
-      ++cnt;
+      AddChild(type_self_param);
       if (ptr < tokens.size() && tokens[ptr].GetStr() == ",") {
-        children_.push_back(nullptr);
-        children_[cnt] = new Punctuation(tokens[ptr], ptr);
-        type_.push_back(type_punctuation);
-        ++cnt;
+        AddChild(type_punctuation);
       }
     }
   } catch (...) {
-    for (auto &it : children_) {
-      delete it;
-      it = nullptr;
-    }
+    Restore(0, ptr_before_try);
     throw "";
   }
 }
 
-FunctionReturnType::FunctionReturnType(const std::vector<Token> &tokens, int &ptr) {
+FunctionReturnType::FunctionReturnType(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
+  const int ptr_before_try = ptr;
   try {
-    int cnt = 0;
     if (tokens[ptr].GetStr() != "->") {
-      std::cerr << "line " << tokens[ptr].GetLine() << ", column " << tokens[ptr].GetColumn() << ": FunctionReturnType: Expect \"->\".\n";
-      throw "";
+      ThrowErr(type_function_return_type, "Expect \"->\".");
     }
-    children_.push_back(nullptr);
-    children_[cnt] = new Punctuation(tokens[ptr], ptr);
-    type_.push_back(type_punctuation);
-    ++cnt;
+    AddChild(type_punctuation);
     if (ptr >= tokens.size()) {
-      std::cerr << "FunctionReturnType: file ends before the function return type is completed.\n";
-      throw "";
+      ThrowErr(type_function_return_type, "");
     }
-    children_.push_back(nullptr);
-    children_[cnt] = new Type(tokens, ptr);
-    type_.push_back(type_type);
-    ++cnt;
+    AddChild(type_type);
   } catch (...) {
-    for (auto &it : children_) {
-      delete it;
-      it = nullptr;
-    }
+    Restore(0, ptr_before_try);
     throw "";
   }
 }
 
-WhereClause::WhereClause(const std::vector<Token> &tokens, int &ptr) {
+/*WhereClause::WhereClause(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
+  const int ptr_before_try = ptr;
   try {
     int cnt = 0;
     if (tokens[ptr].GetStr() != "where") {
@@ -239,52 +156,37 @@ WhereClause::WhereClause(const std::vector<Token> &tokens, int &ptr) {
       ++cnt;
     }
   } catch (...) {
-    for (auto &it : children_) {
-      delete it;
-      it = nullptr;
-    }
+    Restore(0, ptr_before_try);
     throw "";
   }
-}
+}*/
 
-BlockExpression::BlockExpression(const std::vector<Token> &tokens, int &ptr) {
+BlockExpression::BlockExpression(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
+  const int ptr_before_try = ptr;
   try {
-    int cnt = 0;
+    // {
     if (tokens[ptr].GetStr() != "{") {
-      std::cerr << "line " << tokens[ptr].GetLine() << ", column " << tokens[ptr].GetColumn() << ": BlockExpression: Expect \"{\".\n";
-      throw "";
+      ThrowErr(type_block_expression, "Expect \"{\".");
     }
-    children_.push_back(nullptr);
-    children_[cnt] = new Punctuation(tokens[ptr], ptr);
-    type_.push_back(type_punctuation);
-    ++cnt;
+    AddChild(type_punctuation);
     if (ptr >= tokens.size()) {
-      std::cerr << "BlockExpression: file ends before the block expression is completed.\n";
-      throw "";
+      ThrowErr(type_block_expression, "");
+    }
+    // Statements?
+    if (tokens[ptr].GetStr() != "}") {
+      // Statements
+      AddChild(type_statements);
+    }
+    // }
+    if (ptr >= tokens.size()) {
+      ThrowErr(type_block_expression, "");
     }
     if (tokens[ptr].GetStr() != "}") {
-      children_.push_back(nullptr);
-      children_[cnt] = new Statements(tokens, ptr);
-      type_.push_back(type_statements);
-      ++cnt;
+      ThrowErr(type_block_expression, "Expect \"}\".");
     }
-    if (ptr >= tokens.size()) {
-      std::cerr << "BlockExpression: file ends before the block expression is completed.\n";
-      throw "";
-    }
-    if (tokens[ptr].GetStr() != "}") {
-      std::cerr << "line " << tokens[ptr].GetLine() << ", column " << tokens[ptr].GetColumn() << ": BlockExpression: Expect \"}\".\n";
-      throw "";
-    }
-    children_.push_back(nullptr);
-    children_[cnt] = new Punctuation(tokens[ptr], ptr);
-    type_.push_back(type_punctuation);
-    ++cnt;
+    AddChild(type_punctuation);
   } catch (...) {
-    for (auto &it : children_) {
-      delete it;
-      it = nullptr;
-    }
+    Restore(0, ptr_before_try);
     throw "";
   }
 }
