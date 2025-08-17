@@ -1,0 +1,104 @@
+#include "function_parameters.h"
+
+SelfParam::SelfParam(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
+  const int ptr_before_try = ptr;
+  try {
+    try {
+      // TypedSelf
+      AddChild(type_typed_self);
+    } catch (...) {
+      Restore(0, ptr_before_try);
+      std::cerr << "SelfParam: Successfully handle try-failure.\n";
+      // ShorthandSelf
+      AddChild(type_shorthand_self);
+    }
+  } catch (...) {
+    Restore(0, ptr_before_try);
+    throw "";
+  }
+}
+
+ShorthandSelf::ShorthandSelf(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
+  const int ptr_before_try = ptr;
+  try {
+    // &?
+    if (tokens[ptr].GetStr() == "&") {
+      AddChild(type_punctuation);
+      if (ptr >= tokens.size()) {
+        ThrowErr(type_shorthand_self, "");
+      }
+    }
+    // mut?
+    if (tokens[ptr].GetStr() == "mut") {
+      AddChild(type_keyword);
+      if (ptr >= tokens.size()) {
+        ThrowErr(type_shorthand_self, "");
+      }
+    }
+    // self
+    if (tokens[ptr].GetStr() != "self") {
+      ThrowErr(type_shorthand_self, "Expect \"self\".");
+    }
+    AddChild(type_keyword);
+  } catch (...) {
+    Restore(0, ptr_before_try);
+    throw "";
+  }
+}
+
+TypedSelf::TypedSelf(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
+  const int ptr_before_try = ptr;
+  try {
+    // mut?
+    if (tokens[ptr].GetStr() == "mut") {
+      AddChild(type_keyword);
+      if (ptr >= tokens.size()) {
+        ThrowErr(type_typed_self, "");
+      }
+    }
+    // self
+    if (tokens[ptr].GetStr() != "self") {
+      ThrowErr(type_typed_self, "Expect \"self\".");
+    }
+    AddChild(type_keyword);
+    // :
+    if (ptr >= tokens.size()) {
+      ThrowErr(type_typed_self, "");
+    }
+    if (tokens[ptr].GetStr() != ":") {
+      ThrowErr(type_typed_self, "Expect \":\".");
+    }
+    AddChild(type_punctuation);
+    // Type
+    if (ptr >= tokens.size()) {
+      ThrowErr(type_typed_self, "");
+    }
+    AddChild(type_type);
+  } catch (...) {
+    Restore(0, ptr_before_try);
+    throw "";
+  }
+}
+
+FunctionParam::FunctionParam(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
+  const int ptr_before_try = ptr;
+  try {
+    // PatternNoTopAlt
+    AddChild(type_pattern);
+    if (ptr >= tokens.size()) {
+      ThrowErr(type_function_param, "");
+    }
+    // :
+    if (tokens[ptr].GetStr() != ":") {
+      ThrowErr(type_function_param, "Expect \":\".");
+    }
+    AddChild(type_punctuation);
+    if (ptr >= tokens.size()) {
+      ThrowErr(type_function_param, "");
+    }
+    AddChild(type_type);
+  } catch (...) {
+    Restore(0, ptr_before_try);
+    throw "";
+  }
+}
