@@ -6,23 +6,17 @@
 
 class Keyword: public Node {
 public:
-  Keyword(const Token &token, int &ptr);
-private:
-  Token token_;
+  Keyword(const std::vector<Token> &tokens, int &ptr);
 };
 
 class Identifier : public Node {
 public:
-  Identifier(const Token &token, int &ptr);
-private:
-  Token token_;
+  Identifier(const std::vector<Token> &tokens, int &ptr);
 };
 
 class Punctuation : public Node {
 public:
-  Punctuation(const Token &token, int &ptr);
-private:
-  Token token_;
+  Punctuation(const std::vector<Token> &tokens, int &ptr);
 };
 
 #endif

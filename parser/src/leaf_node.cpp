@@ -1,11 +1,11 @@
-#include "module.h"
+#include "leaf_node.h"
 
-Keyword::Keyword(const Token &token, int &ptr) : token_(token) {
+Keyword::Keyword(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
   ++ptr;
 }
 
-Identifier::Identifier(const Token &token, int &ptr): token_(token) {
-  const std::string &t = token.GetStr();
+Identifier::Identifier(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
+  const std::string &t = tokens[ptr].GetStr();
   if (t == "as" || t == "break" || t == "const" || t == "continue" || t == "crate"
       || t == "dyn" || t == "else" || t == "enum" || t == "false" || t == "fn"
       || t == "for" || t == "if" || t == "impl" || t == "in" || t == "let"
@@ -16,13 +16,12 @@ Identifier::Identifier(const Token &token, int &ptr): token_(token) {
       || t == "become" || t == "box" || t == "do" || t == "final" || t == "macro"
       || t == "override" || t == "priv" || t == "typeof" || t == "unsized"
       || t == "virtual" || t == "yield" || t == "try" || t == "gen") {
-    std::cerr << "Cannot use keyword as identifier.\n";
-    throw "";
+    ThrowErr(type_identifier, "Expect identifier.");
   }
   ++ptr;
 }
 
-Punctuation::Punctuation(const Token &token, int &ptr) : token_(token) {
+Punctuation::Punctuation(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
   ++ptr;
 }
 
