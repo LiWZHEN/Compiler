@@ -9,8 +9,6 @@
 #include "implementation.h"
 #include "block_expression.h"
 #include "function_parameters.h"
-#include "generic_params.h"
-#include "where_clause.h"
 
 Node::Node(const std::vector<Token> &tokens, int &ptr) : tokens_(tokens), ptr_(ptr) {}
 
@@ -63,17 +61,17 @@ void Node::AddChild(NodeType node_type) {
       break;
     case type_keyword :
       children_.push_back(nullptr);
-      children_[target] = new Keyword(tokens_[ptr_], ptr_);
+      children_[target] = new Keyword(tokens_, ptr_);
       type_.push_back(type_keyword);
       break;
     case type_identifier :
       children_.push_back(nullptr);
-      children_[target] = new Identifier(tokens_[ptr_], ptr_);
+      children_[target] = new Identifier(tokens_, ptr_);
       type_.push_back(type_identifier);
       break;
     case type_punctuation :
       children_.push_back(nullptr);
-      children_[target] = new Punctuation(tokens_[ptr_], ptr_);
+      children_[target] = new Punctuation(tokens_, ptr_);
       type_.push_back(type_punctuation);
       break;
     /*case type_generic_params :
@@ -136,11 +134,11 @@ void Node::AddChild(NodeType node_type) {
       children_[target] = new TypePath(tokens_, ptr_);
       type_.push_back(type_type_path);
       break;
-    case type_generic_param :
+    /*case type_generic_param :
       children_.push_back(nullptr);
       children_[target] = new GenericParam(tokens_, ptr_);
       type_.push_back(type_generic_param);
-      break;
+      break;*/
     case type_self_param :
       children_.push_back(nullptr);
       children_[target] = new SelfParam(tokens_, ptr_);
@@ -166,11 +164,11 @@ void Node::AddChild(NodeType node_type) {
       children_[target] = new FunctionParamPattern(tokens_, ptr_);
       type_.push_back(type_function_param_pattern);
       break;
-    case type_where_clause_item :
+    /*case type_where_clause_item :
       children_.push_back(nullptr);
       children_[target] = new WhereClauseItem(tokens_, ptr_);
       type_.push_back(type_where_clause_item);
-      break;
+      break;*/
     case type_statements :
       children_.push_back(nullptr);
       children_[target] = new Statements(tokens_, ptr_);
