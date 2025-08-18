@@ -30,11 +30,18 @@ public:
 };
 
 class TupleStructPattern : public Node {
+public:
   TupleStructPattern(const std::vector<Token> &tokens, int &ptr);
 };
 
 class PathPattern : public Node {
+public:
   PathPattern(const std::vector<Token> &tokens, int &ptr);
+};
+
+class TupleStructItems : public Node {
+public:
+  TupleStructItems(const std::vector<Token> &tokens, int &ptr);
 };
 
 #endif

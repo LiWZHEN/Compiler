@@ -154,3 +154,30 @@ PathPattern::PathPattern(const std::vector<Token> &tokens, int &ptr) : Node(toke
     throw "";
   }
 }
+
+TupleStructItems::TupleStructItems(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
+  const int ptr_before_try = ptr;
+  try {
+    AddChild(type_pattern);
+    while (ptr < tokens.size()) {
+      if (tokens[ptr].GetStr() != ",") {
+        return;
+      }
+      AddChild(type_punctuation);
+      if (ptr >= tokens.size()) {
+        return;
+      }
+      const int size_before_trying_pattern = static_cast<int>(children_.size()),
+          ptr_before_trying_pattern = ptr;
+      try {
+        AddChild(type_pattern);
+      } catch (...) {
+        Restore(size_before_trying_pattern, ptr_before_trying_pattern);
+        return;
+      }
+    }
+  } catch (...) {
+    Restore(0, ptr_before_try);
+    throw "";
+  }
+}
