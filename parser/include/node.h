@@ -11,7 +11,9 @@ enum NodeType {
   type_function_parameters, type_function_return_type, type_block_expression, type_struct_fields,
   type_enum_variants, type_type, type_expression, type_type_param_bounds, type_associated_item,
   type_type_path, type_self_param, type_shorthand_self, type_typed_self, type_function_param,
-  type_function_param_pattern, type_statements, type_pattern
+  type_function_param_pattern, type_statements, type_pattern, type_literal_pattern,
+  type_identifier_pattern, type_wildcard_pattern, type_reference_pattern, type_tuple_struct_pattern,
+  type_path_pattern, type_literal_expression, type_path_in_expression, type_tuple_struct_items
 };
 
 class Node {
@@ -26,6 +28,14 @@ protected:
   std::vector<NodeType> type_;
   const std::vector<Token> &tokens_;
   int &ptr_;
+};
+
+class LeafNode : public Node {
+public:
+  LeafNode(const std::vector<Token> &tokens, int &ptr);
+protected:
+  [[nodiscard]] Token const &GetContent() const;
+  Token token_;
 };
 
 class Crate : public Node {

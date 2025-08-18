@@ -159,11 +159,6 @@ void Node::AddChild(NodeType node_type) {
       children_[target] = new FunctionParam(tokens_, ptr_);
       type_.push_back(type_function_param);
       break;
-    case type_function_param_pattern :
-      children_.push_back(nullptr);
-      children_[target] = new FunctionParamPattern(tokens_, ptr_);
-      type_.push_back(type_function_param_pattern);
-      break;
     /*case type_where_clause_item :
       children_.push_back(nullptr);
       children_[target] = new WhereClauseItem(tokens_, ptr_);
@@ -251,9 +246,9 @@ void Node::ThrowErr(const NodeType node_type, const std::string &info) {
     case type_type_path:
       std::cerr << "TypePath: ";
       break;
-    case type_generic_param:
+    /*case type_generic_param:
       std::cerr << "GenericParam: ";
-      break;
+      break;*/
     case type_self_param:
       std::cerr << "SelfParam: ";
       break;
@@ -266,12 +261,9 @@ void Node::ThrowErr(const NodeType node_type, const std::string &info) {
     case type_function_param:
       std::cerr << "FunctionParam: ";
       break;
-    case type_function_param_pattern:
-      std::cerr << "FunctionParamPattern: ";
-      break;
-    case type_where_clause_item:
+    /*case type_where_clause_item:
       std::cerr << "WhereClauseItem: ";
-      break;
+      break;*/
     case type_statements:
       std::cerr << "Statements: ";
       break;
@@ -295,6 +287,14 @@ void Node::Restore(const int size_before_try, const int ptr_before_try) {
   children_.resize(size_before_try);
   type_.resize(size_before_try);
   ptr_ = ptr_before_try;
+}
+
+LeafNode::LeafNode(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr), token_(tokens[ptr]) {
+  ++ptr;
+}
+
+Token const &LeafNode::GetContent() const {
+  return token_;
 }
 
 Crate::Crate(const std::vector<Token> &tokens, int &ptr): Node(tokens, ptr) {

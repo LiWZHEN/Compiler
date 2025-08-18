@@ -1,10 +1,8 @@
 #include "leaf_node.h"
 
-Keyword::Keyword(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
-  ++ptr;
-}
+Keyword::Keyword(const std::vector<Token> &tokens, int &ptr) : LeafNode(tokens, ptr) {}
 
-Identifier::Identifier(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
+Identifier::Identifier(const std::vector<Token> &tokens, int &ptr) : LeafNode(tokens, ptr) {
   const std::string &t = tokens[ptr].GetStr();
   if (t == "as" || t == "break" || t == "const" || t == "continue" || t == "crate"
       || t == "dyn" || t == "else" || t == "enum" || t == "false" || t == "fn"
@@ -18,10 +16,6 @@ Identifier::Identifier(const std::vector<Token> &tokens, int &ptr) : Node(tokens
       || t == "virtual" || t == "yield" || t == "try" || t == "gen") {
     ThrowErr(type_identifier, "Expect identifier.");
   }
-  ++ptr;
 }
 
-Punctuation::Punctuation(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
-  ++ptr;
-}
-
+Punctuation::Punctuation(const std::vector<Token> &tokens, int &ptr) : LeafNode(tokens, ptr) {}

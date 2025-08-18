@@ -4,17 +4,17 @@
 #include "classes.h"
 #include "node.h"
 
-class Keyword: public Node {
+class Keyword: public LeafNode {
 public:
   Keyword(const std::vector<Token> &tokens, int &ptr);
 };
 
-class Identifier : public Node {
+class Identifier : public LeafNode {
 public:
   Identifier(const std::vector<Token> &tokens, int &ptr);
 };
 
-class Punctuation : public Node {
+class Punctuation : public LeafNode {
 public:
   Punctuation(const std::vector<Token> &tokens, int &ptr);
 };
