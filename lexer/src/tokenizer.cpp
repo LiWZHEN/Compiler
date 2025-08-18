@@ -7,7 +7,9 @@ void Tokenizer::Tokenize() {
   while (ptr_ < str_.length()) {
     MatchResult next_match_result = matcher.GetNext();
     Token next_token = {next_match_result.type_, next_match_result.matched_str_, row_, col_};
-    tokens_.push_back(next_token);
+    if (next_match_result.type_ != DEFAULT) {
+      tokens_.push_back(next_token);
+    }
     for (const char &c : next_match_result.matched_str_) {
       if (c == '\n') {
         ++row_;
