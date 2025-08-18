@@ -3,7 +3,7 @@
 Keyword::Keyword(const std::vector<Token> &tokens, int &ptr) : LeafNode(tokens, ptr) {}
 
 Identifier::Identifier(const std::vector<Token> &tokens, int &ptr) : LeafNode(tokens, ptr) {
-  const std::string &t = tokens[ptr].GetStr();
+  const std::string &t = token_.GetStr();
   if (t == "as" || t == "break" || t == "const" || t == "continue" || t == "crate"
       || t == "dyn" || t == "else" || t == "enum" || t == "false" || t == "fn"
       || t == "for" || t == "if" || t == "impl" || t == "in" || t == "let"
