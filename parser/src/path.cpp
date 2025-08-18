@@ -1,13 +1,19 @@
 #include "path.h"
 
 PathInExpression::PathInExpression(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
-  AddChild(type_path_expr_segment);
-  if (ptr < tokens.size() && tokens[ptr].GetStr() == "::") {
-    AddChild(type_punctuation);
-    if (ptr >= tokens.size()) {
-      ThrowErr(type_path_in_expression, "");
-    }
+  const int ptr_before_try = ptr;
+  try {
     AddChild(type_path_expr_segment);
+    if (ptr < tokens.size() && tokens[ptr].GetStr() == "::") {
+      AddChild(type_punctuation);
+      if (ptr >= tokens.size()) {
+        ThrowErr(type_path_in_expression, "");
+      }
+      AddChild(type_path_expr_segment);
+    }
+  } catch (...) {
+    Restore(0, ptr_before_try);
+    throw "";
   }
 }
 
