@@ -14,6 +14,7 @@ Identifier::Identifier(const std::vector<Token> &tokens, int &ptr) : LeafNode(to
       || t == "become" || t == "box" || t == "do" || t == "final" || t == "macro"
       || t == "override" || t == "priv" || t == "typeof" || t == "unsized"
       || t == "virtual" || t == "yield" || t == "try" || t == "gen") {
+    --ptr;
     ThrowErr(type_identifier, "Expect identifier.");
   }
 }
