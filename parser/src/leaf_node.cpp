@@ -20,3 +20,15 @@ Identifier::Identifier(const std::vector<Token> &tokens, int &ptr) : LeafNode(to
 }
 
 Punctuation::Punctuation(const std::vector<Token> &tokens, int &ptr) : LeafNode(tokens, ptr) {}
+
+CharLiteral::CharLiteral(const std::vector<Token> &tokens, int &ptr) : LeafNode(tokens, ptr) {}
+
+StringLiteral::StringLiteral(const std::vector<Token> &tokens, int &ptr) : LeafNode(tokens, ptr) {}
+
+RawStringLiteral::RawStringLiteral(const std::vector<Token> &tokens, int &ptr) : LeafNode(tokens, ptr) {}
+
+CStringLiteral::CStringLiteral(const std::vector<Token> &tokens, int &ptr) : LeafNode(tokens, ptr) {}
+
+RawCStringLiteral::RawCStringLiteral(const std::vector<Token> &tokens, int &ptr) : LeafNode(tokens, ptr) {}
+
+IntegerLiteral::IntegerLiteral(const std::vector<Token> &tokens, int &ptr) : LeafNode(tokens, ptr) {}
