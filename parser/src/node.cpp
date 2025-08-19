@@ -4,11 +4,10 @@
 #include "functions.h"
 #include "structs.h"
 #include "enumerations.h"
-#include "constant_items.h"
 #include "trait.h"
-#include "implementation.h"
 #include "block_expression.h"
 #include "function_parameters.h"
+#include "type.h"
 
 Node::Node(const std::vector<Token> &tokens, int &ptr) : tokens_(tokens), ptr_(ptr) {}
 
@@ -21,8 +20,20 @@ Node::~Node() {
   type_.resize(0);
 }
 
+int Node::GetChildrenNum() const {
+  return static_cast<int>(children_.size());
+}
+
+std::vector<Node *> const &Node::GetChildrenPtr() const {
+  return children_;
+}
+
+std::vector<NodeType> const &Node::GetChildrenType() const {
+  return type_;
+}
+
 void Node::AddChild(NodeType node_type) {
-  int target = static_cast<int>(children_.size());
+  const int target = static_cast<int>(children_.size());
   switch (node_type) {
     case type_item :
       children_.push_back(nullptr);
@@ -114,11 +125,6 @@ void Node::AddChild(NodeType node_type) {
       children_[target] = new Type(tokens_, ptr_);
       type_.push_back(type_type);
       break;
-    case type_expression :
-      children_.push_back(nullptr);
-      children_[target] = new Expression(tokens_, ptr_);
-      type_.push_back(type_expression);
-      break;
     case type_type_param_bounds :
       children_.push_back(nullptr);
       children_[target] = new TypeParamBounds(tokens_, ptr_);
@@ -173,6 +179,40 @@ void Node::AddChild(NodeType node_type) {
       std::cerr << "Invalid type!\n";
       throw "";
   }
+}
+
+void Node::AddExpr() {
+  const std::string next_token = tokens_[ptr_].GetStr();
+  const int target = static_cast<int>(children_.size());
+  children_.push_back(nullptr);
+  if (next_token == "{") {
+    children_[target] = reinterpret_cast<Node *>(new Expression(tokens_, ptr_, block_expr, 0));
+  } else if (next_token == "const") {
+    children_[target] = reinterpret_cast<Node *>(new Expression(tokens_, ptr_, const_block_expr, 0));
+  } else if (next_token == "loop") {
+    children_[target] = reinterpret_cast<Node *>(new Expression(tokens_, ptr_, infinite_loop_expr, 0));
+  } else if (next_token == "while") {
+    children_[target] = reinterpret_cast<Node *>(new Expression(tokens_, ptr_, predicate_loop_expr, 0));
+  } else if (next_token == "if") {
+    children_[target] = reinterpret_cast<Node *>(new Expression(tokens_, ptr_, if_expr, 0));
+  } else if (next_token == "match") {
+    children_[target] = reinterpret_cast<Node *>(new Expression(tokens_, ptr_, match_expr, 0));
+  } else if (next_token == "(") {
+    children_[target] = reinterpret_cast<Node *>(new Expression(tokens_, ptr_, grouped_expr, 0));
+  } else if (next_token == "[") {
+    children_[target] = reinterpret_cast<Node *>(new Expression(tokens_, ptr_, array_expr, 0));
+  } else if (next_token == "continue") {
+    children_[target] = reinterpret_cast<Node *>(new Expression(tokens_, ptr_, continue_expr, 0));
+  } else if (next_token == "break") {
+    children_[target] = reinterpret_cast<Node *>(new Expression(tokens_, ptr_, break_expr, 0));
+  } else if (next_token == "return") {
+    children_[target] = reinterpret_cast<Node *>(new Expression(tokens_, ptr_, return_expr, 0));
+  } else if (next_token == "_") {
+    children_[target] = reinterpret_cast<Node *>(new Expression(tokens_, ptr_, underscore_expr, 0));
+  } else {
+    children_[target] = reinterpret_cast<Node *>(new Expression(tokens_, ptr_, unknown, 0));
+  }
+  type_.push_back(type_expression);
 }
 
 void Node::ThrowErr(const NodeType node_type, const std::string &info) {
@@ -233,9 +273,6 @@ void Node::ThrowErr(const NodeType node_type, const std::string &info) {
       break;
     case type_type:
       std::cerr << "Type: ";
-      break;
-    case type_expression:
-      std::cerr << "Expression: ";
       break;
     case type_type_param_bounds:
       std::cerr << "TypeParamBounds: ";

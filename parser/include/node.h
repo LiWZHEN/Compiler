@@ -4,6 +4,7 @@
 #include <vector>
 #include "classes.h"
 #include "token.h"
+#include "expression.h"
 
 enum NodeType {
   type_crate, type_item, type_function, type_struct, type_enumeration, type_constant_item,
@@ -14,8 +15,7 @@ enum NodeType {
   type_pattern, type_literal_pattern, type_identifier_pattern, type_wildcard_pattern,
   type_reference_pattern, type_tuple_struct_pattern, type_literal_expression, type_path_in_expression,
   type_tuple_struct_items, type_path_expr_segment, type_reference_type, type_array_type,
-  type_slice_type, type_inferred_type, type_expression, type_expression_without_block,
-  type_expression_with_block
+  type_slice_type, type_inferred_type, type_expression
 };
 
 class Node {
@@ -27,6 +27,7 @@ public:
   [[nodiscard]] std::vector<NodeType> const &GetChildrenType() const;
 protected:
   void AddChild(NodeType node_type);
+  void AddExpr();
   void ThrowErr(NodeType node_type, const std::string &info);
   void Restore(int size_before_try, int ptr_before_try);
   std::vector<Node *> children_;

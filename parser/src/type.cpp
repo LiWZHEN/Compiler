@@ -92,7 +92,7 @@ ArrayType::ArrayType(const std::vector<Token> &tokens, int &ptr) : Node(tokens, 
     if (ptr >= tokens.size()) {
       ThrowErr(type_array_type, "");
     }
-    AddChild(type_expression);
+    AddExpr();
     if (ptr >= tokens.size()) {
       ThrowErr(type_array_type, "");
     }
