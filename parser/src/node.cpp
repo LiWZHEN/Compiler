@@ -181,7 +181,7 @@ void Node::AddChild(NodeType node_type) {
   }
 }
 
-void Node::AddExpr() {
+/*void Node::AddExpr() {
   const std::string next_token = tokens_[ptr_].GetStr();
   const int target = static_cast<int>(children_.size());
   children_.push_back(nullptr);
@@ -213,7 +213,7 @@ void Node::AddExpr() {
     children_[target] = reinterpret_cast<Node *>(new Expression(tokens_, ptr_, unknown, 0));
   }
   type_.push_back(type_expression);
-}
+}*/
 
 void Node::ThrowErr(const NodeType node_type, const std::string &info) {
   switch (node_type) {

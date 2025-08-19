@@ -27,7 +27,7 @@ public:
   [[nodiscard]] std::vector<NodeType> const &GetChildrenType() const;
 protected:
   void AddChild(NodeType node_type);
-  void AddExpr();
+  // void AddExpr();
   void ThrowErr(NodeType node_type, const std::string &info);
   void Restore(int size_before_try, int ptr_before_try);
   std::vector<Node *> children_;
