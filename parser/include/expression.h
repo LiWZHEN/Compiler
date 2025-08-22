@@ -9,7 +9,7 @@ enum ExprType {
   if_expr, match_expr, literal_expr, path_in_expr, operator_expr, grouped_expr,
   array_expr, index_expr, struct_expr, call_expr, method_call_expr, field_expr,
   continue_expr, break_expr, return_expr, underscore_expr, lazy_boolean_expr,
-  assignment_expr, compound_assignment_expr
+  assignment_expr, compound_assignment_expr, prefix_expr, call_params
 };
 
 enum Prefix {
@@ -22,7 +22,8 @@ enum Infix {
   is_not_equal, is_bigger, is_smaller, is_not_smaller, is_not_bigger, logic_or,
   logic_and, type_cast, assign, add_assign, minus_assign, multiply_assign,
   divide_assign, mod_assign, bitwise_and_assign, bitwise_or_assign,
-  bitwise_xor_assign, left_shift_assign, right_shift_assign
+  bitwise_xor_assign, left_shift_assign, right_shift_assign, brackets_closure,
+  small_brackets_closure
 };
 
 class LiteralExpression : public LeafNode {
@@ -34,12 +35,12 @@ class Expression : public Node {
 public:
   Expression(const std::vector<Token> &tokens, int &ptr, ExprType expr_type, double min_bp);
   [[nodiscard]] ExprType GetNextExprType() const;
-  // [[nodiscard]] ExprType GetExprTypeForTest() const;
+  [[nodiscard]] ExprType GetExprType() const;
   [[nodiscard]] Infix GetInfixForTest() const;
+  [[nodiscard]] std::string GetNodeLabel() const override;
 private:
-  Expression(Expression *lhs, Expression *rhs, Infix infix);
+  Expression(const std::vector<Token> &tokens, int &ptr, Expression *lhs, Expression *rhs, Infix infix);
   ExprType expr_type_;
-  // Prefix prefix_ = not_prefix;
   Infix infix_ = not_infix;
 };
 

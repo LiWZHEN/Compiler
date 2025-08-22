@@ -49,6 +49,9 @@ double GetBP(Infix op, int side) {
       case left_shift_assign:
       case right_shift_assign:
         return 1.1;
+      case brackets_closure:
+      case small_brackets_closure:
+        return 0.0;
       default:
         throw "";
     }
@@ -56,7 +59,7 @@ double GetBP(Infix op, int side) {
   switch (op) {
     case brackets:
     case small_brackets:
-      return 12.0;
+      return 0.1;
     case dot:
       return 13.1;
     case add:
@@ -205,6 +208,12 @@ Infix GetInfix(const std::string &op) {
   if (op == ">>=") {
     return right_shift_assign;
   }
+  if (op == "]") {
+    return brackets_closure;
+  }
+  if (op == ")") {
+    return small_brackets_closure;
+  }
   return not_infix;
 }
 
@@ -259,6 +268,9 @@ ExprType Expression::GetNextExprType() const {
   if (next_token == "true" || next_token == "false") {
     return literal_expr;
   }
+  if (next_token == "&" || next_token == "&&" || next_token == "*" || next_token == "-" || next_token == "!") {
+    return prefix_expr;
+  }
   type next_token_type = tokens_[ptr_].GetType();
   if (next_token_type == CHAR_LITERAL || next_token_type == STRING_LITERAL || next_token_type == RAW_STRING_LITERAL
       || next_token_type == C_STRING_LITERAL || next_token_type == RAW_C_STRING_LITERAL || next_token_type == INTEGER_LITERAL) {
@@ -267,7 +279,7 @@ ExprType Expression::GetNextExprType() const {
   return unknown;
 }
 
-Expression::Expression(Expression *lhs, Expression *rhs, Infix infix) : Node(tokens_, ptr_), expr_type_(unknown), infix_(infix) {
+Expression::Expression(const std::vector<Token> &tokens, int &ptr, Expression *lhs, Expression *rhs, Infix infix) : Node(tokens, ptr), expr_type_(unknown), infix_(infix) {
   children_.push_back(lhs);
   type_.push_back(type_expression);
   if (rhs != nullptr) {
@@ -859,6 +871,48 @@ Expression::Expression(const std::vector<Token> &tokens, int &ptr, ExprType expr
       }
     } else if (expr_type_ == path_in_expr) {
       AddChild(type_path_in_expression);
+    } else if (expr_type_ == prefix_expr) {
+      std::string next_token = tokens_[ptr_].GetStr();
+      if (next_token == "&" || next_token == "&&") {
+        AddChild(type_punctuation);
+        if (ptr_ >= tokens_.size()) {
+          ThrowErr(type_expression, "");
+        }
+        if (tokens_[ptr_].GetStr() == "mut") {
+          AddChild(type_keyword);
+          if (ptr_ >= tokens_.size()) {
+            ThrowErr(type_expression, "");
+          }
+        }
+      } else if (next_token == "*" || next_token == "-" || next_token == "!") {
+        AddChild(type_punctuation);
+        if (ptr_ >= tokens_.size()) {
+          ThrowErr(type_expression, "");
+        }
+      } else {
+        ThrowErr(type_expression, R"(Expect "&" or "&&" or "*" or "-" or "!")");
+      }
+      // Add an expression with min_bp greater than 11.5
+      const int size_before_trying_adding_expr = static_cast<int>(children_.size());
+      const int ptr_before_trying_adding_expr = ptr_;
+      try {
+        children_.push_back(new Expression(tokens_, ptr_, unknown, 11.5));
+        type_.push_back(type_expression);
+      } catch (...) {
+        Restore(size_before_trying_adding_expr, ptr_before_trying_adding_expr);
+        throw "";
+      }
+    } else if (expr_type_ == call_params) {
+      while (ptr_ < tokens_.size() && tokens_[ptr_].GetStr() != ")") {
+        AddChild(type_expression);
+        if (ptr_ >= tokens_.size() || tokens_[ptr_].GetStr() == ")") {
+          return;
+        }
+        if (tokens_[ptr_].GetStr() != ",") {
+          ThrowErr(type_expression, "Expect \",\".");
+        }
+        AddChild(type_punctuation);
+      }
     } else {
       // Pratt Parsing: Idea comes from https://www.bilibili.com/video/BV12d79zxEQn?vd_source=801f1864d3cf02d7adaecff6567a38bc
       ExprType next_type = GetNextExprType();
@@ -866,41 +920,92 @@ Expression::Expression(const std::vector<Token> &tokens, int &ptr, ExprType expr
       if (next_type != unknown) {
         lhs = new Expression(tokens_, ptr_, next_type, 0.0);
       } else {
-        try {
-          lhs = new Expression(tokens_, ptr_, struct_expr, 0.0);
-        } catch (...) {
-          delete lhs;
-          lhs = nullptr;
-          std::cerr << "Expression: Successfully handle the struct expression try failure.\n";
-          lhs = new Expression(tokens_, ptr_, path_in_expr, 0.0);
+        std::string next_token = tokens_[ptr_].GetStr();
+        if (next_token == "&" || next_token == "&&" || next_token == "*" || next_token == "-" || next_token == "!") {
+          lhs = new Expression(tokens_, ptr_, prefix_expr, 0.0);
+        } else {
+          try {
+            lhs = new Expression(tokens_, ptr_, struct_expr, 0.0);
+          } catch (...) {
+            delete lhs;
+            lhs = nullptr;
+            std::cerr << "Expression: Successfully handle the struct expression try failure.\n";
+            lhs = new Expression(tokens_, ptr_, path_in_expr, 0.0);
+          }
         }
       }
       while (ptr_ < tokens_.size()) {
         // set op
         infix_ = GetInfix(tokens_[ptr_].GetStr());
-        if (infix_ == not_infix) {
+        if (infix_ == not_infix || infix_ == brackets_closure || infix_ == small_brackets_closure) {
           // no more infix, expression comes to the end
-          children_.push_back(lhs);
-          type_.push_back(type_expression);
-          return;
+          break;
         }
         // valid infix, this is not the ending of the expression
         if (GetBP(infix_, 0) > min_bp) {
           // binding power is stronger than the op outside, continue to construct
-          ++ptr_;
-          rhs = new Expression(tokens_, ptr_, unknown, GetBP(infix_, 1));
-          lhs = new Expression(lhs, rhs, infix_);
-          rhs = nullptr;
-          infix_ = not_infix;
+          ++ptr_; // consume the infix
+          if (infix_ == small_brackets) {
+            // the following should be call params
+            if (ptr_ >= tokens_.size()) {
+              ThrowErr(type_expression, "");
+            }
+            rhs = new Expression(tokens_, ptr_, call_params, 0.0);
+            // expect small brackets closure
+            if (ptr_ >= tokens_.size()) {
+              ThrowErr(type_expression, "");
+            }
+            if (tokens_[ptr_].GetStr() != ")") {
+              ThrowErr(type_expression, "Expect \")\".");
+            }
+            ++ptr_; // consume it
+            lhs = new Expression(tokens_, ptr_, lhs, rhs, infix_);
+            rhs = nullptr;
+            infix_ = not_infix;
+          } else if (infix_ == brackets) {
+            if (ptr_ >= tokens_.size()) {
+              ThrowErr(type_expression, "");
+            }
+            rhs = new Expression(tokens_, ptr_, unknown, 0.1);
+            if (ptr_ >= tokens_.size()) {
+              ThrowErr(type_expression, "");
+            }
+            if (tokens_[ptr_].GetStr() != "]") {
+              ThrowErr(type_expression, "Expect \"]\".");
+            }
+            ++ptr_;
+            lhs = new Expression(tokens_, ptr_, lhs, rhs, infix_);
+            rhs = nullptr;
+            infix_ = not_infix;
+          } else {
+            if (ptr_ >= tokens_.size()) {
+              ThrowErr(type_expression, "");
+            }
+            rhs = new Expression(tokens_, ptr_, unknown, GetBP(infix_, 1));
+            lhs = new Expression(tokens_, ptr_, lhs, rhs, infix_);
+            rhs = nullptr;
+            infix_ = not_infix;
+          }
         } else {
           // binding power is weaker than the op outside, construction ends
-          children_.push_back(lhs);
-          type_.push_back(type_expression);
-          infix_ = not_infix;
-          return;
+          break;
         }
       }
+      // no more op
+      infix_ = lhs->infix_;
+      expr_type_ = lhs->expr_type_;
+      children_ = lhs->children_;
+      type_ = lhs->type_;
     }
+    if (lhs != nullptr) {
+      for (auto &it : lhs->children_) {
+        it = nullptr;
+      }
+      delete lhs;
+      lhs = nullptr;
+    }
+    delete rhs;
+    rhs = nullptr;
   } catch (...) {
     delete lhs;
     delete rhs;
@@ -909,14 +1014,13 @@ Expression::Expression(const std::vector<Token> &tokens, int &ptr, ExprType expr
   }
 }
 
-/*ExprType Expression::GetExprTypeForTest() const {
+ExprType Expression::GetExprType() const {
   return expr_type_;
-}*/
+}
 
 Infix Expression::GetInfixForTest() const {
   return infix_;
 }
-
 
 StructExprField::StructExprField(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
   const int ptr_before_try = ptr_;
@@ -963,5 +1067,133 @@ StructExprFields::StructExprFields(const std::vector<Token> &tokens, int &ptr) :
   } catch (...) {
     Restore(0, ptr_before_try);
     throw "";
+  }
+}
+
+std::string Expression::GetNodeLabel() const {
+  switch (expr_type_) {
+    case unknown:
+      switch (infix_) {
+        case brackets:
+          return "[]";
+        case small_brackets:
+          return "()";
+        case dot:
+          return ".";
+        case add:
+          return "+";
+        case minus:
+          return "-";
+        case multiply:
+          return "*";
+        case divide:
+          return "/";
+        case mod:
+          return "%";
+        case bitwise_and:
+          return "&";
+        case bitwise_or:
+          return "|";
+        case bitwise_xor:
+          return "^";
+        case left_shift:
+          return "<<";
+        case right_shift:
+          return ">>";
+        case is_equal:
+          return "==";
+        case is_not_equal:
+          return "!=";
+        case is_bigger:
+          return ">";
+        case is_smaller:
+          return "<";
+        case is_not_smaller:
+          return ">=";
+        case is_not_bigger:
+          return "<=";
+        case logic_or:
+          return "||";
+        case logic_and:
+          return "&&";
+        case type_cast:
+          return "as";
+        case assign:
+          return "=";
+        case add_assign:
+          return "+=";
+        case minus_assign:
+          return "-=";
+        case multiply_assign:
+          return "*=";
+        case divide_assign:
+          return "/=";
+        case mod_assign:
+          return "%=";
+        case bitwise_and_assign:
+          return "&=";
+        case bitwise_or_assign:
+          return "|=";
+        case bitwise_xor_assign:
+          return "^=";
+        case left_shift_assign:
+          return "<<=";
+        case right_shift_assign:
+          return ">>=";
+        default:
+          return "unknown";
+      }
+    case block_expr:
+      return "block_expr";
+    case const_block_expr:
+      return "const_block_expr";
+    case infinite_loop_expr:
+      return "infinite_loop_expr";
+    case predicate_loop_expr:
+      return "predicate_loop_expr";
+    case if_expr:
+      return "if_expr";
+    case match_expr:
+      return "match_expr";
+    case literal_expr:
+      return "literal_expr";
+    case path_in_expr:
+      return "path_in_expr";
+    case operator_expr:
+      return "operator_expr";
+    case grouped_expr:
+      return "grouped_expr";
+    case array_expr:
+      return "array_expr";
+    case index_expr:
+      return "index_expr";
+    case struct_expr:
+      return "struct_expr";
+    case call_expr:
+      return "call_expr";
+    case method_call_expr:
+      return "method_call_expr";
+    case field_expr:
+      return "field_expr";
+    case continue_expr:
+      return "continue_expr";
+    case break_expr:
+      return "break_expr";
+    case return_expr:
+      return "return_expr";
+    case underscore_expr:
+      return "underscore_expr";
+    case lazy_boolean_expr:
+      return "lazy_boolean_expr";
+    case assignment_expr:
+      return "assignment_expr";
+    case compound_assignment_expr:
+      return "compound_assignment_expr";
+    case prefix_expr:
+      return "prefix_expr";
+    case call_params:
+      return "call_params";
+    default:
+      throw "";
   }
 }
