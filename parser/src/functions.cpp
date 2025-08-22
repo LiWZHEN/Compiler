@@ -1,48 +1,5 @@
 #include "functions.h"
 
-/*GenericParams::GenericParams(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
-  const int ptr_before_try = ptr;
-  try {
-    // <
-    if (tokens[ptr].GetStr() != "<") {
-      ThrowErr(type_generic_params, "Expect \"<\".");
-    }
-    AddChild(type_punctuation);
-    if (ptr >= tokens.size()) {
-      ThrowErr(type_generic_params, "");
-    }
-    if (tokens[ptr].GetStr() != ">") {
-      AddChild(type_generic_param);
-      if (ptr >= tokens.size()) {
-        ThrowErr(type_generic_params, "");
-      }
-      while (true) {
-        if (tokens[ptr].GetStr() != ",") {
-          break;
-        }
-        AddChild(type_punctuation);
-        if (ptr >= tokens.size()) {
-          ThrowErr(type_generic_params, "");
-        }
-        if (tokens[ptr].GetStr() == ">") {
-          break;
-        }
-        AddChild(type_generic_param);
-        if (ptr >= tokens.size()) {
-          ThrowErr(type_generic_params, "");
-        }
-      }
-    }
-    if (tokens[ptr].GetStr() != ">") {
-      ThrowErr(type_generic_params, "Expect \">\".");
-    }
-    AddChild(type_punctuation);
-  } catch (...) {
-    Restore(0, ptr_before_try);
-    throw "";
-  }
-}*/
-
 FunctionParameters::FunctionParameters(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
   const int ptr_before_try = ptr;
   try {
@@ -118,6 +75,48 @@ FunctionReturnType::FunctionReturnType(const std::vector<Token> &tokens, int &pt
   }
 }
 
+/*GenericParams::GenericParams(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
+  const int ptr_before_try = ptr;
+  try {
+    // <
+    if (tokens[ptr].GetStr() != "<") {
+      ThrowErr(type_generic_params, "Expect \"<\".");
+    }
+    AddChild(type_punctuation);
+    if (ptr >= tokens.size()) {
+      ThrowErr(type_generic_params, "");
+    }
+    if (tokens[ptr].GetStr() != ">") {
+      AddChild(type_generic_param);
+      if (ptr >= tokens.size()) {
+        ThrowErr(type_generic_params, "");
+      }
+      while (true) {
+        if (tokens[ptr].GetStr() != ",") {
+          break;
+        }
+        AddChild(type_punctuation);
+        if (ptr >= tokens.size()) {
+          ThrowErr(type_generic_params, "");
+        }
+        if (tokens[ptr].GetStr() == ">") {
+          break;
+        }
+        AddChild(type_generic_param);
+        if (ptr >= tokens.size()) {
+          ThrowErr(type_generic_params, "");
+        }
+      }
+    }
+    if (tokens[ptr].GetStr() != ">") {
+      ThrowErr(type_generic_params, "Expect \">\".");
+    }
+    AddChild(type_punctuation);
+  } catch (...) {
+    Restore(0, ptr_before_try);
+    throw "";
+  }
+}*/
 /*WhereClause::WhereClause(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
   const int ptr_before_try = ptr;
   try {
@@ -160,33 +159,3 @@ FunctionReturnType::FunctionReturnType(const std::vector<Token> &tokens, int &pt
     throw "";
   }
 }*/
-
-BlockExpression::BlockExpression(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
-  const int ptr_before_try = ptr;
-  try {
-    // {
-    if (tokens[ptr].GetStr() != "{") {
-      ThrowErr(type_block_expression, "Expect \"{\".");
-    }
-    AddChild(type_punctuation);
-    if (ptr >= tokens.size()) {
-      ThrowErr(type_block_expression, "");
-    }
-    // Statements?
-    if (tokens[ptr].GetStr() != "}") {
-      // Statements
-      AddChild(type_statements);
-    }
-    // }
-    if (ptr >= tokens.size()) {
-      ThrowErr(type_block_expression, "");
-    }
-    if (tokens[ptr].GetStr() != "}") {
-      ThrowErr(type_block_expression, "Expect \"}\".");
-    }
-    AddChild(type_punctuation);
-  } catch (...) {
-    Restore(0, ptr_before_try);
-    throw "";
-  }
-}
