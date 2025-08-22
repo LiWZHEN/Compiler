@@ -2,6 +2,7 @@
 #include "tokenizer.h"
 #include "classes.h"
 #include "builder.h"
+#include "expression.h"
 
 TEST(FunctionTest, EmptyMainFunction) {
   std::vector<Token> tokens;
@@ -68,6 +69,49 @@ TEST(FunctionTest, EmptyMainFunction) {
   ASSERT_EQ(block_child_ptr1->GetContent().GetStr(), "{");
   ASSERT_EQ(block_child_ptr2->GetContent().GetType(), PUNCTUATION);
   ASSERT_EQ(block_child_ptr2->GetContent().GetStr(), "}");
+  delete syntax_tree;
+}
+
+TEST(ExpressionTest, OperatorExpression1) {
+  std::vector<Token> tokens;
+  const std::string str = "a";
+  Tokenizer tokenizer(str, tokens);
+  tokenizer.Tokenize();
+  int ptr = 0;
+  Node *expr_tree = new Expression(tokens, ptr, unknown, 0);
+
+  // parsing succeeded
+  ASSERT_NE(expr_tree, nullptr);
+  std::cout << expr_tree->GetStruct("", true);
+  delete expr_tree;
+}
+
+TEST(ExpressionTest, OperatorExpression2) {
+  std::vector<Token> tokens;
+  const std::string str = "a * c + b";
+  Tokenizer tokenizer(str, tokens);
+  tokenizer.Tokenize();
+  int ptr = 0;
+  Node *expr_tree = new Expression(tokens, ptr, unknown, 0);
+
+  // parsing succeeded
+  ASSERT_NE(expr_tree, nullptr);
+  std::cout << expr_tree->GetStruct("", true);
+  delete expr_tree;
+}
+
+TEST(ExpressionTest, WithPrefixAndBracketInfixes) {
+  std::vector<Token> tokens;
+  const std::string str = "b.z * &d + e[1 + x()]";
+  Tokenizer tokenizer(str, tokens);
+  tokenizer.Tokenize();
+  int ptr = 0;
+  Node *expr_tree = new Expression(tokens, ptr, unknown, 0);
+
+  // parsing succeeded
+  ASSERT_NE(expr_tree, nullptr);
+  std::cout << expr_tree->GetStruct("", true);
+  delete expr_tree;
 }
 
 int main(int argc, char **argv) {
