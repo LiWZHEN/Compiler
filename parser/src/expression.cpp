@@ -227,6 +227,36 @@ LiteralExpression::LiteralExpression(const std::vector<Token> &tokens, int &ptr)
   }
 }
 
+BlockExpression::BlockExpression(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
+  const int ptr_before_try = ptr;
+  try {
+    // {
+    if (tokens[ptr].GetStr() != "{") {
+      ThrowErr(type_block_expression, "Expect \"{\".");
+    }
+    AddChild(type_punctuation);
+    if (ptr >= tokens.size()) {
+      ThrowErr(type_block_expression, "");
+    }
+    // Statements?
+    if (tokens[ptr].GetStr() != "}") {
+      // Statements
+      AddChild(type_statements);
+    }
+    // }
+    if (ptr >= tokens.size()) {
+      ThrowErr(type_block_expression, "");
+    }
+    if (tokens[ptr].GetStr() != "}") {
+      ThrowErr(type_block_expression, "Expect \"}\".");
+    }
+    AddChild(type_punctuation);
+  } catch (...) {
+    Restore(0, ptr_before_try);
+    throw "";
+  }
+}
+
 ExprType Expression::GetNextExprType() const {
   const std::string next_token = tokens_[ptr_].GetStr();
   if (next_token == "{") {

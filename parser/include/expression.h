@@ -31,6 +31,11 @@ public:
   LiteralExpression(const std::vector<Token> &tokens, int &ptr);
 };
 
+class BlockExpression : public Node {
+public:
+  BlockExpression(const std::vector<Token> &tokens, int &ptr);
+};
+
 class Expression : public Node {
 public:
   Expression(const std::vector<Token> &tokens, int &ptr, ExprType expr_type, double min_bp);
