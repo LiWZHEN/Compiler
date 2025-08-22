@@ -23,7 +23,6 @@ class BlockExpression;
 class StructFields;
 class EnumVariants;
 class Type;
-class Expression;
 class TypeParamBounds;
 class AssociatedItem;
 class TypePath;
@@ -38,8 +37,10 @@ class IdentifierPattern;
 class WildcardPattern;
 class ReferencePattern;
 class TupleStructPattern;
-class PathPattern;
 class LiteralExpression;
 class PathInExpression;
+class Expression;
+class StructExprField;
+class StructExprFields;
 
 #endif
