@@ -9,4 +9,19 @@ public:
   Statements(const std::vector<Token> &tokens, int &ptr);
 };
 
+class Statement : public Node {
+public:
+  Statement(const std::vector<Token> &tokens, int &ptr);
+};
+
+class LetStatement : public Node {
+public:
+  LetStatement(const std::vector<Token> &tokens, int &ptr);
+};
+
+class ExpressionStatement : public Node {
+public:
+  ExpressionStatement(const std::vector<Token> &tokens, int &ptr);
+};
+
 #endif
