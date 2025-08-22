@@ -6,10 +6,10 @@
 
 enum ExprType {
   unknown, block_expr, const_block_expr, infinite_loop_expr, predicate_loop_expr,
-  if_expr, match_expr, literal_expr, path_in_expr, operator_expr, grouped_expr,
-  array_expr, index_expr, struct_expr, call_expr, method_call_expr, field_expr,
-  continue_expr, break_expr, return_expr, underscore_expr, lazy_boolean_expr,
-  assignment_expr, compound_assignment_expr, prefix_expr, call_params
+  if_expr, literal_expr, path_in_expr, operator_expr, grouped_expr, array_expr,
+  index_expr, struct_expr, call_expr, method_call_expr, field_expr, continue_expr,
+  break_expr, return_expr, underscore_expr, lazy_boolean_expr, assignment_expr,
+  compound_assignment_expr, prefix_expr, call_params
 };
 
 enum Prefix {

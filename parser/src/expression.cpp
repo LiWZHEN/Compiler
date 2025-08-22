@@ -274,9 +274,6 @@ ExprType Expression::GetNextExprType() const {
   if (next_token == "if") {
     return if_expr;
   }
-  if (next_token == "match") {
-    return match_expr;
-  }
   if (next_token == "(") {
     return grouped_expr;
   }
@@ -644,92 +641,6 @@ Expression::Expression(const std::vector<Token> &tokens, int &ptr, ExprType expr
           ThrowErr(type_expression, "Expect BlockExpr or IfExpr.");
         }
       }
-    } else if (expr_type_ == match_expr) {
-      // match
-      if (tokens_[ptr_].GetStr() != "match") {
-        ThrowErr(type_expression, "Expect \"match\".");
-      }
-      AddChild(type_keyword);
-      // Expression except StructExpression
-      if (ptr_ >= tokens_.size()) {
-        ThrowErr(type_expression, "");
-      }
-      AddChild(type_expression);
-      if (reinterpret_cast<Expression *>(children_.back())->expr_type_ == struct_expr) {
-        ThrowErr(type_expression, "Unexpected StructExpression.");
-      }
-      // {
-      if (ptr_ >= tokens_.size()) {
-        ThrowErr(type_expression, "");
-      }
-      if (tokens_[ptr_].GetStr() != "{") {
-        ThrowErr(type_expression, "Expect \"{\".");
-      }
-      AddChild(type_punctuation);
-      // MatchArms?
-      while (ptr_ < tokens_.size() && tokens_[ptr_].GetStr() != "}") {
-        // Pattern
-        AddChild(type_pattern);
-        if (ptr_ >= tokens_.size()) {
-          ThrowErr(type_expression, "");
-        }
-        // MatchArmGuard?
-        if (tokens_[ptr_].GetStr() == "if") {
-          // MatchArmGuard
-          // if
-          AddChild(type_keyword);
-          // Expression
-          if (ptr_ >= tokens_.size()) {
-            ThrowErr(type_expression, "");
-          }
-          AddChild(type_expression);
-          if (ptr_ >= tokens_.size()) {
-            ThrowErr(type_expression, "");
-          }
-        }
-        // =>
-        if (tokens_[ptr_].GetStr() != "=>") {
-          ThrowErr(type_expression, "Expect \"=>\".");
-        }
-        AddChild(type_punctuation);
-        if (ptr_ >= tokens_.size()) {
-          ThrowErr(type_expression, "");
-        }
-        AddChild(type_expression);
-        if (ptr_ >= tokens_.size()) {
-          ThrowErr(type_expression, "");
-        }
-        ExprType new_expr_type = reinterpret_cast<Expression *>(children_.back())->expr_type_;
-        if (new_expr_type == block_expr || new_expr_type == const_block_expr
-            || new_expr_type == infinite_loop_expr || new_expr_type == predicate_loop_expr
-            || new_expr_type == if_expr || new_expr_type == match_expr) {
-          // ,?
-          if (tokens_[ptr_].GetStr() == ",") {
-            AddChild(type_punctuation);
-            if (ptr_ >= tokens_.size()) {
-              ThrowErr(type_expression, "");
-            }
-          }
-        } else {
-          // ,?
-          if (tokens_[ptr_].GetStr() == ",") {
-            AddChild(type_punctuation);
-            if (ptr_ >= tokens_.size()) {
-              ThrowErr(type_expression, "");
-            }
-          } else {
-            break;
-          }
-        }
-      }
-      // }
-      if (ptr_ >= tokens_.size()) {
-        ThrowErr(type_expression, "");
-      }
-      if (tokens_[ptr_].GetStr() != "}") {
-        ThrowErr(type_expression, "Expect \"}\".");
-      }
-      AddChild(type_punctuation);
     } else if (expr_type_ == grouped_expr) {
       // (
       if (tokens_[ptr_].GetStr() != "(") {
@@ -1183,8 +1094,6 @@ std::string Expression::GetNodeLabel() const {
       return "predicate_loop_expr";
     case if_expr:
       return "if_expr";
-    case match_expr:
-      return "match_expr";
     case literal_expr:
       return "literal_expr";
     case path_in_expr:
