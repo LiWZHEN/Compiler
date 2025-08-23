@@ -3,9 +3,13 @@
 PathInExpression::PathInExpression(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
   const int ptr_before_try = ptr;
   try {
+    // PathExprSegment
     AddChild(type_path_expr_segment);
+    // (:: PathExprSegment)?
     if (ptr < tokens.size() && tokens[ptr].GetStr() == "::") {
+      // ::
       AddChild(type_punctuation);
+      // PathExprSegment
       if (ptr >= tokens.size()) {
         ThrowErr(type_path_in_expression, "");
       }
