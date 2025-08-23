@@ -15,19 +15,13 @@ Pattern::Pattern(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr)
         AddChild(type_literal_pattern);
       } catch (...) {
         Restore(0, ptr_before_try);
-        std::cerr << "Pattern: Successfully handle try-literal-pattern-failure.\n";
+        std::cerr << "Pattern: Successfully handle literal pattern trying failure.\n";
         try {
           AddChild(type_identifier_pattern);
         } catch (...) {
           Restore(0, ptr_before_try);
-          std::cerr << "Pattern: Successfully handle try-identifier-pattern-failure.\n";
-          try {
-            AddChild(type_tuple_struct_pattern);
-          } catch (...) {
-            Restore(0, ptr_before_try);
-            std::cerr << "Pattern: Successfully handle try-tuple-struct-pattern-failure.\n";
-            AddChild(type_path_pattern);
-          }
+          std::cerr << "Pattern: Successfully handle identifier pattern trying failure.\n";
+          AddChild(type_path_in_expression);
         }
       }
     }
@@ -40,12 +34,14 @@ Pattern::Pattern(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr)
 LiteralPattern::LiteralPattern(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
   const int ptr_before_try = ptr;
   try {
+    // -?
     if (tokens[ptr].GetStr() == "-") {
       AddChild(type_punctuation);
       if (ptr >= tokens.size()) {
         ThrowErr(type_literal_pattern, "");
       }
     }
+    // LiteralExpression
     AddChild(type_literal_expression);
   } catch (...) {
     Restore(0, ptr_before_try);
@@ -56,24 +52,30 @@ LiteralPattern::LiteralPattern(const std::vector<Token> &tokens, int &ptr) : Nod
 IdentifierPattern::IdentifierPattern(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
   const int ptr_before_try = ptr;
   try {
+    // ref?
     if (tokens[ptr].GetStr() == "ref") {
       AddChild(type_keyword);
       if (ptr >= tokens.size()) {
         ThrowErr(type_identifier_pattern, "");
       }
     }
+    // mut?
     if (tokens[ptr].GetStr() == "mut") {
       AddChild(type_keyword);
       if (ptr >= tokens.size()) {
         ThrowErr(type_identifier_pattern, "");
       }
     }
+    // Identifier
     AddChild(type_identifier);
+    // (@ PatternNoTopAlt)?
     if (ptr < tokens.size() && tokens[ptr].GetStr() == "@") {
+      // @
       AddChild(type_punctuation);
       if (ptr >= tokens.size()) {
         ThrowErr(type_identifier_pattern, "");
       }
+      // PatternNoTopAlt
       AddChild(type_pattern);
     }
   } catch (...) {
@@ -82,22 +84,12 @@ IdentifierPattern::IdentifierPattern(const std::vector<Token> &tokens, int &ptr)
   }
 }
 
-WildcardPattern::WildcardPattern(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
-  const int ptr_before_try = ptr;
-  try {
-    if (tokens[ptr].GetStr() != "_") {
-      ThrowErr(type_wildcard_pattern, "Expect \"_\".");
-    }
-    AddChild(type_punctuation);
-  } catch (...) {
-    Restore(0, ptr_before_try);
-    throw "";
-  }
-}
+WildcardPattern::WildcardPattern(const std::vector<Token> &tokens, int &ptr) : LeafNode(tokens, ptr) {}
 
 ReferencePattern::ReferencePattern(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
   const int ptr_before_try = ptr;
   try {
+    // &|&&
     if (tokens[ptr].GetStr() != "&" && tokens[ptr].GetStr() != "&&") {
       ThrowErr(type_reference_pattern, R"(Expect "&" or "&&".)");
     }
@@ -105,77 +97,15 @@ ReferencePattern::ReferencePattern(const std::vector<Token> &tokens, int &ptr) :
     if (ptr >= tokens.size()) {
       ThrowErr(type_reference_pattern, "");
     }
+    // mut?
     if (tokens[ptr].GetStr() == "mut") {
       AddChild(type_keyword);
       if (ptr >= tokens.size()) {
         ThrowErr(type_reference_pattern, "");
       }
     }
+    // PatternWithoutRange
     AddChild(type_pattern);
-  } catch (...) {
-    Restore(0, ptr_before_try);
-    throw "";
-  }
-}
-
-TupleStructPattern::TupleStructPattern(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
-  const int ptr_before_try = ptr;
-  try {
-    AddChild(type_path_in_expression);
-    if (ptr >= tokens.size()) {
-      ThrowErr(type_tuple_struct_pattern, "");
-    }
-    if (tokens[ptr].GetStr() != "(") {
-      ThrowErr(type_tuple_struct_pattern, "Expect \"(\".");
-    }
-    AddChild(type_punctuation);
-    if (ptr >= tokens.size()) {
-      ThrowErr(type_tuple_struct_pattern, "");
-    }
-    if (tokens[ptr].GetStr() != ")") {
-      AddChild(type_tuple_struct_items);
-    }
-    if (tokens[ptr].GetStr() != ")") {
-      ThrowErr(type_tuple_struct_pattern, "Expect \")\".");
-    }
-    AddChild(type_punctuation);
-  } catch (...) {
-    Restore(0, ptr_before_try);
-    throw "";
-  }
-}
-
-PathPattern::PathPattern(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
-  const int ptr_before_try = ptr;
-  try {
-    AddChild(type_path_in_expression);
-  } catch (...) {
-    Restore(0, ptr_before_try);
-    throw "";
-  }
-}
-
-TupleStructItems::TupleStructItems(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
-  const int ptr_before_try = ptr;
-  try {
-    AddChild(type_pattern);
-    while (ptr < tokens.size()) {
-      if (tokens[ptr].GetStr() != ",") {
-        return;
-      }
-      AddChild(type_punctuation);
-      if (ptr >= tokens.size()) {
-        return;
-      }
-      const int size_before_trying_pattern = static_cast<int>(children_.size()),
-          ptr_before_trying_pattern = ptr;
-      try {
-        AddChild(type_pattern);
-      } catch (...) {
-        Restore(size_before_trying_pattern, ptr_before_trying_pattern);
-        return;
-      }
-    }
   } catch (...) {
     Restore(0, ptr_before_try);
     throw "";

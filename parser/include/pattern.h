@@ -19,7 +19,7 @@ public:
   IdentifierPattern(const std::vector<Token> &tokens, int &ptr);
 };
 
-class WildcardPattern : public Node {
+class WildcardPattern : public LeafNode {
 public:
   WildcardPattern(const std::vector<Token> &tokens, int &ptr);
 };
@@ -27,21 +27,6 @@ public:
 class ReferencePattern : public Node {
 public:
   ReferencePattern(const std::vector<Token> &tokens, int &ptr);
-};
-
-class TupleStructPattern : public Node {
-public:
-  TupleStructPattern(const std::vector<Token> &tokens, int &ptr);
-};
-
-class PathPattern : public Node {
-public:
-  PathPattern(const std::vector<Token> &tokens, int &ptr);
-};
-
-class TupleStructItems : public Node {
-public:
-  TupleStructItems(const std::vector<Token> &tokens, int &ptr);
 };
 
 #endif
