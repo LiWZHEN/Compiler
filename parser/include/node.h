@@ -12,11 +12,11 @@ enum NodeType {
   type_enum_variants, type_type, type_type_param_bounds, type_associated_item, type_type_path,
   type_self_param, type_shorthand_self, type_typed_self, type_function_param, type_statements,
   type_pattern, type_literal_pattern, type_identifier_pattern, type_wildcard_pattern,
-  type_reference_pattern, type_tuple_struct_pattern, type_literal_expression, type_path_in_expression,
-  type_tuple_struct_items, type_path_expr_segment, type_reference_type, type_array_type,
-  type_slice_type, type_inferred_type, type_expression, type_char_literal, type_string_literal,
-  type_raw_string_literal, type_c_string_literal, type_raw_c_string_literal, type_integer_literal,
-  type_struct_expr_field, type_struct_expr_fields
+  type_reference_pattern, type_literal_expression, type_path_in_expression, type_path_expr_segment,
+  type_reference_type, type_array_type, type_slice_type, type_inferred_type, type_expression,
+  type_char_literal, type_string_literal, type_raw_string_literal, type_c_string_literal,
+  type_raw_c_string_literal, type_integer_literal, type_struct_expr_field, type_struct_expr_fields,
+  type_let_statement, type_expression_statement, type_statement
 };
 
 class Node {
