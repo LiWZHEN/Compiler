@@ -9,4 +9,9 @@ public:
   StructFields(const std::vector<Token> &tokens, int &ptr);
 };
 
+class StructField : public Node {
+public:
+  StructField(const std::vector<Token> &tokens, int &ptr);
+};
+
 #endif
