@@ -24,14 +24,9 @@ public:
   ArrayType(const std::vector<Token> &tokens, int &ptr);
 };
 
-class SliceType : public Node {
+class UnitType : public Node {
 public:
-  SliceType(const std::vector<Token> &tokens, int &ptr);
-};
-
-class InferredType : public LeafNode {
-public:
-  InferredType(const std::vector<Token> &tokens, int &ptr);
+  UnitType(const std::vector<Token> &tokens, int &ptr);
 };
 
 #endif

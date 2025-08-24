@@ -1,20 +1,13 @@
 #include "type.h"
 
 Type::Type(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
-  const int ptr_before_try = ptr;
+  const int ptr_before_try = ptr_;
   try {
-    const std::string next_token = tokens[ptr].GetStr();
+    const std::string next_token = tokens_[ptr_].GetStr();
     if (next_token == "&") {
       AddChild(type_reference_type);
     } else if (next_token == "[") {
-      try {
-        AddChild(type_array_type);
-      } catch (...) {
-        Restore(0, ptr_before_try);
-        AddChild(type_slice_type);
-      }
-    } else if (next_token == "_") {
-      AddChild(type_inferred_type);
+      AddChild(type_array_type);
     } else {
       AddChild(type_type_path);
     }
@@ -30,7 +23,7 @@ TypePath::TypePath(const std::vector<Token> &tokens, int &ptr) : LeafNode(tokens
     return;
   }
   if (token_.GetType() != IDENTIFIER_OR_KEYWORD) {
-    --ptr;
+    --ptr_;
     ThrowErr(type_type_path, "Expect identifier or keyword.");
   }
   if (t == "as" || t == "break" || t == "const" || t == "continue" || t == "crate"
@@ -43,24 +36,24 @@ TypePath::TypePath(const std::vector<Token> &tokens, int &ptr) : LeafNode(tokens
       || t == "do" || t == "final" || t == "macro" || t == "override" || t == "priv"
       || t == "typeof" || t == "unsized" || t == "virtual" || t == "yield"
       || t == "try" || t == "gen") {
-    --ptr;
+    --ptr_;
     ThrowErr(type_type_path, "Expect identifier.");
   }
 }
 
 ReferenceType::ReferenceType(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
-  const int ptr_before_try = ptr;
+  const int ptr_before_try = ptr_;
   try {
-    if (tokens[ptr].GetStr() != "&") {
+    if (tokens_[ptr_].GetStr() != "&") {
       ThrowErr(type_reference_type, "Expect \"&\".");
     }
     AddChild(type_punctuation);
-    if (ptr >= tokens.size()) {
+    if (ptr_ >= tokens_.size()) {
       ThrowErr(type_reference_type, "");
     }
-    if (tokens[ptr].GetStr() == "mut") {
+    if (tokens_[ptr_].GetStr() == "mut") {
       AddChild(type_keyword);
-      if (ptr >= tokens.size()) {
+      if (ptr_ >= tokens_.size()) {
         ThrowErr(type_reference_type, "");
       }
     }
@@ -72,31 +65,31 @@ ReferenceType::ReferenceType(const std::vector<Token> &tokens, int &ptr) : Node(
 }
 
 ArrayType::ArrayType(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
-  const int ptr_before_try = ptr;
+  const int ptr_before_try = ptr_;
   try {
-    if (tokens[ptr].GetStr() != "[") {
+    if (tokens_[ptr_].GetStr() != "[") {
       ThrowErr(type_array_type, "Expect \"[\".");
     }
     AddChild(type_punctuation);
-    if (ptr >= tokens.size()) {
+    if (ptr_ >= tokens_.size()) {
       ThrowErr(type_array_type, "");
     }
     AddChild(type_type);
-    if (ptr >= tokens.size()) {
+    if (ptr_ >= tokens_.size()) {
       ThrowErr(type_array_type, "");
     }
-    if (tokens[ptr].GetStr() != ";") {
+    if (tokens_[ptr_].GetStr() != ";") {
       ThrowErr(type_array_type, "Expect \";\".");
     }
     AddChild(type_punctuation);
-    if (ptr >= tokens.size()) {
+    if (ptr_ >= tokens_.size()) {
       ThrowErr(type_array_type, "");
     }
     AddChild(type_expression);
-    if (ptr >= tokens.size()) {
+    if (ptr_ >= tokens_.size()) {
       ThrowErr(type_array_type, "");
     }
-    if (tokens[ptr].GetStr() != "]") {
+    if (tokens_[ptr_].GetStr() != "]") {
       ThrowErr(type_array_type, "Expect \"]\".");
     }
     AddChild(type_punctuation);
@@ -106,22 +99,20 @@ ArrayType::ArrayType(const std::vector<Token> &tokens, int &ptr) : Node(tokens, 
   }
 }
 
-SliceType::SliceType(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
-  const int ptr_before_try = ptr;
+UnitType::UnitType(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
+  const int ptr_before_try = ptr_;
   try {
-    if (tokens[ptr].GetStr() != "[") {
-      ThrowErr(type_slice_type, "Expect \"[\".");
+    // (
+    if (tokens_[ptr_].GetStr() != "(") {
+      ThrowErr(type_unit_type, "Expect \"(\".");
     }
     AddChild(type_punctuation);
-    if (ptr >= tokens.size()) {
-      ThrowErr(type_slice_type, "");
+    // )
+    if (ptr_ >= tokens_.size()) {
+      ThrowErr(type_unit_type, "");
     }
-    AddChild(type_type);
-    if (ptr >= tokens.size()) {
-      ThrowErr(type_slice_type, "");
-    }
-    if (tokens[ptr].GetStr() != "]") {
-      ThrowErr(type_slice_type, "Expect \"]\".");
+    if (tokens_[ptr_].GetStr() != ")") {
+      ThrowErr(type_unit_type, "Expect \")\".");
     }
     AddChild(type_punctuation);
   } catch (...) {
@@ -129,5 +120,3 @@ SliceType::SliceType(const std::vector<Token> &tokens, int &ptr) : Node(tokens, 
     throw "";
   }
 }
-
-InferredType::InferredType(const std::vector<Token> &tokens, int &ptr) : LeafNode(tokens, ptr) {}
