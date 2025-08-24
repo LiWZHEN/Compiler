@@ -4,11 +4,6 @@
 #include "classes.h"
 #include "node.h"
 
-class Module : public Node {
-public:
-  Module(const std::vector<Token> &tokens, int &ptr);
-};
-
 class Function : public Node {
 public:
   Function(const std::vector<Token> &tokens, int &ptr);
