@@ -14,13 +14,4 @@ public:
   FunctionReturnType(const std::vector<Token> &tokens, int &ptr);
 };
 
-/*class GenericParams : public Node {
-public:
-  GenericParams(const std::vector<Token> &tokens, int &ptr);
-};*/
-/*class WhereClause : public Node {
-public:
-  WhereClause(const std::vector<Token> &tokens, int &ptr);
-};*/
-
 #endif
