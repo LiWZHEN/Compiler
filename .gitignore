@@ -5,3 +5,4 @@ RCompiler-FAQ
 RCompiler-Spec
 .vscode
 cmake-build-debug
+.idea
