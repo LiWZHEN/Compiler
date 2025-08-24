@@ -114,6 +114,23 @@ TEST(ExpressionTest, WithPrefixAndBracketInfixes) {
   delete expr_tree;
 }
 
+TEST(ExpressionTest, MemoryLeakTest) {
+  std::vector<Token> tokens;
+  const std::string str = "1+{";
+  Tokenizer tokenizer(str, tokens);
+  tokenizer.Tokenize();
+  int ptr = 0;
+  Node *expr_tree = nullptr;
+  try {
+    expr_tree = new Expression(tokens, ptr, unknown, 0);
+  } catch (...) {
+    delete expr_tree;
+    expr_tree = nullptr;
+  }
+  // parsing failed
+  ASSERT_EQ(expr_tree, nullptr);
+}
+
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
