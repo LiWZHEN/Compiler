@@ -16,14 +16,19 @@ add_executable(parser parser/parser_test.cpp
     parser/src/item.cpp parser/src/leaf_node.cpp
     parser/src/functions.cpp parser/src/structs.cpp
     parser/src/enumerations.cpp parser/src/trait.cpp
-    parser/src/function_parameters.cpp
-    parser/src/block_expression.cpp parser/src/pattern.cpp
-    parser/src/expression.cpp parser/src/path.cpp parser/src/type.cpp)
+    parser/src/function_parameters.cpp parser/src/pattern.cpp
+    parser/src/expression.cpp parser/src/path.cpp
+    parser/src/statements.cpp parser/src/type.cpp)
 
 find_package(GTest REQUIRED)
 add_executable(tests test/test.cpp
     lexer/src/token.cpp lexer/src/tokenizer.cpp
     lexer/src/regex_matcher.cpp parser/src/builder.cpp
-    parser/src/node.cpp parser/src/item.cpp
-    parser/src/leaf_node.cpp parser/src/functions.cpp)
+    parser/src/enumerations.cpp parser/src/expression.cpp
+    parser/src/function_parameters.cpp
+    parser/src/functions.cpp parser/src/item.cpp
+    parser/src/leaf_node.cpp parser/src/node.cpp
+    parser/src/path.cpp parser/src/pattern.cpp
+    parser/src/statements.cpp parser/src/structs.cpp
+    parser/src/trait.cpp parser/src/type.cpp)
 target_link_libraries(tests GTest::GTest GTest::Main)

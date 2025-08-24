@@ -1,9 +1,14 @@
 name: CI
-on: [push, pull_request]  # 触发条件
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest  # 也可选 windows-latest/macos-latest
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -12,18 +17,28 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake g++ libgtest-dev
+          sudo apt-get install -y cmake build-essential libgtest-dev
 
-      - name: Build and Run Tests
+      - name: Configure and Build
         run: |
-          mkdir build && cd build
-          cmake .. -DBUILD_TESTS=ON  # 启用测试
-          make
-          ctest --output-on-failure   # 运行测试并显示详细失败信息
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release
+          make -j$(nproc)
 
-      - name: Upload Test Results (可选)
-        if: always()  # 即使测试失败也上传
+      - name: Run tests
+        run: |
+          cd build
+          ./tests --gtest_output="xml:test_results.xml"
+
+      - name: Upload test results
         uses: actions/upload-artifact@v3
+        if: always()
         with:
           name: test-results
-          path: build/Testing/**/*.xml  # 捕获 JUnit 格式报告
+          path: build/test_results.xml
+
+      - name: Test summary
+        uses: test-summary/action@v2
+        with:
+          paths: build/test_results.xml
