@@ -152,19 +152,3 @@ ExpressionStatement::ExpressionStatement(const std::vector<Token> &tokens, int &
     throw "";
   }
 }
-
-std::string Statements::GetNodeLabel() const {
-  return "Statements";
-}
-
-std::string Statement::GetNodeLabel() const {
-  return "Statement";
-}
-
-std::string LetStatement::GetNodeLabel() const {
-  return "LetStatement";
-}
-
-std::string ExpressionStatement::GetNodeLabel() const {
-  return "ExpressionStatement";
-}

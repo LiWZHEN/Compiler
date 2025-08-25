@@ -313,27 +313,3 @@ Implementation::Implementation(const std::vector<Token> &tokens, int &ptr) : Nod
     throw "";
   }
 }
-
-std::string Function::GetNodeLabel() const {
-  return "Function";
-}
-
-std::string Struct::GetNodeLabel() const {
-  return "Struct";
-}
-
-std::string Enumeration::GetNodeLabel() const {
-  return "Enumeration";
-}
-
-std::string ConstantItem::GetNodeLabel() const {
-  return "ConstantItem";
-}
-
-std::string Trait::GetNodeLabel() const {
-  return "Trait";
-}
-
-std::string Implementation::GetNodeLabel() const {
-  return "Implementation";
-}

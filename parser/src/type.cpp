@@ -120,23 +120,3 @@ UnitType::UnitType(const std::vector<Token> &tokens, int &ptr) : Node(tokens, pt
     throw "";
   }
 }
-
-std::string Type::GetNodeLabel() const {
-  return "Type";
-}
-
-std::string TypePath::GetNodeLabel() const {
-  return "TypePath: " + token_.GetStr();
-}
-
-std::string ReferenceType::GetNodeLabel() const {
-  return "ReferenceType";
-}
-
-std::string ArrayType::GetNodeLabel() const {
-  return "ArrayType";
-}
-
-std::string UnitType::GetNodeLabel() const {
-  return "UnitType";
-}

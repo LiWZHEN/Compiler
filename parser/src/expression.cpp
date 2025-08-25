@@ -1136,19 +1136,3 @@ std::string Expression::GetNodeLabel() const {
       throw "";
   }
 }
-
-std::string LiteralExpression::GetNodeLabel() const {
-  return "LiteralExpression: " + token_.GetStr();
-}
-
-std::string BlockExpression::GetNodeLabel() const {
-  return "BlockExpression";
-}
-
-std::string StructExprField::GetNodeLabel() const {
-  return "StructExprField";
-}
-
-std::string StructExprFields::GetNodeLabel() const {
-  return "StructExprFields";
-}

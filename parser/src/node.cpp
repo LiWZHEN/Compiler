@@ -451,13 +451,6 @@ Item::Item(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
   }
 }
 
-std::string Crate::GetNodeLabel() const {
-  return "Crate";
-}
-
-std::string Item::GetNodeLabel() const {
-  return "Item";
-}
 
 // The following functions for printing is provided by deepseek
 std::string Node::GetNodeLabel() const {

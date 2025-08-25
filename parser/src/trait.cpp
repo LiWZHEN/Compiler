@@ -23,7 +23,3 @@ AssociatedItem::AssociatedItem(const std::vector<Token> &tokens, int &ptr) : Nod
     throw "";
   }
 }
-
-std::string AssociatedItem::GetNodeLabel() const {
-  return "AssociatedItem";
-}

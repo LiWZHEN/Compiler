@@ -54,11 +54,3 @@ StructField::StructField(const std::vector<Token> &tokens, int &ptr): Node(token
     throw "";
   }
 }
-
-std::string StructFields::GetNodeLabel() const {
-  return "StructFields";
-}
-
-std::string StructField::GetNodeLabel() const {
-  return "StructField";
-}
