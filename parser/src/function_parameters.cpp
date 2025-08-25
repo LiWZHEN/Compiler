@@ -102,3 +102,19 @@ FunctionParam::FunctionParam(const std::vector<Token> &tokens, int &ptr) : Node(
     throw "";
   }
 }
+
+std::string SelfParam::GetNodeLabel() const {
+  return "SelfParam";
+}
+
+std::string ShorthandSelf::GetNodeLabel() const {
+  return "ShorthandSelf";
+}
+
+std::string TypedSelf::GetNodeLabel() const {
+  return "TypedSelf";
+}
+
+std::string FunctionParam::GetNodeLabel() const {
+  return "FunctionParam";
+}

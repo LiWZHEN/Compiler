@@ -29,11 +29,13 @@ enum Infix {
 class LiteralExpression : public LeafNode {
 public:
   LiteralExpression(const std::vector<Token> &tokens, int &ptr);
+  [[nodiscard]] std::string GetNodeLabel() const override;
 };
 
 class BlockExpression : public Node {
 public:
   BlockExpression(const std::vector<Token> &tokens, int &ptr);
+  [[nodiscard]] std::string GetNodeLabel() const override;
 };
 
 class Expression : public Node {
@@ -52,11 +54,13 @@ private:
 class StructExprField : public Node {
 public:
   StructExprField(const std::vector<Token> &tokens, int &ptr);
+  [[nodiscard]] std::string GetNodeLabel() const override;
 };
 
 class StructExprFields : public Node {
 public:
   StructExprFields(const std::vector<Token> &tokens, int &ptr);
+  [[nodiscard]] std::string GetNodeLabel() const override;
 };
 
 #endif

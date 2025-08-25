@@ -29,3 +29,7 @@ EnumVariants::EnumVariants(const std::vector<Token> &tokens, int &ptr) : Node(to
     Restore(0, ptr_before_try);
   }
 }
+
+std::string EnumVariants::GetNodeLabel() const {
+  return "EnumVariants";
+}

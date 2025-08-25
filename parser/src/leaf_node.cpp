@@ -32,3 +32,39 @@ CStringLiteral::CStringLiteral(const std::vector<Token> &tokens, int &ptr) : Lea
 RawCStringLiteral::RawCStringLiteral(const std::vector<Token> &tokens, int &ptr) : LeafNode(tokens, ptr) {}
 
 IntegerLiteral::IntegerLiteral(const std::vector<Token> &tokens, int &ptr) : LeafNode(tokens, ptr) {}
+
+std::string Keyword::GetNodeLabel() const {
+  return "Keyword: " + token_.GetStr();
+}
+
+std::string Identifier::GetNodeLabel() const {
+  return "Identifier: " + token_.GetStr();
+}
+
+std::string Punctuation::GetNodeLabel() const {
+  return "Punctuation: " + token_.GetStr();
+}
+
+std::string CharLiteral::GetNodeLabel() const {
+  return "CharLiteral: " + token_.GetStr();
+}
+
+std::string StringLiteral::GetNodeLabel() const {
+  return "StringLiteral: " + token_.GetStr();
+}
+
+std::string RawStringLiteral::GetNodeLabel() const {
+  return "RawStringLiteral: " + token_.GetStr();
+}
+
+std::string CStringLiteral::GetNodeLabel() const {
+  return "CStringLiteral: " + token_.GetStr();
+}
+
+std::string RawCStringLiteral::GetNodeLabel() const {
+  return "RawCStringLiteral: " + token_.GetStr();
+}
+
+std::string IntegerLiteral::GetNodeLabel() const {
+  return "IntegerLiteral: " + token_.GetStr();
+}

@@ -44,3 +44,11 @@ PathExprSegment::PathExprSegment(const std::vector<Token> &tokens, int &ptr) : L
     ThrowErr(type_path_expr_segment, "Expect identifier.");
   }
 }
+
+std::string PathInExpression::GetNodeLabel() const {
+  return "PathInExpression";
+}
+
+std::string PathExprSegment::GetNodeLabel() const {
+  return "PathExprSegment: " + token_.GetStr();
+}

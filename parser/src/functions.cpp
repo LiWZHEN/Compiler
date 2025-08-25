@@ -74,3 +74,11 @@ FunctionReturnType::FunctionReturnType(const std::vector<Token> &tokens, int &pt
     throw "";
   }
 }
+
+std::string FunctionParameters::GetNodeLabel() const {
+  return "FunctionParameters";
+}
+
+std::string FunctionReturnType::GetNodeLabel() const {
+  return "FunctionReturnType";
+}

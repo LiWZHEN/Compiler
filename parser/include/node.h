@@ -51,11 +51,13 @@ protected:
 class Crate : public Node {
 public:
   Crate(const std::vector<Token> &tokens, int &ptr);
+  [[nodiscard]] std::string GetNodeLabel() const override;
 };
 
 class Item : public Node {
 public:
   Item(const std::vector<Token> &tokens, int &ptr);
+  [[nodiscard]] std::string GetNodeLabel() const override;
 };
 
 #endif //NODE_H

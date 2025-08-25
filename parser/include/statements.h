@@ -7,21 +7,25 @@
 class Statements : public Node {
 public:
   Statements(const std::vector<Token> &tokens, int &ptr);
+  [[nodiscard]] std::string GetNodeLabel() const override;
 };
 
 class Statement : public Node {
 public:
   Statement(const std::vector<Token> &tokens, int &ptr);
+  [[nodiscard]] std::string GetNodeLabel() const override;
 };
 
 class LetStatement : public Node {
 public:
   LetStatement(const std::vector<Token> &tokens, int &ptr);
+  [[nodiscard]] std::string GetNodeLabel() const override;
 };
 
 class ExpressionStatement : public Node {
 public:
   ExpressionStatement(const std::vector<Token> &tokens, int &ptr);
+  [[nodiscard]] std::string GetNodeLabel() const override;
 };
 
 #endif
