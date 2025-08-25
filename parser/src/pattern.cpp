@@ -111,3 +111,23 @@ ReferencePattern::ReferencePattern(const std::vector<Token> &tokens, int &ptr) :
     throw "";
   }
 }
+
+std::string Pattern::GetNodeLabel() const {
+  return "Pattern";
+}
+
+std::string LiteralPattern::GetNodeLabel() const {
+  return "LiteralPattern";
+}
+
+std::string IdentifierPattern::GetNodeLabel() const {
+  return "IdentifierPattern";
+}
+
+std::string WildcardPattern::GetNodeLabel() const {
+  return "WildcardPattern: " + token_.GetStr();
+}
+
+std::string ReferencePattern::GetNodeLabel() const {
+  return "ReferencePattern";
+}

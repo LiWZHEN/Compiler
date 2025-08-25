@@ -7,6 +7,7 @@
 class AssociatedItem : public Node {
 public:
   AssociatedItem(const std::vector<Token> &tokens, int &ptr);
+  [[nodiscard]] std::string GetNodeLabel() const override;
 };
 
 #endif

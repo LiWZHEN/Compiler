@@ -3,20 +3,31 @@
 #include "classes.h"
 #include "builder.h"
 
-TEST(Parser1, array1) {
+void SuccessCheck(const std::string &str, const bool expect_success) {
   std::vector<Token> tokens;
-  const std::string str = "fn main() {\n    let numbers: [i32; 3] = [10, 20, 30];\n}";
   Tokenizer tokenizer(str, tokens);
   tokenizer.Tokenize();
   Builder builder(tokens);
   Node *syntax_tree = builder.GetTree();
+  if (expect_success) {
+    ASSERT_NE(syntax_tree, nullptr);
+    std::cout << syntax_tree->GetStruct("", true);
+    delete syntax_tree;
+  } else {
+    ASSERT_EQ(syntax_tree, nullptr);
+  }
+}
 
-  // parsing succeeded
-  ASSERT_NE(syntax_tree, nullptr);
+TEST(ParserTest, EmptyMainFunction1) {
+  SuccessCheck("fn main();", true);
+}
 
-  // output
-  std::cout << syntax_tree->GetStruct("", true);
-  delete syntax_tree;
+TEST(ParserTest, EmptyMainFunction2) {
+  SuccessCheck("const fn main(){}", true);
+}
+
+TEST(ParserTest, InvalidIdentifier) {
+  SuccessCheck("fn fn();", false);
 }
 
 int main(int argc, char **argv) {

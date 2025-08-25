@@ -7,11 +7,13 @@
 class StructFields : public Node {
 public:
   StructFields(const std::vector<Token> &tokens, int &ptr);
+  [[nodiscard]] std::string GetNodeLabel() const override;
 };
 
 class StructField : public Node {
 public:
   StructField(const std::vector<Token> &tokens, int &ptr);
+  [[nodiscard]] std::string GetNodeLabel() const override;
 };
 
 #endif
