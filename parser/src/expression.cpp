@@ -408,89 +408,31 @@ Expression::Expression(const std::vector<Token> &tokens, int &ptr, ExprType expr
       }
       AddChild(type_keyword);
       // Conditions
+      // (
       if (ptr_ >= tokens_.size()) {
         ThrowErr(type_expression, "");
       }
-      const int size_before_trying_let_chain = static_cast<int>(children_.size()),
-          ptr_before_trying_let_chain = ptr_;
-      try {
-        // LetChain
-        // LetChainCondition
-        if (tokens_[ptr_].GetStr() == "let") {
-          // let Pattern =
-          // let
-          AddChild(type_keyword);
-          // Pattern
-          if (ptr_ >= tokens_.size()) {
-            ThrowErr(type_expression, "");
-          }
-          AddChild(type_pattern);
-          // =
-          if (ptr_ >= tokens_.size()) {
-            ThrowErr(type_expression, "");
-          }
-          if (tokens_[ptr_].GetStr() != "=") {
-            ThrowErr(type_expression, "Expect \"=\".");
-          }
-          AddChild(type_punctuation);
-          if (ptr_ >= tokens_.size()) {
-            ThrowErr(type_expression, "");
-          }
-        }
-        // Expression except ExcludedConditions
-        AddChild(type_expression);
-        ExprType new_expr_type = reinterpret_cast<Expression *>(children_.back())->expr_type_;
-        if (new_expr_type == struct_expr || new_expr_type == lazy_boolean_expr
-            || new_expr_type == assignment_expr || new_expr_type == compound_assignment_expr) {
-          ThrowErr(type_expression, "Expression: Unexpected ExcludedConditions.");
-        }
-        // (&&LetChainCondition)*
-        while (ptr_ >= tokens_.size() && tokens_[ptr_].GetStr() == "&&") {
-          // &&LetChainCondition
-          // &&
-          AddChild(type_punctuation);
-          if (ptr_ >= tokens_.size()) {
-            ThrowErr(type_expression, "");
-          }
-          // LetChainCondition
-          if (tokens_[ptr_].GetStr() == "let") {
-            // let Pattern =
-            // let
-            AddChild(type_keyword);
-            // Pattern
-            if (ptr_ >= tokens_.size()) {
-              ThrowErr(type_expression, "");
-            }
-            AddChild(type_pattern);
-            // =
-            if (ptr_ >= tokens_.size()) {
-              ThrowErr(type_expression, "");
-            }
-            if (tokens_[ptr_].GetStr() != "=") {
-              ThrowErr(type_expression, "Expect \"=\".");
-            }
-            AddChild(type_punctuation);
-            if (ptr_ >= tokens_.size()) {
-              ThrowErr(type_expression, "");
-            }
-          }
-          // Expression except ExcludedConditions
-          AddChild(type_expression);
-          new_expr_type = reinterpret_cast<Expression *>(children_.back())->expr_type_;
-          if (new_expr_type == struct_expr || new_expr_type == lazy_boolean_expr
-              || new_expr_type == assignment_expr || new_expr_type == compound_assignment_expr) {
-            ThrowErr(type_expression, "Expression: Unexpected ExcludedConditions.");
-          }
-        }
-      } catch (...) {
-        Restore(size_before_trying_let_chain, ptr_before_trying_let_chain);
-        std::cerr << "Expression: Successfully handle LetChain trying failure.\n";
-        // Expression except StructExpression
-        AddChild(type_expression);
-        if (reinterpret_cast<Expression *>(children_.back())->expr_type_ == struct_expr) {
-          ThrowErr(type_expression, "Unexpected StructExpression.");
-        }
+      if (tokens_[ptr_].GetStr() != "(") {
+        ThrowErr(type_expression, "Expect \"(\".");
       }
+      AddChild(type_punctuation);
+      // Expression except StructExpression
+      if (ptr_ >= tokens_.size()) {
+        ThrowErr(type_expression, "");
+      }
+      AddChild(type_expression);
+      if (reinterpret_cast<Expression *>(children_.back())->expr_type_ == struct_expr) {
+        ThrowErr(type_expression, "Unexpected StructExpression.");
+      }
+      // )
+      if (ptr_ >= tokens_.size()) {
+        ThrowErr(type_expression, "");
+      }
+      if (tokens_[ptr_].GetStr() != ")") {
+        ThrowErr(type_expression, "Expect \")\".");
+      }
+      AddChild(type_punctuation);
+      // BlockExpression
       // {
       if (ptr_ >= tokens_.size()) {
         ThrowErr(type_expression, "");
@@ -522,89 +464,31 @@ Expression::Expression(const std::vector<Token> &tokens, int &ptr, ExprType expr
       }
       AddChild(type_keyword);
       // Conditions
+      // (
       if (ptr_ >= tokens_.size()) {
         ThrowErr(type_expression, "");
       }
-      const int size_before_trying_let_chain = static_cast<int>(children_.size()),
-          ptr_before_trying_let_chain = ptr_;
-      try {
-        // LetChain
-        // LetChainCondition
-        if (tokens_[ptr_].GetStr() == "let") {
-          // let Pattern =
-          // let
-          AddChild(type_keyword);
-          // Pattern
-          if (ptr_ >= tokens_.size()) {
-            ThrowErr(type_expression, "");
-          }
-          AddChild(type_pattern);
-          // =
-          if (ptr_ >= tokens_.size()) {
-            ThrowErr(type_expression, "");
-          }
-          if (tokens_[ptr_].GetStr() != "=") {
-            ThrowErr(type_expression, "Expect \"=\".");
-          }
-          AddChild(type_punctuation);
-          if (ptr_ >= tokens_.size()) {
-            ThrowErr(type_expression, "");
-          }
-        }
-        // Expression except ExcludedConditions
-        AddChild(type_expression);
-        ExprType new_expr_type = reinterpret_cast<Expression *>(children_.back())->expr_type_;
-        if (new_expr_type == struct_expr || new_expr_type == lazy_boolean_expr
-            || new_expr_type == assignment_expr || new_expr_type == compound_assignment_expr) {
-          ThrowErr(type_expression, "Expression: Unexpected ExcludedConditions.");
-        }
-        // (&&LetChainCondition)*
-        while (ptr_ >= tokens_.size() && tokens_[ptr_].GetStr() == "&&") {
-          // &&LetChainCondition
-          // &&
-          AddChild(type_punctuation);
-          if (ptr_ >= tokens_.size()) {
-            ThrowErr(type_expression, "");
-          }
-          // LetChainCondition
-          if (tokens_[ptr_].GetStr() == "let") {
-            // let Pattern =
-            // let
-            AddChild(type_keyword);
-            // Pattern
-            if (ptr_ >= tokens_.size()) {
-              ThrowErr(type_expression, "");
-            }
-            AddChild(type_pattern);
-            // =
-            if (ptr_ >= tokens_.size()) {
-              ThrowErr(type_expression, "");
-            }
-            if (tokens_[ptr_].GetStr() != "=") {
-              ThrowErr(type_expression, "Expect \"=\".");
-            }
-            AddChild(type_punctuation);
-            if (ptr_ >= tokens_.size()) {
-              ThrowErr(type_expression, "");
-            }
-          }
-          // Expression except ExcludedConditions
-          AddChild(type_expression);
-          new_expr_type = reinterpret_cast<Expression *>(children_.back())->expr_type_;
-          if (new_expr_type == struct_expr || new_expr_type == lazy_boolean_expr
-              || new_expr_type == assignment_expr || new_expr_type == compound_assignment_expr) {
-            ThrowErr(type_expression, "Expression: Unexpected ExcludedConditions.");
-          }
-        }
-      } catch (...) {
-        Restore(size_before_trying_let_chain, ptr_before_trying_let_chain);
-        std::cerr << "Expression: Successfully handle LetChain trying failure.\n";
-        // Expression except StructExpression
-        AddChild(type_expression);
-        if (reinterpret_cast<Expression *>(children_.back())->expr_type_ == struct_expr) {
-          ThrowErr(type_expression, "Unexpected StructExpression.");
-        }
+      if (tokens_[ptr_].GetStr() != "(") {
+        ThrowErr(type_expression, "Expect \"(\".");
       }
+      AddChild(type_punctuation);
+      // Expression except StructExpression
+      if (ptr_ >= tokens_.size()) {
+        ThrowErr(type_expression, "");
+      }
+      AddChild(type_expression);
+      if (reinterpret_cast<Expression *>(children_.back())->expr_type_ == struct_expr) {
+        ThrowErr(type_expression, "Unexpected StructExpression.");
+      }
+      // )
+      if (ptr_ >= tokens_.size()) {
+        ThrowErr(type_expression, "");
+      }
+      if (tokens_[ptr_].GetStr() != ")") {
+        ThrowErr(type_expression, "Expect \")\".");
+      }
+      AddChild(type_punctuation);
+      // BlockExpression
       // {
       if (ptr_ >= tokens_.size()) {
         ThrowErr(type_expression, "");
