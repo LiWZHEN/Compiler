@@ -27,3 +27,7 @@ AssociatedItem::AssociatedItem(const std::vector<Token> &tokens, int &ptr) : Nod
 std::string AssociatedItem::GetNodeLabel() const {
   return "AssociatedItem";
 }
+
+void AssociatedItem::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}

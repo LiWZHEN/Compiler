@@ -52,3 +52,11 @@ std::string PathInExpression::GetNodeLabel() const {
 std::string PathExprSegment::GetNodeLabel() const {
   return "PathExprSegment: " + token_.GetStr();
 }
+
+void PathInExpression::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void PathExprSegment::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}

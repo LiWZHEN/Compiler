@@ -168,3 +168,19 @@ std::string LetStatement::GetNodeLabel() const {
 std::string ExpressionStatement::GetNodeLabel() const {
   return "ExpressionStatement";
 }
+
+void Statements::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void Statement::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void LetStatement::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void ExpressionStatement::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}

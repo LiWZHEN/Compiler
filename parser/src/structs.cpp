@@ -62,3 +62,11 @@ std::string StructFields::GetNodeLabel() const {
 std::string StructField::GetNodeLabel() const {
   return "StructField";
 }
+
+void StructFields::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void StructField::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}

@@ -4,28 +4,36 @@
 #include "classes.h"
 #include "node.h"
 
-class Statements : public Node {
+class Statements final : public Node {
 public:
   Statements(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
+private:
+  void Accept(Visitor *visitor) override;
 };
 
-class Statement : public Node {
+class Statement final : public Node {
 public:
   Statement(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
+private:
+  void Accept(Visitor *visitor) override;
 };
 
-class LetStatement : public Node {
+class LetStatement final : public Node {
 public:
   LetStatement(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
+private:
+  void Accept(Visitor *visitor) override;
 };
 
-class ExpressionStatement : public Node {
+class ExpressionStatement final : public Node {
 public:
   ExpressionStatement(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
+private:
+  void Accept(Visitor *visitor) override;
 };
 
 #endif
