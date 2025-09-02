@@ -337,3 +337,27 @@ std::string Trait::GetNodeLabel() const {
 std::string Implementation::GetNodeLabel() const {
   return "Implementation";
 }
+
+void Function::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void Struct::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void Enumeration::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void ConstantItem::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void Trait::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void Implementation::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
