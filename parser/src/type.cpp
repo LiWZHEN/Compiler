@@ -140,3 +140,23 @@ std::string ArrayType::GetNodeLabel() const {
 std::string UnitType::GetNodeLabel() const {
   return "UnitType";
 }
+
+void Type::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void TypePath::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void ReferenceType::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void ArrayType::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void UnitType::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
