@@ -68,3 +68,39 @@ std::string RawCStringLiteral::GetNodeLabel() const {
 std::string IntegerLiteral::GetNodeLabel() const {
   return "IntegerLiteral: " + token_.GetStr();
 }
+
+void Keyword::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void Identifier::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void Punctuation::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void CharLiteral::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void StringLiteral::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void RawStringLiteral::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void CStringLiteral::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void RawCStringLiteral::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void IntegerLiteral::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
