@@ -56,7 +56,7 @@ class Crate final : public Node {
 public:
   Crate(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
-protected:
+private:
   void Accept(Visitor *visitor) override;
 };
 
@@ -64,7 +64,7 @@ class Item final : public Node {
 public:
   Item(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
-protected:
+private:
   void Accept(Visitor *visitor) override;
 };
 
