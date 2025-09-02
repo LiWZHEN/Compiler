@@ -4,16 +4,20 @@
 #include "classes.h"
 #include "node.h"
 
-class FunctionParameters : public Node {
+class FunctionParameters final : public Node {
 public:
   FunctionParameters(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
+private:
+  void Accept(Visitor *visitor) override;
 };
 
-class FunctionReturnType : public Node {
+class FunctionReturnType final : public Node {
 public:
   FunctionReturnType(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
+private:
+  void Accept(Visitor *visitor) override;
 };
 
 #endif

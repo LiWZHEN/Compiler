@@ -82,3 +82,11 @@ std::string FunctionParameters::GetNodeLabel() const {
 std::string FunctionReturnType::GetNodeLabel() const {
   return "FunctionReturnType";
 }
+
+void FunctionParameters::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void FunctionReturnType::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
