@@ -3,22 +3,7 @@ project(Compiler)
 
 set(CMAKE_CXX_STANDARD 20)
 
-include_directories(lexer/include parser/include)
-
-add_executable(lexer lexer/lexer_test.cpp
-    lexer/src/token.cpp lexer/src/tokenizer.cpp
-    lexer/src/regex_matcher.cpp)
-
-add_executable(parser parser/parser_test.cpp
-    lexer/src/token.cpp lexer/src/tokenizer.cpp
-    lexer/src/regex_matcher.cpp
-    parser/src/builder.cpp parser/src/node.cpp
-    parser/src/item.cpp parser/src/leaf_node.cpp
-    parser/src/functions.cpp parser/src/structs.cpp
-    parser/src/enumerations.cpp parser/src/trait.cpp
-    parser/src/function_parameters.cpp parser/src/pattern.cpp
-    parser/src/expression.cpp parser/src/path.cpp
-    parser/src/statements.cpp parser/src/type.cpp)
+include_directories(lexer/include parser/include semantic/include)
 
 find_package(GTest REQUIRED)
 add_executable(tests test/test.cpp
@@ -30,5 +15,6 @@ add_executable(tests test/test.cpp
     parser/src/leaf_node.cpp parser/src/node.cpp
     parser/src/path.cpp parser/src/pattern.cpp
     parser/src/statements.cpp parser/src/structs.cpp
-    parser/src/trait.cpp parser/src/type.cpp)
+    parser/src/trait.cpp parser/src/type.cpp
+    semantic/src/scope.cpp)
 target_link_libraries(tests GTest::GTest GTest::Main)
