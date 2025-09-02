@@ -51,5 +51,6 @@ class StructFields;
 class StructField;
 class EnumVariants;
 class AssociatedItem;
+class Visitor;
 
 #endif
