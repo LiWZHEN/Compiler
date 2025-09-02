@@ -4,28 +4,36 @@
 #include "classes.h"
 #include "node.h"
 
-class SelfParam : public Node {
+class SelfParam final : public Node {
 public:
   SelfParam(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
+private:
+  void Accept(Visitor *visitor) override;
 };
 
-class ShorthandSelf : public Node {
+class ShorthandSelf final : public Node {
 public:
   ShorthandSelf(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
+private:
+  void Accept(Visitor *visitor) override;
 };
 
-class TypedSelf : public Node {
+class TypedSelf final : public Node {
 public:
   TypedSelf(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
+private:
+  void Accept(Visitor *visitor) override;
 };
 
-class FunctionParam : public Node {
+class FunctionParam final : public Node {
 public:
   FunctionParam(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
+private:
+  void Accept(Visitor *visitor) override;
 };
 
 #endif

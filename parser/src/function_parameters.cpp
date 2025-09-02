@@ -118,3 +118,19 @@ std::string TypedSelf::GetNodeLabel() const {
 std::string FunctionParam::GetNodeLabel() const {
   return "FunctionParam";
 }
+
+void SelfParam::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void ShorthandSelf::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void TypedSelf::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void FunctionParam::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
