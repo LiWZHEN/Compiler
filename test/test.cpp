@@ -2,6 +2,7 @@
 #include "tokenizer.h"
 #include "classes.h"
 #include "builder.h"
+#include "scope.h"
 
 void SuccessCheck(const std::string &str, const bool expect_success) {
   std::vector<Token> tokens;
@@ -28,6 +29,14 @@ TEST(ParserTest, EmptyMainFunction2) {
 
 TEST(ParserTest, InvalidIdentifier) {
   SuccessCheck("fn fn();", false);
+}
+
+TEST(ParserTest, FunctionWithParameter1) {
+  SuccessCheck("fn f(&mut self);", true);
+}
+
+TEST(ParserTest, FunctionWithParameter2) {
+  SuccessCheck("fn f(mut self, r##\"hello\"## : [[amazing;23333];a=1+1]);", true);
 }
 
 int main(int argc, char **argv) {
