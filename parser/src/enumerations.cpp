@@ -33,3 +33,7 @@ EnumVariants::EnumVariants(const std::vector<Token> &tokens, int &ptr) : Node(to
 std::string EnumVariants::GetNodeLabel() const {
   return "EnumVariants";
 }
+
+void EnumVariants::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
