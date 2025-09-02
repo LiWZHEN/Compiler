@@ -131,3 +131,23 @@ std::string WildcardPattern::GetNodeLabel() const {
 std::string ReferencePattern::GetNodeLabel() const {
   return "ReferencePattern";
 }
+
+void Pattern::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void LiteralPattern::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void IdentifierPattern::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void WildcardPattern::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void ReferencePattern::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}

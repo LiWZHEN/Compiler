@@ -4,34 +4,44 @@
 #include "classes.h"
 #include "node.h"
 
-class Pattern : public Node {
+class Pattern final : public Node {
 public:
   Pattern(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
+private:
+  void Accept(Visitor *visitor) override;
 };
 
-class LiteralPattern : public Node {
+class LiteralPattern final : public Node {
 public:
   LiteralPattern(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
+private:
+  void Accept(Visitor *visitor) override;
 };
 
-class IdentifierPattern : public Node {
+class IdentifierPattern final : public Node {
 public:
   IdentifierPattern(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
+private:
+  void Accept(Visitor *visitor) override;
 };
 
-class WildcardPattern : public LeafNode {
+class WildcardPattern final : public LeafNode {
 public:
   WildcardPattern(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
+private:
+  void Accept(Visitor *visitor) override;
 };
 
-class ReferencePattern : public Node {
+class ReferencePattern final : public Node {
 public:
   ReferencePattern(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
+private:
+  void Accept(Visitor *visitor) override;
 };
 
 #endif
