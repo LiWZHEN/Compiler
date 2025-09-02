@@ -26,19 +26,23 @@ enum Infix {
   small_brackets_closure
 };
 
-class LiteralExpression : public LeafNode {
+class LiteralExpression final : public LeafNode {
 public:
   LiteralExpression(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
+private:
+  void Accept(Visitor *visitor) override;
 };
 
-class BlockExpression : public Node {
+class BlockExpression final : public Node {
 public:
   BlockExpression(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
+private:
+  void Accept(Visitor *visitor) override;
 };
 
-class Expression : public Node {
+class Expression final : public Node {
 public:
   Expression(const std::vector<Token> &tokens, int &ptr, ExprType expr_type, double min_bp);
   [[nodiscard]] ExprType GetNextExprType() const;
@@ -47,20 +51,25 @@ public:
   [[nodiscard]] std::string GetNodeLabel() const override;
 private:
   Expression(const std::vector<Token> &tokens, int &ptr, Expression *lhs, Expression *rhs, Infix infix);
+  void Accept(Visitor *visitor) override;
   ExprType expr_type_;
   Infix infix_ = not_infix;
 };
 
-class StructExprField : public Node {
+class StructExprField final : public Node {
 public:
   StructExprField(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
+private:
+  void Accept(Visitor *visitor) override;
 };
 
-class StructExprFields : public Node {
+class StructExprFields final : public Node {
 public:
   StructExprFields(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
+private:
+  void Accept(Visitor *visitor) override;
 };
 
 #endif

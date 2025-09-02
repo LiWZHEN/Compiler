@@ -1036,3 +1036,23 @@ std::string StructExprField::GetNodeLabel() const {
 std::string StructExprFields::GetNodeLabel() const {
   return "StructExprFields";
 }
+
+void LiteralExpression::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void BlockExpression::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void Expression::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void StructExprField::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void StructExprFields::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
