@@ -459,6 +459,14 @@ std::string Item::GetNodeLabel() const {
   return "Item";
 }
 
+void Crate::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
+void Item::Accept(Visitor *visitor) {
+  visitor->Visit(this);
+}
+
 // The following functions for printing is provided by deepseek
 std::string Node::GetNodeLabel() const {
   return "Node";

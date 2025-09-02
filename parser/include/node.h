@@ -4,6 +4,7 @@
 #include <vector>
 #include "classes.h"
 #include "token.h"
+#include "scope.h"
 
 enum NodeType {
   type_crate, type_item, type_function, type_struct, type_enumeration, type_constant_item,
@@ -33,6 +34,8 @@ protected:
   // void AddExpr();
   void ThrowErr(NodeType node_type, const std::string &info);
   void Restore(int size_before_try, int ptr_before_try);
+  virtual void Accept(Visitor *visitor) = 0;
+  friend class Visitor;
   std::vector<Node *> children_;
   std::vector<NodeType> type_;
   const std::vector<Token> &tokens_;
@@ -45,19 +48,24 @@ public:
   [[nodiscard]] Token const &GetContent() const;
   [[nodiscard]] std::string GetNodeLabel() const override;
 protected:
+  void Accept(Visitor *visitor) override = 0;
   Token token_;
 };
 
-class Crate : public Node {
+class Crate final : public Node {
 public:
   Crate(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
+protected:
+  void Accept(Visitor *visitor) override;
 };
 
-class Item : public Node {
+class Item final : public Node {
 public:
   Item(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
+protected:
+  void Accept(Visitor *visitor) override;
 };
 
 #endif //NODE_H
