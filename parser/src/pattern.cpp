@@ -68,16 +68,6 @@ IdentifierPattern::IdentifierPattern(const std::vector<Token> &tokens, int &ptr)
     }
     // Identifier
     AddChild(type_identifier);
-    // (@ PatternNoTopAlt)?
-    if (ptr < tokens.size() && tokens[ptr].GetStr() == "@") {
-      // @
-      AddChild(type_punctuation);
-      if (ptr >= tokens.size()) {
-        ThrowErr(type_identifier_pattern, "");
-      }
-      // PatternNoTopAlt
-      AddChild(type_pattern);
-    }
   } catch (...) {
     Restore(0, ptr_before_try);
     throw "";
