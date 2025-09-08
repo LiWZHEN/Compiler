@@ -1,4 +1,5 @@
 #include "leaf_node.h"
+#include "scope.h"
 
 Keyword::Keyword(const std::vector<Token> &tokens, int &ptr) : LeafNode(tokens, ptr) {}
 

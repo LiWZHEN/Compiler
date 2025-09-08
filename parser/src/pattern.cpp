@@ -1,4 +1,5 @@
 #include "pattern.h"
+#include "scope.h"
 
 Pattern::Pattern(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
   const int ptr_before_try = ptr;

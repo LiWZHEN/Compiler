@@ -1,5 +1,9 @@
 #include "item.h"
 
+#include <leaf_node.h>
+
+#include "scope.h"
+
 Function::Function(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
   const int ptr_before_try = ptr_;
   try {
@@ -360,4 +364,36 @@ void Trait::Accept(Visitor *visitor) {
 
 void Implementation::Accept(Visitor *visitor) {
   visitor->Visit(this);
+}
+
+std::string Function::GetIdentifier() const {
+  for (int i = 0; i < children_.size(); ++i) {
+    if (type_[i] == type_identifier) {
+      return reinterpret_cast<Identifier *>(children_[i])->GetContent().GetStr();
+    }
+  }
+  return "";
+}
+
+std::string Struct::GetIdentifier() const {
+  return reinterpret_cast<Identifier *>(children_[1])->GetContent().GetStr();
+}
+
+std::string Enumeration::GetIdentifier() const {
+  return reinterpret_cast<Identifier *>(children_[1])->GetContent().GetStr();
+}
+
+std::string ConstantItem::GetIdentifier() const {
+  return reinterpret_cast<Identifier *>(children_[1])->GetContent().GetStr();
+}
+
+std::string Trait::GetIdentifier() const {
+  return reinterpret_cast<Identifier *>(children_[1])->GetContent().GetStr();
+}
+
+bool Function::IsConst() const {
+  if (reinterpret_cast<LeafNode *>(children_[0])->GetContent().GetStr() == "fn") {
+    return false;
+  }
+  return true;
 }

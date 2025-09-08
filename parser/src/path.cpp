@@ -1,4 +1,5 @@
 #include "path.h"
+#include "scope.h"
 
 PathInExpression::PathInExpression(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
   const int ptr_before_try = ptr;

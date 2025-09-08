@@ -1,4 +1,5 @@
 #include "function_parameters.h"
+#include "scope.h"
 
 SelfParam::SelfParam(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
   const int ptr_before_try = ptr;

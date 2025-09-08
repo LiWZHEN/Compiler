@@ -11,6 +11,7 @@
 #include "structs.h"
 #include "enumerations.h"
 #include "trait.h"
+#include "scope.h"
 
 Node::Node(const std::vector<Token> &tokens, int &ptr) : tokens_(tokens), ptr_(ptr) {}
 

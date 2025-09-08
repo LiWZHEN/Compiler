@@ -1,4 +1,5 @@
 #include "expression.h"
+#include "scope.h"
 
 double GetBP(Infix op, int side) {
   if (side == 0) {

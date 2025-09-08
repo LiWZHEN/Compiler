@@ -1,5 +1,6 @@
 #include "statements.h"
 #include "expression.h"
+#include "scope.h"
 
 Statements::Statements(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
   const int ptr_before_try = ptr;

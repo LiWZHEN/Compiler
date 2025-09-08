@@ -1,4 +1,5 @@
 #include "functions.h"
+#include "scope.h"
 
 FunctionParameters::FunctionParameters(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
   const int ptr_before_try = ptr;

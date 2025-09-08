@@ -1,4 +1,5 @@
 #include "type.h"
+#include "scope.h"
 
 Type::Type(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
   const int ptr_before_try = ptr_;
