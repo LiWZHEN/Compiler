@@ -8,6 +8,8 @@ class Function final : public Node {
 public:
   Function(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
+  [[nodiscard]] std::string GetIdentifier() const;
+  [[nodiscard]] bool IsConst() const;
 private:
   void Accept(Visitor *visitor) override;
 };
@@ -16,6 +18,7 @@ class Struct final : public Node {
 public:
   Struct(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
+  [[nodiscard]] std::string GetIdentifier() const;
 private:
   void Accept(Visitor *visitor) override;
 };
@@ -24,6 +27,7 @@ class Enumeration final : public Node {
 public:
   Enumeration(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
+  [[nodiscard]] std::string GetIdentifier() const;
 private:
   void Accept(Visitor *visitor) override;
 };
@@ -32,6 +36,7 @@ class ConstantItem final : public Node {
 public:
   ConstantItem(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
+  [[nodiscard]] std::string GetIdentifier() const;
 private:
   void Accept(Visitor *visitor) override;
 };
@@ -40,6 +45,7 @@ class Trait final : public Node {
 public:
   Trait(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
+  [[nodiscard]] std::string GetIdentifier() const;
 private:
   void Accept(Visitor *visitor) override;
 };

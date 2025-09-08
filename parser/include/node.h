@@ -2,9 +2,9 @@
 #define NODE_H
 
 #include <vector>
+#include <memory>
 #include "classes.h"
 #include "token.h"
-#include "scope.h"
 
 enum NodeType {
   type_crate, type_item, type_function, type_struct, type_enumeration, type_constant_item,
@@ -20,6 +20,8 @@ enum NodeType {
   type_enum_variants, type_associated_item
 };
 
+struct ScopeNode;
+
 class Node {
 public:
   Node(const std::vector<Token> &tokens, int &ptr);
@@ -31,15 +33,16 @@ public:
   [[nodiscard]] virtual std::string GetNodeLabel() const;
 protected:
   void AddChild(NodeType node_type);
-  // void AddExpr();
   void ThrowErr(NodeType node_type, const std::string &info);
   void Restore(int size_before_try, int ptr_before_try);
   virtual void Accept(Visitor *visitor) = 0;
   friend class Visitor;
+  friend class SymbolVisitor;
   std::vector<Node *> children_;
   std::vector<NodeType> type_;
   const std::vector<Token> &tokens_;
   int &ptr_;
+  std::shared_ptr<ScopeNode> scope_node_ = nullptr;
 };
 
 class LeafNode : public Node {
