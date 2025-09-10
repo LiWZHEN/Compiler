@@ -3,8 +3,33 @@
 
 #include "classes.h"
 #include <unordered_map>
+#include <string>
+#include "node.h"
+
+struct ScopeNodeContent {
+  bool is_const;
+  Node *node;
+  NodeType node_type;
+};
 
 struct ScopeNode {
+  std::shared_ptr<ScopeNode> parent;
+  std::unordered_map<std::string, ScopeNodeContent> type_namespace;
+  std::unordered_map<std::string, ScopeNodeContent> value_namespace;
+  explicit ScopeNode(const std::shared_ptr<ScopeNode> &parent) : parent(parent) {}
+  void TypeAdd(const std::string &name, const NodeType node_type, Node *node = nullptr, const bool is_const = false) {
+    if (type_namespace.contains(name)) {
+      std::cerr << "The name \""<< name << "\" is already in the type namespace.\n";
+      throw "";
+    }
+    type_namespace[name] = {is_const, node, node_type};
+  }
+  void ValueAdd(const std::string &name, const NodeType node_type, Node *node = nullptr, const bool is_constant = false) {
+    if (value_namespace.contains(name)) {
+      std::cerr << "The name \"" << name << "\" is already in the value namespace.\n";
+    }
+    value_namespace[name] = {is_constant, node, node_type};
+  }
 };
 
 class Visitor {
@@ -109,6 +134,10 @@ class SymbolVisitor final : public Visitor {
   void Visit(StructField *struct_field_ptr) override;
   void Visit(EnumVariants *enum_variants_ptr) override;
   void Visit(AssociatedItem *associated_item_ptr) override;
+public:
+  void SetCurrentScope(const std::shared_ptr<ScopeNode> &new_current_scope_node);
+private:
+  std::shared_ptr<ScopeNode> current_scope_node_;
 };
 
 #endif
