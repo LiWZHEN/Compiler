@@ -8,6 +8,10 @@
 #include "path.h"
 #include "expression.h"
 #include "statements.h"
+#include "structs.h"
+#include "enumerations.h"
+#include "leaf_node.h"
+#include "trait.h"
 
 void SymbolVisitor::Visit(Crate *crate_ptr) {
   crate_ptr->scope_node_ = std::make_shared<ScopeNode>(nullptr);
@@ -158,7 +162,7 @@ void SymbolVisitor::Visit(Implementation *implementation_ptr) {
     }
     if (trait_content.node == nullptr) {
       std::cerr << "Cannot find target trait.\n";
-      throw "";
+      throw;
     }
     // find the type
     ScopeNodeContent type_content = {false, nullptr, type_crate};
@@ -168,7 +172,7 @@ void SymbolVisitor::Visit(Implementation *implementation_ptr) {
       target_type_name = dynamic_cast<LeafNode *>(target_type->children_[0]->children_[0])->GetContent().GetStr();
     } else {
       std::cerr << "Expect a name of a struct or an enumeration.\n";
-      throw "";
+      throw;
     }
     scope_ptr = current_scope_node_;
     while (scope_ptr != nullptr) {
@@ -183,10 +187,10 @@ void SymbolVisitor::Visit(Implementation *implementation_ptr) {
       throw "";
     }
     // both the trait and the type (struct / enumeration) are found
-
+    // todo
   } else {
     // inherent impl
-
+    // todo
   }
 }
 void SymbolVisitor::Visit(Keyword *keyword_ptr) {}
@@ -205,7 +209,17 @@ void SymbolVisitor::Visit(FunctionReturnType *function_return_type_ptr) {
   }
 }
 void SymbolVisitor::Visit(BlockExpression *block_expression_ptr) {
-  // todo
+  for (int i = 0; i < block_expression_ptr->children_.size(); ++i) {
+    if (block_expression_ptr->type_[i] == type_statements) {
+      block_expression_ptr->children_[i]->scope_node_ = std::make_shared<ScopeNode>(block_expression_ptr->scope_node_);
+      SetCurrentScope(block_expression_ptr->children_[i]->scope_node_);
+      block_expression_ptr->children_[i]->Accept(this);
+      SetCurrentScope(block_expression_ptr->scope_node_);
+    } else {
+      block_expression_ptr->children_[i]->scope_node_ = block_expression_ptr->scope_node_;
+      block_expression_ptr->children_[i]->Accept(this);
+    }
+  }
 }
 void SymbolVisitor::Visit(SelfParam *self_param_ptr) {
   for (const auto &it : self_param_ptr->children_) {
@@ -305,10 +319,69 @@ void SymbolVisitor::Visit(UnitType *unit_type_ptr) {
   }
 }
 void SymbolVisitor::Visit(Expression *expression_ptr) {
-  // todo
+  for (const auto &it : expression_ptr->children_) {
+    it->scope_node_ = expression_ptr->scope_node_;
+    it->Accept(this);
+  }
 }
 void SymbolVisitor::Visit(Statements *statements_ptr) {
-  // todo
+  // add identifiers into current scope
+  for (int i = 0; i < statements_ptr->children_.size(); ++i) {
+    if (statements_ptr->type_[i] == type_statement) {
+      if (statements_ptr->children_[i]->type_[0] == type_item) {
+        auto item_ptr = dynamic_cast<Item *>(statements_ptr->children_[i]->children_[0]);
+        switch (item_ptr->type_[0]) {
+          case type_function:
+            const auto function_ptr = dynamic_cast<Function *>(item_ptr->children_[0]);
+            current_scope_node_->ValueAdd(function_ptr->GetIdentifier(), type_function, item_ptr->children_[0], function_ptr->IsConst());
+            break;
+          case type_struct:
+            const auto struct_ptr = dynamic_cast<Struct *>(item_ptr->children_[0]);
+            current_scope_node_->ValueAdd(struct_ptr->GetIdentifier(), type_struct, item_ptr->children_[0], false);
+            current_scope_node_->TypeAdd(struct_ptr->GetIdentifier(), type_struct, item_ptr->children_[0], false);
+            break;
+          case type_enumeration:
+            const auto enumeration_ptr = dynamic_cast<Enumeration *>(item_ptr->children_[0]);
+            current_scope_node_->ValueAdd(enumeration_ptr->GetIdentifier(), type_enumeration, item_ptr->children_[0], true);
+            current_scope_node_->TypeAdd(enumeration_ptr->GetIdentifier(), type_enumeration, item_ptr->children_[0], true);
+            break;
+          case type_constant_item:
+            const auto constant_item_ptr = dynamic_cast<ConstantItem *>(item_ptr->children_[0]);
+            current_scope_node_->ValueAdd(constant_item_ptr->GetIdentifier(), type_constant_item, item_ptr->children_[0], true);
+            break;
+          case type_trait:
+            const auto trait_ptr = dynamic_cast<Trait *>(item_ptr->children_[0]);
+            current_scope_node_->TypeAdd(trait_ptr->GetIdentifier(), type_trait, item_ptr->children_[0], false);
+            break;
+          default:
+        }
+      }
+    }
+  }
+  // call Accept()
+  for (int i = 0; i < statements_ptr->children_.size(); ++i) {
+    if (statements_ptr->type_[i] == type_expression) {
+      statements_ptr->children_[i]->scope_node_ = statements_ptr->scope_node_;
+      statements_ptr->children_[i]->Accept(this);
+    } else {
+      // statement
+      if (statements_ptr->children_[i]->type_[0] == type_item && statements_ptr->children_[i]->children_[0]->type_[0] == type_implementation) {
+        continue; // skip implement
+      }
+      statements_ptr->children_[i]->scope_node_ = statements_ptr->scope_node_;
+      statements_ptr->children_[i]->Accept(this);
+    }
+  }
+  for (int i = 0; i < statements_ptr->children_.size(); ++i) {
+    if (statements_ptr->type_[i] == type_expression) {
+      continue;
+    }
+    // only access implement
+    if (statements_ptr->children_[i]->type_[0] == type_item && statements_ptr->children_[i]->children_[0]->type_[0] == type_implementation) {
+      statements_ptr->children_[i]->scope_node_ = statements_ptr->scope_node_;
+      statements_ptr->children_[i]->Accept(this);
+    }
+  }
 }
 void SymbolVisitor::Visit(Statement *statement_ptr) {
   for (const auto &it : statement_ptr->children_) {
@@ -329,10 +402,16 @@ void SymbolVisitor::Visit(ExpressionStatement *expression_statement_ptr) {
   }
 }
 void SymbolVisitor::Visit(StructExprFields *struct_expr_fields_ptr) {
-  // todo
+  for (const auto &it : struct_expr_fields_ptr->children_) {
+    it->scope_node_ = current_scope_node_;
+    it->Accept(this);
+  }
 }
 void SymbolVisitor::Visit(StructExprField *struct_expr_field_ptr) {
-  // todo
+  for (const auto &it : struct_expr_field_ptr->children_) {
+    it->scope_node_ = current_scope_node_;
+    it->Accept(this);
+  }
 }
 void SymbolVisitor::Visit(CharLiteral *char_literal_ptr) {}
 void SymbolVisitor::Visit(StringLiteral *string_literal_ptr) {}
@@ -341,16 +420,30 @@ void SymbolVisitor::Visit(CStringLiteral *c_string_literal_ptr) {}
 void SymbolVisitor::Visit(RawCStringLiteral *raw_c_string_literal_ptr) {}
 void SymbolVisitor::Visit(IntegerLiteral *integer_literal_ptr) {}
 void SymbolVisitor::Visit(StructFields *struct_fields_ptr) {
-
+  for (const auto &it : struct_fields_ptr->children_) {
+    it->scope_node_ = current_scope_node_;
+    it->Accept(this);
+  }
 }
 void SymbolVisitor::Visit(StructField *struct_field_ptr) {
-  // todo
+  for (const auto &it : struct_field_ptr->children_) {
+    it->scope_node_ = current_scope_node_;
+    it->Accept(this);
+  }
 }
 void SymbolVisitor::Visit(EnumVariants *enum_variants_ptr) {
-  // todo
+  for (int i = 0; i < enum_variants_ptr->children_.size(); ++i) {
+    enum_variants_ptr->children_[i]->scope_node_ = current_scope_node_;
+    if (enum_variants_ptr->type_[i] == type_identifier) {
+      const auto enum_variant_ptr = dynamic_cast<Identifier *>(enum_variants_ptr->children_[i]);
+      current_scope_node_->value_namespace[enum_variant_ptr->GetContent().GetStr()] = {true, enum_variants_ptr->children_[i], type_identifier};
+    }
+    enum_variants_ptr->children_[i]->Accept(this);
+  }
 }
 void SymbolVisitor::Visit(AssociatedItem *associated_item_ptr) {
-  // todo
+  associated_item_ptr->children_[0]->scope_node_ = associated_item_ptr->scope_node_;
+  associated_item_ptr->children_[0]->Accept(this);
 }
 
 void SymbolVisitor::SetCurrentScope(const std::shared_ptr<ScopeNode> &new_current_scope_node) {
