@@ -54,7 +54,7 @@ double GetBP(Infix op, int side) {
       case small_brackets_closure:
         return 0.0;
       default:
-        throw "";
+        throw;
     }
   }
   switch (op) {
@@ -105,7 +105,7 @@ double GetBP(Infix op, int side) {
     case right_shift_assign:
       return 1.0;
     default:
-      throw "";
+      throw;
   }
 }
 
@@ -254,7 +254,7 @@ BlockExpression::BlockExpression(const std::vector<Token> &tokens, int &ptr) : N
     AddChild(type_punctuation);
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw "";
+    throw;
   }
 }
 
@@ -726,7 +726,7 @@ Expression::Expression(const std::vector<Token> &tokens, int &ptr, ExprType expr
         type_.push_back(type_expression);
       } catch (...) {
         Restore(size_before_trying_adding_expr, ptr_before_trying_adding_expr);
-        throw "";
+        throw;
       }
     } else if (expr_type_ == call_params) {
       while (ptr_ < tokens_.size() && tokens_[ptr_].GetStr() != ")") {
@@ -836,7 +836,7 @@ Expression::Expression(const std::vector<Token> &tokens, int &ptr, ExprType expr
     delete lhs;
     delete rhs;
     Restore(0, ptr_before_try);
-    throw "";
+    throw;
   }
 }
 
@@ -851,22 +851,27 @@ Infix Expression::GetInfixForTest() const {
 StructExprField::StructExprField(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
   const int ptr_before_try = ptr_;
   try {
+    // Identifier
     if (tokens_[ptr_].GetType() != IDENTIFIER_OR_KEYWORD) {
-      ThrowErr(type_struct_expr_field, "Expect IDENTIFIER.");
+      ThrowErr(type_struct_expr_field, "Expect Identifier.");
     }
     AddChild(type_identifier);
-    if (ptr_ < tokens_.size() && tokens_[ptr_].GetStr() == ":") {
-      // :
-      AddChild(type_punctuation);
-      // Expression
-      if (ptr_ >= tokens_.size()) {
-        ThrowErr(type_struct_expr_field, "");
-      }
-      AddChild(type_expression);
+    // :
+    if (ptr_ >= tokens_.size()) {
+      ThrowErr(type_struct_expr_field, "");
     }
+    if (tokens_[ptr].GetStr() != ":") {
+      ThrowErr(type_struct_expr_field, "Expect \":\".");
+    }
+    AddChild(type_punctuation);
+    // Expression
+    if (ptr_ >= tokens_.size()) {
+      ThrowErr(type_struct_expr_field, "");
+    }
+    AddChild(type_expression);
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw "";
+    throw;
   }
 }
 
@@ -892,7 +897,7 @@ StructExprFields::StructExprFields(const std::vector<Token> &tokens, int &ptr) :
     }
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw "";
+    throw;
   }
 }
 
@@ -1018,7 +1023,7 @@ std::string Expression::GetNodeLabel() const {
     case call_params:
       return "call_params";
     default:
-      throw "";
+      throw;
   }
 }
 
