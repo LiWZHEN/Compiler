@@ -3,6 +3,9 @@
 
 #include "classes.h"
 #include "node.h"
+#include "unordered_map"
+
+struct ScopeNodeContent;
 
 class Function final : public Node {
 public:
@@ -19,6 +22,7 @@ public:
   Struct(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
   [[nodiscard]] std::string GetIdentifier() const;
+  std::unordered_map<std::string, ScopeNodeContent> associated_items_;
 private:
   void Accept(Visitor *visitor) override;
 };
@@ -28,6 +32,7 @@ public:
   Enumeration(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
   [[nodiscard]] std::string GetIdentifier() const;
+  std::unordered_map<std::string, ScopeNodeContent> associated_items_;
 private:
   void Accept(Visitor *visitor) override;
 };
