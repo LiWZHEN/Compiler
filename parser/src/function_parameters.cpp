@@ -15,7 +15,7 @@ SelfParam::SelfParam(const std::vector<Token> &tokens, int &ptr) : Node(tokens, 
     }
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw "";
+    throw;
   }
 }
 
@@ -43,7 +43,7 @@ ShorthandSelf::ShorthandSelf(const std::vector<Token> &tokens, int &ptr) : Node(
     AddChild(type_keyword);
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw "";
+    throw;
   }
 }
 
@@ -77,7 +77,7 @@ TypedSelf::TypedSelf(const std::vector<Token> &tokens, int &ptr) : Node(tokens, 
     AddChild(type_type);
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw "";
+    throw;
   }
 }
 
@@ -100,7 +100,7 @@ FunctionParam::FunctionParam(const std::vector<Token> &tokens, int &ptr) : Node(
     AddChild(type_type);
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw "";
+    throw;
   }
 }
 

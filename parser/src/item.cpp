@@ -70,7 +70,7 @@ Function::Function(const std::vector<Token> &tokens, int &ptr) : Node(tokens, pt
     }
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw "";
+    throw;
   }
 }
 
@@ -120,7 +120,7 @@ Struct::Struct(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
     }
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw "";
+    throw;
   }
 }
 
@@ -166,7 +166,7 @@ Enumeration::Enumeration(const std::vector<Token> &tokens, int &ptr) : Node(toke
     AddChild(type_punctuation);
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw "";
+    throw;
   }
 }
 
@@ -223,7 +223,7 @@ ConstantItem::ConstantItem(const std::vector<Token> &tokens, int &ptr) : Node(to
     AddChild(type_punctuation);
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw "";
+    throw;
   }
 }
 
@@ -266,7 +266,7 @@ Trait::Trait(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
     AddChild(type_punctuation);
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw "";
+    throw;
   }
 }
 
@@ -314,7 +314,7 @@ Implementation::Implementation(const std::vector<Token> &tokens, int &ptr) : Nod
     AddChild(type_punctuation);
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw "";
+    throw;
   }
 }
 

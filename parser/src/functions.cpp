@@ -55,7 +55,7 @@ FunctionParameters::FunctionParameters(const std::vector<Token> &tokens, int &pt
     }
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw "";
+    throw;
   }
 }
 
@@ -72,7 +72,7 @@ FunctionReturnType::FunctionReturnType(const std::vector<Token> &tokens, int &pt
     AddChild(type_type);
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw "";
+    throw;
   }
 }
 

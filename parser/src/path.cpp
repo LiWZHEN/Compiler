@@ -18,7 +18,7 @@ PathInExpression::PathInExpression(const std::vector<Token> &tokens, int &ptr) :
     }
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw "";
+    throw;
   }
 }
 

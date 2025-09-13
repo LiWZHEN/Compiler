@@ -14,7 +14,7 @@ Type::Type(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
     }
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw "";
+    throw;
   }
 }
 
@@ -61,7 +61,7 @@ ReferenceType::ReferenceType(const std::vector<Token> &tokens, int &ptr) : Node(
     AddChild(type_type);
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw "";
+    throw;
   }
 }
 
@@ -96,7 +96,7 @@ ArrayType::ArrayType(const std::vector<Token> &tokens, int &ptr) : Node(tokens, 
     AddChild(type_punctuation);
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw "";
+    throw;
   }
 }
 
@@ -118,7 +118,7 @@ UnitType::UnitType(const std::vector<Token> &tokens, int &ptr) : Node(tokens, pt
     AddChild(type_punctuation);
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw "";
+    throw;
   }
 }
 

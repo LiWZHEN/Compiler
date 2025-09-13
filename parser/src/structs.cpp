@@ -25,7 +25,7 @@ StructFields::StructFields(const std::vector<Token> &tokens, int &ptr): Node(tok
     }
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw "";
+    throw;
   }
 }
 
@@ -52,7 +52,7 @@ StructField::StructField(const std::vector<Token> &tokens, int &ptr): Node(token
     AddChild(type_type);
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw "";
+    throw;
   }
 }
 
