@@ -33,7 +33,7 @@ public:
   [[nodiscard]] virtual std::string GetNodeLabel() const;
 protected:
   void AddChild(NodeType node_type);
-  void ThrowErr(NodeType node_type, const std::string &info);
+  void ThrowErr(NodeType node_type, const std::string &info) const;
   void Restore(int size_before_try, int ptr_before_try);
   virtual void Accept(Visitor *visitor) = 0;
   friend class Visitor;

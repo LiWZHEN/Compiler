@@ -36,7 +36,7 @@ std::vector<NodeType> const &Node::GetChildrenType() const {
   return type_;
 }
 
-void Node::AddChild(NodeType node_type) {
+void Node::AddChild(const NodeType node_type) {
   switch (node_type) {
     case type_item:
       children_.push_back(new Item(tokens_, ptr_));
@@ -228,11 +228,11 @@ void Node::AddChild(NodeType node_type) {
       break;
     default:
       std::cerr << "Invalid type!\n";
-      throw "";
+      throw;
   }
 }
 
-void Node::ThrowErr(const NodeType node_type, const std::string &info) {
+void Node::ThrowErr(const NodeType node_type, const std::string &info) const {
   switch (node_type) {
     case type_crate:
       std::cerr << "Crate: ";
@@ -380,14 +380,14 @@ void Node::ThrowErr(const NodeType node_type, const std::string &info) {
       break;
     default:
       std::cerr << "No matched type!\n";
-      throw "";
+      throw;
   }
   if (ptr_ >= tokens_.size()) {
     std::cerr << "Unexpected ending!\n";
   } else {
     std::cerr << "line " << tokens_[ptr_].GetLine() << " column " << tokens_[ptr_].GetColumn() << ": " << info << "\n";
   }
-  throw "";
+  throw;
 }
 
 void Node::Restore(const int size_before_try, const int ptr_before_try) {
@@ -416,7 +416,7 @@ Crate::Crate(const std::vector<Token> &tokens, int &ptr): Node(tokens, ptr) {
     }
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw "";
+    throw;
   }
 }
 
@@ -448,7 +448,7 @@ Item::Item(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
     }
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw "";
+    throw;
   }
 }
 
@@ -468,7 +468,7 @@ void Item::Accept(Visitor *visitor) {
   visitor->Visit(this);
 }
 
-// The following functions for printing is provided by deepseek
+// The following functions for printing is provided by DeepSeek
 std::string Node::GetNodeLabel() const {
   return "Node";
 }
@@ -480,10 +480,10 @@ std::string LeafNode::GetNodeLabel() const {
 std::string Node::GetStruct(const std::string& prefix, bool isLast) const {
   std::string result;
   result += prefix + (isLast ? "└── " : "├── ") + GetNodeLabel() + "\n"; // Show current node
-  std::string childPrefix = prefix + (isLast ? "    " : "│   ");
+  const std::string childPrefix = prefix + (isLast ? "    " : "│   ");
   // Recursive processing
   for (size_t i = 0; i < children_.size(); ++i) {
-    bool childIsLast = (i == children_.size() - 1);
+    const bool childIsLast = (i == children_.size() - 1);
     result += children_[i]->GetStruct(childPrefix, childIsLast);
   }
   return result;
