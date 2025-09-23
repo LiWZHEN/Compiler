@@ -9,22 +9,8 @@ Pattern::Pattern(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr)
       AddChild(type_wildcard_pattern);
     } else if (next_token == "&" || next_token == "&&") {
       AddChild(type_reference_pattern);
-    } else if (next_token == "ref" || next_token == "mut") {
-      AddChild(type_identifier_pattern);
     } else {
-      try {
-        AddChild(type_literal_pattern);
-      } catch (...) {
-        Restore(0, ptr_before_try);
-        std::cerr << "Pattern: Successfully handle literal pattern trying failure.\n";
-        try {
-          AddChild(type_identifier_pattern);
-        } catch (...) {
-          Restore(0, ptr_before_try);
-          std::cerr << "Pattern: Successfully handle identifier pattern trying failure.\n";
-          AddChild(type_path_in_expression);
-        }
-      }
+      AddChild(type_identifier_pattern);
     }
   } catch (...) {
     Restore(0, ptr_before_try);

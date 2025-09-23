@@ -96,23 +96,20 @@ LetStatement::LetStatement(const std::vector<Token> &tokens, int &ptr) : Node(to
       ThrowErr(type_let_statement, "");
     }
     AddChild(type_type);
-    // (= Expression)? ;
+    // = Expression ;
+    // =
     if (ptr_ >= tokens_.size()) {
       ThrowErr(type_let_statement, "");
     }
-    if (tokens_[ptr_].GetStr() == "=") {
-      // = Expression
-      // =
-      AddChild(type_punctuation);
-      // Expression
-      if (ptr_ >= tokens_.size()) {
-        ThrowErr(type_let_statement, "");
-      }
-      AddChild(type_expression);
-      if (ptr_ >= tokens_.size()) {
-        ThrowErr(type_let_statement, "");
-      }
+    if (tokens_[ptr_].GetStr() != "=") {
+      ThrowErr(type_let_statement, "Expect \"=\".");
     }
+    AddChild(type_punctuation);
+    // Expression
+    if (ptr_ >= tokens_.size()) {
+      ThrowErr(type_let_statement, "");
+    }
+    AddChild(type_expression);
     // ;
     if (tokens_[ptr_].GetStr() != ";") {
       ThrowErr(type_let_statement, "Expect \";\".");
