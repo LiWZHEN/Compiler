@@ -20,7 +20,6 @@ class BlockExpression;
 class SelfParam;
 class FunctionParam;
 class ShorthandSelf;
-class TypedSelf;
 class Type;
 class Pattern;
 class WildcardPattern;

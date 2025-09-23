@@ -102,10 +102,6 @@ void Node::AddChild(const NodeType node_type) {
       children_.push_back(new ShorthandSelf(tokens_, ptr_));
       type_.push_back(type_shorthand_self);
       break;
-    case type_typed_self:
-      children_.push_back(new TypedSelf(tokens_, ptr_));
-      type_.push_back(type_typed_self);
-      break;
     case type_type:
       children_.push_back(new Type(tokens_, ptr_));
       type_.push_back(type_type);
@@ -284,9 +280,6 @@ void Node::ThrowErr(const NodeType node_type, const std::string &info) const {
       break;
     case type_shorthand_self:
       std::cerr << "ShorthandSelf: ";
-      break;
-    case type_typed_self:
-      std::cerr << "TypedSelf: ";
       break;
     case type_type:
       std::cerr << "Type: ";

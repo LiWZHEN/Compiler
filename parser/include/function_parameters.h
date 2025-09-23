@@ -20,14 +20,6 @@ private:
   void Accept(Visitor *visitor) override;
 };
 
-class TypedSelf final : public Node {
-public:
-  TypedSelf(const std::vector<Token> &tokens, int &ptr);
-  [[nodiscard]] std::string GetNodeLabel() const override;
-private:
-  void Accept(Visitor *visitor) override;
-};
-
 class FunctionParam final : public Node {
 public:
   FunctionParam(const std::vector<Token> &tokens, int &ptr);

@@ -19,8 +19,8 @@ struct ScopeNode {
   explicit ScopeNode(const std::shared_ptr<ScopeNode> &parent) : parent(parent) {}
   void TypeAdd(const std::string &name, const NodeType node_type, Node *node = nullptr, const bool is_const = false) {
     if (type_namespace.contains(name)) {
-      std::cerr << "The name \""<< name << "\" is already in the type namespace.\n";
-      throw "";
+      std::cerr << "The name \"" << name << "\" is already in the type namespace.\n";
+      throw;
     }
     type_namespace[name] = {is_const, node, node_type};
   }
@@ -52,7 +52,6 @@ public:
   virtual void Visit(SelfParam *self_param_ptr) = 0;
   virtual void Visit(FunctionParam *function_param_ptr) = 0;
   virtual void Visit(ShorthandSelf *shorthand_self_ptr) = 0;
-  virtual void Visit(TypedSelf *typed_self_ptr) = 0;
   virtual void Visit(Type *type_ptr) = 0;
   virtual void Visit(Pattern *pattern_ptr) = 0;
   virtual void Visit(WildcardPattern *wildcard_pattern_ptr) = 0;
@@ -103,7 +102,6 @@ class SymbolVisitor final : public Visitor {
   void Visit(SelfParam *self_param_ptr) override;
   void Visit(FunctionParam *function_param_ptr) override;
   void Visit(ShorthandSelf *shorthand_self_ptr) override;
-  void Visit(TypedSelf *typed_self_ptr) override;
   void Visit(Type *type_ptr) override;
   void Visit(Pattern *pattern_ptr) override;
   void Visit(WildcardPattern *wildcard_pattern_ptr) override;

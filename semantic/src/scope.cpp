@@ -10,7 +10,6 @@
 #include "statements.h"
 #include "structs.h"
 #include "enumerations.h"
-#include "leaf_node.h"
 #include "trait.h"
 
 void SymbolVisitor::Visit(Crate *crate_ptr) {
@@ -42,7 +41,7 @@ void SymbolVisitor::Visit(Crate *crate_ptr) {
         const auto trait_ptr = dynamic_cast<Trait *>(it->children_[0]);
         current_scope_node_->TypeAdd(trait_ptr->GetIdentifier(), type_trait, it->children_[0], false);
         break;
-      default:
+      default:;
     }
   }
   // call accept functions of child nodes
@@ -303,12 +302,6 @@ void SymbolVisitor::Visit(FunctionParam *function_param_ptr) {
 }
 void SymbolVisitor::Visit(ShorthandSelf *shorthand_self_ptr) {
   for (const auto &it : shorthand_self_ptr->children_) {
-    it->scope_node_ = current_scope_node_;
-    it->Accept(this);
-  }
-}
-void SymbolVisitor::Visit(TypedSelf *typed_self_ptr) {
-  for (const auto &it : typed_self_ptr->children_) {
     it->scope_node_ = current_scope_node_;
     it->Accept(this);
   }
