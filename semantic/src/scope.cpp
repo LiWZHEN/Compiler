@@ -19,28 +19,33 @@ void SymbolVisitor::Visit(Crate *crate_ptr) {
   for (const auto it : crate_ptr->children_) {
     // "it" always points to a node of item type
     switch (it->type_[0]) {
-      case type_function:
+      case type_function: {
         const auto function_ptr = dynamic_cast<Function *>(it->children_[0]);
         current_scope_node_->ValueAdd(function_ptr->GetIdentifier(), type_function, it->children_[0], function_ptr->IsConst());
         break;
-      case type_struct:
+      }
+      case type_struct: {
         const auto struct_ptr = dynamic_cast<Struct *>(it->children_[0]);
         current_scope_node_->ValueAdd(struct_ptr->GetIdentifier(), type_struct, it->children_[0], false);
         current_scope_node_->TypeAdd(struct_ptr->GetIdentifier(), type_struct, it->children_[0], false);
         break;
-      case type_enumeration:
+      }
+      case type_enumeration: {
         const auto enumeration_ptr = dynamic_cast<Enumeration *>(it->children_[0]);
         current_scope_node_->ValueAdd(enumeration_ptr->GetIdentifier(), type_enumeration, it->children_[0], true);
         current_scope_node_->TypeAdd(enumeration_ptr->GetIdentifier(), type_enumeration, it->children_[0], true);
         break;
-      case type_constant_item:
+      }
+      case type_constant_item: {
         const auto constant_item_ptr = dynamic_cast<ConstantItem *>(it->children_[0]);
         current_scope_node_->ValueAdd(constant_item_ptr->GetIdentifier(), type_constant_item, it->children_[0], true);
         break;
-      case type_trait:
+      }
+      case type_trait: {
         const auto trait_ptr = dynamic_cast<Trait *>(it->children_[0]);
         current_scope_node_->TypeAdd(trait_ptr->GetIdentifier(), type_trait, it->children_[0], false);
         break;
+      }
       default:;
     }
   }
@@ -392,29 +397,34 @@ void SymbolVisitor::Visit(Statements *statements_ptr) {
       if (statements_ptr->children_[i]->type_[0] == type_item) {
         auto item_ptr = dynamic_cast<Item *>(statements_ptr->children_[i]->children_[0]);
         switch (item_ptr->type_[0]) {
-          case type_function:
+          case type_function: {
             const auto function_ptr = dynamic_cast<Function *>(item_ptr->children_[0]);
             current_scope_node_->ValueAdd(function_ptr->GetIdentifier(), type_function, item_ptr->children_[0], function_ptr->IsConst());
             break;
-          case type_struct:
+          }
+          case type_struct: {
             const auto struct_ptr = dynamic_cast<Struct *>(item_ptr->children_[0]);
             current_scope_node_->ValueAdd(struct_ptr->GetIdentifier(), type_struct, item_ptr->children_[0], false);
             current_scope_node_->TypeAdd(struct_ptr->GetIdentifier(), type_struct, item_ptr->children_[0], false);
             break;
-          case type_enumeration:
+          }
+          case type_enumeration: {
             const auto enumeration_ptr = dynamic_cast<Enumeration *>(item_ptr->children_[0]);
             current_scope_node_->ValueAdd(enumeration_ptr->GetIdentifier(), type_enumeration, item_ptr->children_[0], true);
             current_scope_node_->TypeAdd(enumeration_ptr->GetIdentifier(), type_enumeration, item_ptr->children_[0], true);
             break;
-          case type_constant_item:
+          }
+          case type_constant_item: {
             const auto constant_item_ptr = dynamic_cast<ConstantItem *>(item_ptr->children_[0]);
             current_scope_node_->ValueAdd(constant_item_ptr->GetIdentifier(), type_constant_item, item_ptr->children_[0], true);
             break;
-          case type_trait:
+          }
+          case type_trait: {
             const auto trait_ptr = dynamic_cast<Trait *>(item_ptr->children_[0]);
             current_scope_node_->TypeAdd(trait_ptr->GetIdentifier(), type_trait, item_ptr->children_[0], false);
             break;
-          default:
+          }
+          default:;
         }
       }
     }
