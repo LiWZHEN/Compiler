@@ -43,7 +43,7 @@ Statements::Statements(const std::vector<Token> &tokens, int &ptr) : Node(tokens
     }
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw;
+    throw "";
   }
 }
 
@@ -66,7 +66,7 @@ Statement::Statement(const std::vector<Token> &tokens, int &ptr) : Node (tokens,
     }
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw;
+    throw "";
   }
 }
 
@@ -117,7 +117,7 @@ LetStatement::LetStatement(const std::vector<Token> &tokens, int &ptr) : Node(to
     AddChild(type_punctuation);
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw;
+    throw "";
   }
 }
 
@@ -147,7 +147,7 @@ ExpressionStatement::ExpressionStatement(const std::vector<Token> &tokens, int &
     }
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw;
+    throw "";
   }
 }
 

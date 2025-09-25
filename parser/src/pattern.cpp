@@ -14,7 +14,7 @@ Pattern::Pattern(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr)
     }
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw;
+    throw "";
   }
 }
 
@@ -32,7 +32,7 @@ LiteralPattern::LiteralPattern(const std::vector<Token> &tokens, int &ptr) : Nod
     AddChild(type_literal_expression);
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw;
+    throw "";
   }
 }
 
@@ -57,7 +57,7 @@ IdentifierPattern::IdentifierPattern(const std::vector<Token> &tokens, int &ptr)
     AddChild(type_identifier);
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw;
+    throw "";
   }
 }
 
@@ -85,7 +85,7 @@ ReferencePattern::ReferencePattern(const std::vector<Token> &tokens, int &ptr) :
     AddChild(type_pattern);
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw;
+    throw "";
   }
 }
 

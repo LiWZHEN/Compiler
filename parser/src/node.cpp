@@ -224,7 +224,7 @@ void Node::AddChild(const NodeType node_type) {
       break;
     default:
       std::cerr << "Invalid type!\n";
-      throw;
+      throw "";
   }
 }
 
@@ -373,14 +373,14 @@ void Node::ThrowErr(const NodeType node_type, const std::string &info) const {
       break;
     default:
       std::cerr << "No matched type!\n";
-      throw;
+      throw "";
   }
   if (ptr_ >= tokens_.size()) {
     std::cerr << "Unexpected ending!\n";
   } else {
     std::cerr << "line " << tokens_[ptr_].GetLine() << " column " << tokens_[ptr_].GetColumn() << ": " << info << "\n";
   }
-  throw;
+  throw "";
 }
 
 void Node::Restore(const int size_before_try, const int ptr_before_try) {
@@ -409,7 +409,7 @@ Crate::Crate(const std::vector<Token> &tokens, int &ptr): Node(tokens, ptr) {
     }
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw;
+    throw "";
   }
 }
 
@@ -441,7 +441,7 @@ Item::Item(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
     }
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw;
+    throw "";
   }
 }
 

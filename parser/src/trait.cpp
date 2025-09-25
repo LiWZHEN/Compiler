@@ -21,7 +21,7 @@ AssociatedItem::AssociatedItem(const std::vector<Token> &tokens, int &ptr) : Nod
     }
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw;
+    throw "";
   }
 }
 

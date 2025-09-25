@@ -54,7 +54,7 @@ double GetBP(Infix op, int side) {
       case small_brackets_closure:
         return 0.0;
       default:
-        throw;
+        throw "";
     }
   }
   switch (op) {
@@ -105,7 +105,7 @@ double GetBP(Infix op, int side) {
     case right_shift_assign:
       return 1.0;
     default:
-      throw;
+      throw "";
   }
 }
 
@@ -254,7 +254,7 @@ BlockExpression::BlockExpression(const std::vector<Token> &tokens, int &ptr) : N
     AddChild(type_punctuation);
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw;
+    throw "";
   }
 }
 
@@ -726,7 +726,7 @@ Expression::Expression(const std::vector<Token> &tokens, int &ptr, ExprType expr
         type_.push_back(type_expression);
       } catch (...) {
         Restore(size_before_trying_adding_expr, ptr_before_trying_adding_expr);
-        throw;
+        throw "";
       }
     } else if (expr_type_ == call_params) {
       while (ptr_ < tokens_.size() && tokens_[ptr_].GetStr() != ")") {
@@ -836,7 +836,7 @@ Expression::Expression(const std::vector<Token> &tokens, int &ptr, ExprType expr
     delete lhs;
     delete rhs;
     Restore(0, ptr_before_try);
-    throw;
+    throw "";
   }
 }
 
@@ -871,7 +871,7 @@ StructExprField::StructExprField(const std::vector<Token> &tokens, int &ptr) : N
     AddChild(type_expression);
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw;
+    throw "";
   }
 }
 
@@ -897,7 +897,7 @@ StructExprFields::StructExprFields(const std::vector<Token> &tokens, int &ptr) :
     }
   } catch (...) {
     Restore(0, ptr_before_try);
-    throw;
+    throw "";
   }
 }
 
@@ -1023,7 +1023,7 @@ std::string Expression::GetNodeLabel() const {
     case call_params:
       return "call_params";
     default:
-      throw;
+      throw "";
   }
 }
 

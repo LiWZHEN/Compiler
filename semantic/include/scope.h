@@ -20,7 +20,7 @@ struct ScopeNode {
   void TypeAdd(const std::string &name, const NodeType node_type, Node *node = nullptr, const bool is_const = false) {
     if (type_namespace.contains(name)) {
       std::cerr << "The name \"" << name << "\" is already in the type namespace.\n";
-      throw;
+      throw "";
     }
     type_namespace[name] = {is_const, node, node_type};
   }

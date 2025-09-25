@@ -36,7 +36,7 @@ TEST(ParserTest, FunctionWithParameter1) {
 }
 
 TEST(ParserTest, FunctionWithParameter2) {
-  SuccessCheck("fn f(mut self, r##\"hello\"## : [[amazing;23333];a=1+1]);", true);
+  SuccessCheck("fn f(a[2*3] : i32);", true);
 }
 
 int main(int argc, char **argv) {

@@ -146,7 +146,7 @@ void SymbolVisitor::Visit(Implementation *implementation_ptr) {
     type_name = dynamic_cast<LeafNode *>(target_type->children_[0]->children_[0])->GetContent().GetStr();
   } else {
     std::cerr << "Expect a name of a struct or an enumeration.\n";
-    throw;
+    throw "";
   }
   ScopeNodeContent type_content = {false, nullptr, type_crate};
   std::shared_ptr<ScopeNode> scope_ptr = current_scope_node_;
@@ -159,7 +159,7 @@ void SymbolVisitor::Visit(Implementation *implementation_ptr) {
   }
   if (type_content.node == nullptr) {
     std::cerr << "Cannot find target struct / enumeration.\n";
-    throw;
+    throw "";
   }
   if (type_content.node_type == type_struct) {
     const auto struct_ptr = dynamic_cast<Struct *>(type_content.node);
@@ -174,7 +174,7 @@ void SymbolVisitor::Visit(Implementation *implementation_ptr) {
         const std::string associated_item_name = const_item_ptr->GetIdentifier();
         if (struct_ptr->associated_items_.contains(associated_item_name)) {
           std::cerr << "Double declaration!\n";
-          throw;
+          throw "";
         }
         struct_ptr->associated_items_[associated_item_name] = {true, associated_item_ptr->children_[0], type_constant_item};
       } else { // associated_item_ptr->type_[0] == type_function
@@ -182,7 +182,7 @@ void SymbolVisitor::Visit(Implementation *implementation_ptr) {
         const std::string associated_item_name = function_ptr->GetIdentifier();
         if (struct_ptr->associated_items_.contains(associated_item_name)) {
           std::cerr << "Double declaration!\n";
-          throw;
+          throw "";
         }
         struct_ptr->associated_items_[associated_item_name] = {false, associated_item_ptr->children_[0], type_function};
       }
@@ -223,7 +223,7 @@ void SymbolVisitor::Visit(Implementation *implementation_ptr) {
         const std::string associated_item_name = const_item_ptr->GetIdentifier();
         if (enum_ptr->associated_items_.contains(associated_item_name)) {
           std::cerr << "Double declaration!\n";
-          throw;
+          throw "";
         }
         enum_ptr->associated_items_[associated_item_name] = {true, associated_item_ptr->children_[0], type_constant_item};
       } else { // associated_item_ptr->type_[0] == type_function
@@ -231,7 +231,7 @@ void SymbolVisitor::Visit(Implementation *implementation_ptr) {
         const std::string associated_item_name = function_ptr->GetIdentifier();
         if (enum_ptr->associated_items_.contains(associated_item_name)) {
           std::cerr << "Double declaration!\n";
-          throw;
+          throw "";
         }
         enum_ptr->associated_items_[associated_item_name] = {false, associated_item_ptr->children_[0], type_function};
       }
@@ -262,7 +262,7 @@ void SymbolVisitor::Visit(Implementation *implementation_ptr) {
     }
   } else {
     std::cerr << "The type does not correspond to a struct or an enumeration.\n";
-    throw;
+    throw "";
   }
 }
 void SymbolVisitor::Visit(Keyword *keyword_ptr) {}
