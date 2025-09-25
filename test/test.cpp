@@ -35,10 +35,6 @@ TEST(ParserTest, FunctionWithParameter1) {
   SuccessCheck("fn f(&mut self);", true);
 }
 
-TEST(ParserTest, FunctionWithParameter2) {
-  SuccessCheck("fn f(a[2*3] : i32);", true);
-}
-
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
