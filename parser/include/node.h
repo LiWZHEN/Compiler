@@ -19,6 +19,35 @@ enum NodeType {
   type_struct_fields, type_struct_field, type_enum_variants, type_associated_item
 };
 
+enum BasicType {
+  unknown_type, bool_type, i32_type, u32_type, isize_type, usize_type, char_type, str_type,
+  unit_type, array_types, struct_types, enumerated_types, pointer_types, never_type
+};
+
+struct IntegratedType {
+  BasicType basic_type = unknown_type;
+  bool is_const = false;
+  // int
+  bool type_fixed = false;
+  bool signed_int = false;
+  // array
+  int size;
+  std::shared_ptr<IntegratedType> element_type;
+  // struct / pointer
+  std::weak_ptr<Node> struct_node;
+};
+
+struct Value {
+  // integer / bool
+  int int_value = 0; // bool: 0->false, 1->true
+  // char
+  char char_value;
+  // str
+  std::string str_value;
+  // array / struct
+  std::vector<Value> values;
+};
+
 struct ScopeNode;
 
 class Node {
@@ -35,13 +64,15 @@ protected:
   void ThrowErr(NodeType node_type, const std::string &info) const;
   void Restore(int size_before_try, int ptr_before_try);
   virtual void Accept(Visitor *visitor) = 0;
-  friend class Visitor;
   friend class SymbolVisitor;
+  friend class ValueTypeVisitor;
   std::vector<Node *> children_;
   std::vector<NodeType> type_;
   const std::vector<Token> &tokens_;
   int &ptr_;
   std::shared_ptr<ScopeNode> scope_node_ = nullptr;
+  IntegratedType integrated_type_;
+  Value value_;
 };
 
 class LeafNode : public Node {

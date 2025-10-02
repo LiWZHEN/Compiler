@@ -51,5 +51,6 @@ class EnumVariants;
 class AssociatedItem;
 class Visitor;
 class SymbolVisitor;
+class ValueTypeVisitor;
 
 #endif
