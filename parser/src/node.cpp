@@ -110,10 +110,6 @@ void Node::AddChild(const NodeType node_type) {
       children_.push_back(new Pattern(tokens_, ptr_));
       type_.push_back(type_pattern);
       break;
-    case type_wildcard_pattern:
-      children_.push_back(new WildcardPattern(tokens_, ptr_));
-      type_.push_back(type_wildcard_pattern);
-      break;
     case type_reference_pattern:
       children_.push_back(new ReferencePattern(tokens_, ptr_));
       type_.push_back(type_reference_pattern);
@@ -286,9 +282,6 @@ void Node::ThrowErr(const NodeType node_type, const std::string &info) const {
       break;
     case type_pattern:
       std::cerr << "Pattern: ";
-      break;
-    case type_wildcard_pattern:
-      std::cerr << "WildcardPattern: ";
       break;
     case type_reference_pattern:
       std::cerr << "ReferencePattern: ";

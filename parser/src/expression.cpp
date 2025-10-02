@@ -290,9 +290,6 @@ ExprType Expression::GetNextExprType() const {
   if (next_token == "return") {
     return return_expr;
   }
-  if (next_token == "_") {
-    return underscore_expr;
-  }
   if (next_token == "true" || next_token == "false") {
     return literal_expr;
   }
@@ -669,11 +666,6 @@ Expression::Expression(const std::vector<Token> &tokens, int &ptr, ExprType expr
           return;
         }
       }
-    } else if (expr_type_ == underscore_expr) {
-      if (tokens_[ptr_].GetStr() != "_") {
-        ThrowErr(type_expression, "Expect \"_\".");
-      }
-      AddChild(type_punctuation);
     } else if (expr_type_ == literal_expr) {
       const std::string next_token = tokens_[ptr_].GetStr();
       if (next_token == "true" || next_token == "false") {
@@ -1010,8 +1002,6 @@ std::string Expression::GetNodeLabel() const {
       return "break_expr";
     case return_expr:
       return "return_expr";
-    case underscore_expr:
-      return "underscore_expr";
     case lazy_boolean_expr:
       return "lazy_boolean_expr";
     case assignment_expr:

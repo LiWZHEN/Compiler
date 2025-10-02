@@ -28,14 +28,6 @@ private:
   void Accept(Visitor *visitor) override;
 };
 
-class WildcardPattern final : public LeafNode {
-public:
-  WildcardPattern(const std::vector<Token> &tokens, int &ptr);
-  [[nodiscard]] std::string GetNodeLabel() const override;
-private:
-  void Accept(Visitor *visitor) override;
-};
-
 class ReferencePattern final : public Node {
 public:
   ReferencePattern(const std::vector<Token> &tokens, int &ptr);

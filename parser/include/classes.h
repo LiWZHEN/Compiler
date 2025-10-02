@@ -22,7 +22,6 @@ class FunctionParam;
 class ShorthandSelf;
 class Type;
 class Pattern;
-class WildcardPattern;
 class ReferencePattern;
 class IdentifierPattern;
 class LiteralPattern;

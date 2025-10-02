@@ -5,9 +5,7 @@ Pattern::Pattern(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr)
   const int ptr_before_try = ptr;
   const std::string next_token = tokens[ptr].GetStr();
   try {
-    if (next_token == "_") {
-      AddChild(type_wildcard_pattern);
-    } else if (next_token == "&" || next_token == "&&") {
+    if (next_token == "&" || next_token == "&&") {
       AddChild(type_reference_pattern);
     } else {
       AddChild(type_identifier_pattern);
@@ -61,8 +59,6 @@ IdentifierPattern::IdentifierPattern(const std::vector<Token> &tokens, int &ptr)
   }
 }
 
-WildcardPattern::WildcardPattern(const std::vector<Token> &tokens, int &ptr) : LeafNode(tokens, ptr) {}
-
 ReferencePattern::ReferencePattern(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
   const int ptr_before_try = ptr;
   try {
@@ -101,10 +97,6 @@ std::string IdentifierPattern::GetNodeLabel() const {
   return "IdentifierPattern";
 }
 
-std::string WildcardPattern::GetNodeLabel() const {
-  return "WildcardPattern: " + token_.GetStr();
-}
-
 std::string ReferencePattern::GetNodeLabel() const {
   return "ReferencePattern";
 }
@@ -118,10 +110,6 @@ void LiteralPattern::Accept(Visitor *visitor) {
 }
 
 void IdentifierPattern::Accept(Visitor *visitor) {
-  visitor->Visit(this);
-}
-
-void WildcardPattern::Accept(Visitor *visitor) {
   visitor->Visit(this);
 }
 
