@@ -54,7 +54,6 @@ public:
   virtual void Visit(ShorthandSelf *shorthand_self_ptr) = 0;
   virtual void Visit(Type *type_ptr) = 0;
   virtual void Visit(Pattern *pattern_ptr) = 0;
-  virtual void Visit(WildcardPattern *wildcard_pattern_ptr) = 0;
   virtual void Visit(ReferencePattern *reference_pattern_ptr) = 0;
   virtual void Visit(IdentifierPattern *identifier_pattern_ptr) = 0;
   virtual void Visit(LiteralPattern *literal_pattern_ptr) = 0;
@@ -104,7 +103,6 @@ class SymbolVisitor final : public Visitor {
   void Visit(ShorthandSelf *shorthand_self_ptr) override;
   void Visit(Type *type_ptr) override;
   void Visit(Pattern *pattern_ptr) override;
-  void Visit(WildcardPattern *wildcard_pattern_ptr) override;
   void Visit(ReferencePattern *reference_pattern_ptr) override;
   void Visit(IdentifierPattern *identifier_pattern_ptr) override;
   void Visit(LiteralPattern *literal_pattern_ptr) override;

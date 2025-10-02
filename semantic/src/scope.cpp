@@ -323,7 +323,6 @@ void SymbolVisitor::Visit(Pattern *pattern_ptr) {
     it->Accept(this);
   }
 }
-void SymbolVisitor::Visit(WildcardPattern *wildcard_pattern_ptr) {}
 void SymbolVisitor::Visit(ReferencePattern *reference_pattern_ptr) {
   for (const auto &it : reference_pattern_ptr->children_) {
     it->scope_node_ = current_scope_node_;
