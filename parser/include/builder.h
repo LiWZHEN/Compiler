@@ -9,8 +9,8 @@
 class Builder {
 public:
   Builder() = delete;
-  Builder(const std::vector<Token> &tokens);
-  Node *GetTree();
+  explicit Builder(const std::vector<Token> &tokens);
+  Crate *GetTree();
 private:
   const std::vector<Token> &tokens_;
   int ptr_ = 0;

@@ -2,11 +2,11 @@
 
 Builder::Builder(const std::vector<Token> &tokens) : tokens_(tokens) {}
 
-Node *Builder::GetTree() {
+Crate *Builder::GetTree() {
   if (tokens_.empty()) {
     return nullptr;
   }
-  Node *root = nullptr;
+  Crate *root = nullptr;
   try {
     root = new Crate(tokens_, ptr_);
   } catch (...) {
