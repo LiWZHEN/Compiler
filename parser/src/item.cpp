@@ -1,7 +1,5 @@
 #include "item.h"
-
-#include <leaf_node.h>
-
+#include "leaf_node.h"
 #include "scope.h"
 
 Function::Function(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
