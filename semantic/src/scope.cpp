@@ -21,29 +21,29 @@ void SymbolVisitor::Visit(Crate *crate_ptr) {
     switch (it->type_[0]) {
       case type_function: {
         const auto function_ptr = dynamic_cast<Function *>(it->children_[0]);
-        current_scope_node_->ValueAdd(function_ptr->GetIdentifier(), type_function, it->children_[0], function_ptr->IsConst());
+        current_scope_node_->ValueAdd(function_ptr->GetIdentifier(), type_function, it->children_[0]);
         break;
       }
       case type_struct: {
         const auto struct_ptr = dynamic_cast<Struct *>(it->children_[0]);
-        current_scope_node_->ValueAdd(struct_ptr->GetIdentifier(), type_struct, it->children_[0], false);
-        current_scope_node_->TypeAdd(struct_ptr->GetIdentifier(), type_struct, it->children_[0], false);
+        current_scope_node_->ValueAdd(struct_ptr->GetIdentifier(), type_struct, it->children_[0]);
+        current_scope_node_->TypeAdd(struct_ptr->GetIdentifier(), type_struct, it->children_[0]);
         break;
       }
       case type_enumeration: {
         const auto enumeration_ptr = dynamic_cast<Enumeration *>(it->children_[0]);
-        current_scope_node_->ValueAdd(enumeration_ptr->GetIdentifier(), type_enumeration, it->children_[0], true);
-        current_scope_node_->TypeAdd(enumeration_ptr->GetIdentifier(), type_enumeration, it->children_[0], true);
+        current_scope_node_->ValueAdd(enumeration_ptr->GetIdentifier(), type_enumeration, it->children_[0]);
+        current_scope_node_->TypeAdd(enumeration_ptr->GetIdentifier(), type_enumeration, it->children_[0]);
         break;
       }
       case type_constant_item: {
         const auto constant_item_ptr = dynamic_cast<ConstantItem *>(it->children_[0]);
-        current_scope_node_->ValueAdd(constant_item_ptr->GetIdentifier(), type_constant_item, it->children_[0], true);
+        current_scope_node_->ValueAdd(constant_item_ptr->GetIdentifier(), type_constant_item, it->children_[0]);
         break;
       }
       case type_trait: {
         const auto trait_ptr = dynamic_cast<Trait *>(it->children_[0]);
-        current_scope_node_->TypeAdd(trait_ptr->GetIdentifier(), type_trait, it->children_[0], false);
+        current_scope_node_->TypeAdd(trait_ptr->GetIdentifier(), type_trait, it->children_[0]);
         break;
       }
       default:;
@@ -148,7 +148,7 @@ void SymbolVisitor::Visit(Implementation *implementation_ptr) {
     std::cerr << "Expect a name of a struct or an enumeration.\n";
     throw "";
   }
-  ScopeNodeContent type_content = {false, nullptr, type_crate};
+  ScopeNodeContent type_content = {nullptr, type_crate};
   std::shared_ptr<ScopeNode> scope_ptr = current_scope_node_;
   while (scope_ptr != nullptr) {
     if (scope_ptr->type_namespace.contains(type_name)) {
@@ -176,7 +176,7 @@ void SymbolVisitor::Visit(Implementation *implementation_ptr) {
           std::cerr << "Double declaration!\n";
           throw "";
         }
-        struct_ptr->associated_items_[associated_item_name] = {true, associated_item_ptr->children_[0], type_constant_item};
+        struct_ptr->associated_items_[associated_item_name] = {associated_item_ptr->children_[0], type_constant_item};
       } else { // associated_item_ptr->type_[0] == type_function
         const auto function_ptr = dynamic_cast<Function *>(associated_item_ptr->children_[0]);
         const std::string associated_item_name = function_ptr->GetIdentifier();
@@ -184,7 +184,7 @@ void SymbolVisitor::Visit(Implementation *implementation_ptr) {
           std::cerr << "Double declaration!\n";
           throw "";
         }
-        struct_ptr->associated_items_[associated_item_name] = {false, associated_item_ptr->children_[0], type_function};
+        struct_ptr->associated_items_[associated_item_name] = {associated_item_ptr->children_[0], type_function};
       }
     }
     // visit
@@ -200,11 +200,11 @@ void SymbolVisitor::Visit(Implementation *implementation_ptr) {
         if (associated_it_ptr->type_[0] == type_constant_item) {
           const auto const_item_ptr = dynamic_cast<ConstantItem *>(associated_it_ptr->children_[0]);
           associated_item_name = const_item_ptr->GetIdentifier();
-          implementation_ptr->children_[i]->scope_node_->ValueAdd(associated_item_name, type_constant_item, const_item_ptr, true);
+          implementation_ptr->children_[i]->scope_node_->ValueAdd(associated_item_name, type_constant_item, const_item_ptr);
         } else { // associated_item_ptr->type_[0] == type_function
           const auto function_ptr = dynamic_cast<Function *>(associated_it_ptr->children_[0]);
           associated_item_name = function_ptr->GetIdentifier();
-          implementation_ptr->children_[i]->scope_node_->ValueAdd(associated_item_name, type_function, function_ptr, false);
+          implementation_ptr->children_[i]->scope_node_->ValueAdd(associated_item_name, type_function, function_ptr);
         }
         SetCurrentScope(implementation_ptr->children_[i]->scope_node_);
         implementation_ptr->children_[i]->Accept(this);
@@ -225,7 +225,7 @@ void SymbolVisitor::Visit(Implementation *implementation_ptr) {
           std::cerr << "Double declaration!\n";
           throw "";
         }
-        enum_ptr->associated_items_[associated_item_name] = {true, associated_item_ptr->children_[0], type_constant_item};
+        enum_ptr->associated_items_[associated_item_name] = {associated_item_ptr->children_[0], type_constant_item};
       } else { // associated_item_ptr->type_[0] == type_function
         const auto function_ptr = dynamic_cast<Function *>(associated_item_ptr->children_[0]);
         const std::string associated_item_name = function_ptr->GetIdentifier();
@@ -233,7 +233,7 @@ void SymbolVisitor::Visit(Implementation *implementation_ptr) {
           std::cerr << "Double declaration!\n";
           throw "";
         }
-        enum_ptr->associated_items_[associated_item_name] = {false, associated_item_ptr->children_[0], type_function};
+        enum_ptr->associated_items_[associated_item_name] = {associated_item_ptr->children_[0], type_function};
       }
     }
     // visit
@@ -249,11 +249,11 @@ void SymbolVisitor::Visit(Implementation *implementation_ptr) {
         if (associated_it_ptr->type_[0] == type_constant_item) {
           const auto const_item_ptr = dynamic_cast<ConstantItem *>(associated_it_ptr->children_[0]);
           associated_item_name = const_item_ptr->GetIdentifier();
-          implementation_ptr->children_[i]->scope_node_->ValueAdd(associated_item_name, type_constant_item, const_item_ptr, true);
+          implementation_ptr->children_[i]->scope_node_->ValueAdd(associated_item_name, type_constant_item, const_item_ptr);
         } else { // associated_item_ptr->type_[0] == type_function
           const auto function_ptr = dynamic_cast<Function *>(associated_it_ptr->children_[0]);
           associated_item_name = function_ptr->GetIdentifier();
-          implementation_ptr->children_[i]->scope_node_->ValueAdd(associated_item_name, type_function, function_ptr, false);
+          implementation_ptr->children_[i]->scope_node_->ValueAdd(associated_item_name, type_function, function_ptr);
         }
         SetCurrentScope(implementation_ptr->children_[i]->scope_node_);
         implementation_ptr->children_[i]->Accept(this);
@@ -398,29 +398,29 @@ void SymbolVisitor::Visit(Statements *statements_ptr) {
         switch (item_ptr->type_[0]) {
           case type_function: {
             const auto function_ptr = dynamic_cast<Function *>(item_ptr->children_[0]);
-            current_scope_node_->ValueAdd(function_ptr->GetIdentifier(), type_function, item_ptr->children_[0], function_ptr->IsConst());
+            current_scope_node_->ValueAdd(function_ptr->GetIdentifier(), type_function, item_ptr->children_[0]);
             break;
           }
           case type_struct: {
             const auto struct_ptr = dynamic_cast<Struct *>(item_ptr->children_[0]);
-            current_scope_node_->ValueAdd(struct_ptr->GetIdentifier(), type_struct, item_ptr->children_[0], false);
-            current_scope_node_->TypeAdd(struct_ptr->GetIdentifier(), type_struct, item_ptr->children_[0], false);
+            current_scope_node_->ValueAdd(struct_ptr->GetIdentifier(), type_struct, item_ptr->children_[0]);
+            current_scope_node_->TypeAdd(struct_ptr->GetIdentifier(), type_struct, item_ptr->children_[0]);
             break;
           }
           case type_enumeration: {
             const auto enumeration_ptr = dynamic_cast<Enumeration *>(item_ptr->children_[0]);
-            current_scope_node_->ValueAdd(enumeration_ptr->GetIdentifier(), type_enumeration, item_ptr->children_[0], true);
-            current_scope_node_->TypeAdd(enumeration_ptr->GetIdentifier(), type_enumeration, item_ptr->children_[0], true);
+            current_scope_node_->ValueAdd(enumeration_ptr->GetIdentifier(), type_enumeration, item_ptr->children_[0]);
+            current_scope_node_->TypeAdd(enumeration_ptr->GetIdentifier(), type_enumeration, item_ptr->children_[0]);
             break;
           }
           case type_constant_item: {
             const auto constant_item_ptr = dynamic_cast<ConstantItem *>(item_ptr->children_[0]);
-            current_scope_node_->ValueAdd(constant_item_ptr->GetIdentifier(), type_constant_item, item_ptr->children_[0], true);
+            current_scope_node_->ValueAdd(constant_item_ptr->GetIdentifier(), type_constant_item, item_ptr->children_[0]);
             break;
           }
           case type_trait: {
             const auto trait_ptr = dynamic_cast<Trait *>(item_ptr->children_[0]);
-            current_scope_node_->TypeAdd(trait_ptr->GetIdentifier(), type_trait, item_ptr->children_[0], false);
+            current_scope_node_->TypeAdd(trait_ptr->GetIdentifier(), type_trait, item_ptr->children_[0]);
             break;
           }
           default:;

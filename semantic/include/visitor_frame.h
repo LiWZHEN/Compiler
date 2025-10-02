@@ -6,7 +6,6 @@
 #include "node.h"
 
 struct ScopeNodeContent {
-  bool is_const;
   Node *node;
   NodeType node_type;
 };
@@ -16,18 +15,18 @@ struct ScopeNode {
   std::unordered_map<std::string, ScopeNodeContent> type_namespace;
   std::unordered_map<std::string, ScopeNodeContent> value_namespace;
   explicit ScopeNode(const std::shared_ptr<ScopeNode> &parent) : parent(parent) {}
-  void TypeAdd(const std::string &name, const NodeType node_type, Node *node = nullptr, const bool is_const = false) {
+  void TypeAdd(const std::string &name, const NodeType node_type, Node *node = nullptr) {
     if (type_namespace.contains(name)) {
       std::cerr << "The name \"" << name << "\" is already in the type namespace.\n";
       throw "";
     }
-    type_namespace[name] = {is_const, node, node_type};
+    type_namespace[name] = {node, node_type};
   }
-  void ValueAdd(const std::string &name, const NodeType node_type, Node *node = nullptr, const bool is_constant = false) {
+  void ValueAdd(const std::string &name, const NodeType node_type, Node *node = nullptr) {
     if (value_namespace.contains(name)) {
       std::cerr << "The name \"" << name << "\" is already in the value namespace.\n";
     }
-    value_namespace[name] = {is_constant, node, node_type};
+    value_namespace[name] = {node, node_type};
   }
 };
 
