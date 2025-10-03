@@ -9,6 +9,8 @@ Type::Type(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
       AddChild(type_reference_type);
     } else if (next_token == "[") {
       AddChild(type_array_type);
+    } else if (next_token == "(") {
+      AddChild(type_unit_type);
     } else {
       AddChild(type_type_path);
     }
