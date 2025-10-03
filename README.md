@@ -6,16 +6,32 @@
 
 ## lexer
 
-Use boost::regex to get tokens, but match RawStringLiteral, RawCStringLiteral and BlockComments manually.
+Use boost::regex to get tokens, but match RawStringLiteral,
+RawCStringLiteral and BlockComments manually.
 
 ## parser
 
-Use Pratt Parsing in the expression-with-infix parsing procedure, and top-down parsing for the rest.
+Generate an AST tree (point from parent to children).
+
+Use Pratt Parsing in the expression-with-infix parsing procedure,
+and top-down parsing for the rest.
 
 ## semantic
 
 ### 1.SymbolVisitor
 
+Create a scope tree with the symbols in their scopes separately.
+
+The pointers between scope nodes point from child to parent,
+and the pointers between AST tree and scope tree point from
+AST node to scope node.
+
+From a scope node, we can find corresponding AST node by a
+symbol name in std::string type.
+
+### 2.ValueTypeVisitor
+
+Figure out the type that a node should have.
 
 ---
 
