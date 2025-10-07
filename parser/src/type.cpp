@@ -163,3 +163,19 @@ void ArrayType::Accept(Visitor *visitor) {
 void UnitType::Accept(Visitor *visitor) {
   visitor->Visit(this);
 }
+
+void Type::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+    const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+    const ScopeNodeContent node_info) {}
+void TypePath::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+    const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+    const ScopeNodeContent node_info) {}
+void ReferenceType::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+    const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+    const ScopeNodeContent node_info) {}
+void ArrayType::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+    const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+    const ScopeNodeContent node_info) {}
+void UnitType::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+    const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+    const ScopeNodeContent node_info) {}

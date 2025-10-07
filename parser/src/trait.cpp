@@ -32,3 +32,12 @@ std::string AssociatedItem::GetNodeLabel() const {
 void AssociatedItem::Accept(Visitor *visitor) {
   visitor->Visit(this);
 }
+
+void AssociatedItem::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+    const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+    const ScopeNodeContent node_info) {
+  for (int i = 0; i < children_.size(); ++i) {
+    children_[i]->AddSymbol(nullptr, false, false, true,
+        false, target_node, {children_[i], type_[i]});
+  }
+}

@@ -38,3 +38,15 @@ std::string EnumVariants::GetNodeLabel() const {
 void EnumVariants::Accept(Visitor *visitor) {
   visitor->Visit(this);
 }
+
+void EnumVariants::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+    const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+    const ScopeNodeContent node_info) {
+  for (int i = 0; i < children_.size(); ++i) {
+    if (type_[i] == type_punctuation) {
+      continue;
+    }
+    children_[i]->AddSymbol(target_scope, need_type_add, need_value_add, associated_item_add,
+        true, target_node, {children_[i], type_identifier});
+  }
+}

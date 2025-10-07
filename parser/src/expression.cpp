@@ -1052,3 +1052,27 @@ void StructExprField::Accept(Visitor *visitor) {
 void StructExprFields::Accept(Visitor *visitor) {
   visitor->Visit(this);
 }
+
+void LiteralExpression::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+    const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+    const ScopeNodeContent node_info) {}
+void BlockExpression::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+    const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+    const ScopeNodeContent node_info) {
+  for (int i = 0; i < children_.size(); ++i) {
+    if (type_[i] != type_statements) {
+      continue;
+    }
+    children_[i]->AddSymbol(target_scope, need_type_add, need_value_add, associated_item_add,
+        field_item_add, target_node, node_info);
+  }
+}
+void Expression::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+    const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+    const ScopeNodeContent node_info) {}
+void StructExprField::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+    const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+    const ScopeNodeContent node_info) {}
+void StructExprFields::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+    const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+    const ScopeNodeContent node_info) {}

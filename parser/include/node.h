@@ -11,9 +11,9 @@ enum NodeType {
   type_trait, type_implementation, type_keyword, type_identifier, type_punctuation,
   type_function_parameters, type_function_return_type, type_block_expression, type_self_param,
   type_function_param, type_shorthand_self, type_type, type_pattern, type_reference_pattern,
-  type_identifier_pattern, type_literal_pattern, type_path_in_expression, type_literal_expression,
-  type_path_expr_segment, type_reference_type, type_array_type, type_type_path, type_unit_type,
-  type_expression, type_statements, type_statement, type_let_statement, type_expression_statement,
+  type_identifier_pattern, type_path_in_expression, type_literal_expression, type_path_expr_segment,
+  type_reference_type, type_array_type, type_type_path, type_unit_type, type_expression,
+  type_statements, type_statement, type_let_statement, type_expression_statement,
   type_struct_expr_fields, type_struct_expr_field, type_char_literal, type_string_literal,
   type_raw_string_literal, type_c_string_literal, type_raw_c_string_literal, type_integer_literal,
   type_struct_fields, type_struct_field, type_enum_variants, type_associated_item
@@ -27,6 +27,7 @@ enum BasicType {
 struct IntegratedType {
   BasicType basic_type = unknown_type;
   bool is_const = false;
+  bool is_mutable = false;
   // int
   bool type_fixed = false;
   bool signed_int = false;
@@ -49,6 +50,7 @@ struct Value {
 };
 
 struct ScopeNode;
+struct ScopeNodeContent;
 
 class Node {
 public:
@@ -57,8 +59,10 @@ public:
   [[nodiscard]] int GetChildrenNum() const;
   [[nodiscard]] std::vector<Node *> const &GetChildrenPtr() const;
   [[nodiscard]] std::vector<NodeType> const &GetChildrenType() const;
-  [[nodiscard]] virtual std::string GetStruct(const std::string& prefix, bool isLast) const;
+  [[nodiscard]] virtual std::string GetStruct(const std::string &prefix, bool isLast) const;
   [[nodiscard]] virtual std::string GetNodeLabel() const;
+  virtual void AddSymbol(ScopeNode *target_scope, bool need_type_add, bool need_value_add, bool associated_item_add,
+      bool field_item_add, ScopeNodeContent target_node, ScopeNodeContent node_info) = 0;
 protected:
   void AddChild(NodeType node_type);
   void ThrowErr(NodeType node_type, const std::string &info) const;
@@ -80,6 +84,8 @@ public:
   LeafNode(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] Token const &GetContent() const;
   [[nodiscard]] std::string GetNodeLabel() const override;
+  void AddSymbol(ScopeNode *target_scope, bool need_type_add, bool need_value_add, bool associated_item_add,
+      bool field_item_add, ScopeNodeContent target_node, ScopeNodeContent node_info) override = 0;
 protected:
   void Accept(Visitor *visitor) override = 0;
   Token token_;
@@ -89,6 +95,8 @@ class Crate final : public Node {
 public:
   Crate(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
+  void AddSymbol(ScopeNode *target_scope, bool need_type_add, bool need_value_add, bool associated_item_add,
+      bool field_item_add, ScopeNodeContent target_node, ScopeNodeContent node_info) override;
 private:
   void Accept(Visitor *visitor) override;
 };
@@ -97,6 +105,8 @@ class Item final : public Node {
 public:
   Item(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
+  void AddSymbol(ScopeNode *target_scope, bool need_type_add, bool need_value_add, bool associated_item_add,
+      bool field_item_add, ScopeNodeContent target_node, ScopeNodeContent node_info) override;
 private:
   void Accept(Visitor *visitor) override;
 };

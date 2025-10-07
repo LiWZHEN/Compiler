@@ -30,6 +30,8 @@ class LiteralExpression final : public LeafNode {
 public:
   LiteralExpression(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
+  void AddSymbol(ScopeNode *target_scope, bool need_type_add, bool need_value_add, bool associated_item_add,
+      bool field_item_add, ScopeNodeContent target_node, ScopeNodeContent node_info) override;
 private:
   void Accept(Visitor *visitor) override;
 };
@@ -38,6 +40,8 @@ class BlockExpression final : public Node {
 public:
   BlockExpression(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
+  void AddSymbol(ScopeNode *target_scope, bool need_type_add, bool need_value_add, bool associated_item_add,
+      bool field_item_add, ScopeNodeContent target_node, ScopeNodeContent node_info) override;
 private:
   void Accept(Visitor *visitor) override;
 };
@@ -49,6 +53,8 @@ public:
   [[nodiscard]] ExprType GetExprType() const;
   [[nodiscard]] Infix GetInfixForTest() const;
   [[nodiscard]] std::string GetNodeLabel() const override;
+  void AddSymbol(ScopeNode *target_scope, bool need_type_add, bool need_value_add, bool associated_item_add,
+      bool field_item_add, ScopeNodeContent target_node, ScopeNodeContent node_info) override;
 private:
   Expression(const std::vector<Token> &tokens, int &ptr, Expression *lhs, Expression *rhs, Infix infix);
   void Accept(Visitor *visitor) override;
@@ -60,6 +66,8 @@ class StructExprField final : public Node {
 public:
   StructExprField(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
+  void AddSymbol(ScopeNode *target_scope, bool need_type_add, bool need_value_add, bool associated_item_add,
+      bool field_item_add, ScopeNodeContent target_node, ScopeNodeContent node_info) override;
 private:
   void Accept(Visitor *visitor) override;
 };
@@ -68,6 +76,8 @@ class StructExprFields final : public Node {
 public:
   StructExprFields(const std::vector<Token> &tokens, int &ptr);
   [[nodiscard]] std::string GetNodeLabel() const override;
+  void AddSymbol(ScopeNode *target_scope, bool need_type_add, bool need_value_add, bool associated_item_add,
+      bool field_item_add, ScopeNodeContent target_node, ScopeNodeContent node_info) override;
 private:
   void Accept(Visitor *visitor) override;
 };

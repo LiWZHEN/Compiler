@@ -395,3 +395,110 @@ bool Function::IsConst() const {
   }
   return true;
 }
+
+void Function::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+    const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+    const ScopeNodeContent node_info) {
+  const std::string function_name = this->GetIdentifier();
+  if (associated_item_add) {
+    switch (target_node.node_type) {
+      case type_struct: {
+        const auto target_struct_ptr = dynamic_cast<Struct *>(target_node.node);
+        if (target_struct_ptr->associated_items_.contains(function_name)) {
+          std::cerr << "The name '" << function_name << "' is already in the associated item namespace.\n";
+          throw "";
+        }
+        target_struct_ptr->associated_items_[function_name] = node_info;
+        break;
+      }
+      case type_trait: {
+        const auto target_trait_ptr = dynamic_cast<Trait *>(target_node.node);
+        if (target_trait_ptr->associated_items_.contains(function_name)) {
+          std::cerr << "The name \"" << function_name << "\" is already in the associated item namespace.\n";
+          throw "";
+        }
+        target_trait_ptr->associated_items_[function_name] = node_info;
+        break;
+      }
+      default:;
+    }
+  } else {
+    if (need_type_add) {
+      target_scope->TypeAdd(function_name, node_info);
+    }
+    if (need_value_add) {
+      target_scope->ValueAdd(function_name, node_info);
+    }
+  }
+}
+void Struct::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+    const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+    const ScopeNodeContent node_info) {
+  const std::string struct_name = this->GetIdentifier();
+  if (need_type_add) {
+    target_scope->TypeAdd(struct_name, node_info);
+  }
+  if (need_value_add) {
+    target_scope->ValueAdd(struct_name, node_info);
+  }
+}
+void Enumeration::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+    const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+    const ScopeNodeContent node_info) {
+  const std::string enum_name = this->GetIdentifier();
+  if (need_type_add) {
+    target_scope->TypeAdd(enum_name, node_info);
+  }
+  if (need_value_add) {
+    target_scope->ValueAdd(enum_name, node_info);
+  }
+}
+void ConstantItem::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+    const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+    const ScopeNodeContent node_info) {
+  const std::string const_item_name = this->GetIdentifier();
+  if (associated_item_add) {
+    switch (target_node.node_type) {
+      case type_struct: {
+        const auto target_struct_ptr = dynamic_cast<Struct *>(target_node.node);
+        if (target_struct_ptr->associated_items_.contains(const_item_name)) {
+          std::cerr << "The name \"" << const_item_name << "\" is already in the associated item namespace.\n";
+          throw "";
+        }
+        target_struct_ptr->associated_items_[const_item_name] = node_info;
+        break;
+      }
+      case type_trait: {
+        const auto target_trait_ptr = dynamic_cast<Trait *>(target_node.node);
+        if (target_trait_ptr->associated_items_.contains(const_item_name)) {
+          std::cerr << "The name \"" << const_item_name << "\" is already in the associated item namespace.\n";
+          throw "";
+        }
+        target_trait_ptr->associated_items_[const_item_name] = node_info;
+        break;
+      }
+      default:;
+    }
+  } else {
+    if (need_type_add) {
+      target_scope->TypeAdd(const_item_name, node_info);
+    }
+    if (need_value_add) {
+      target_scope->ValueAdd(const_item_name, node_info);
+    }
+  }
+}
+void Trait::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+    const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+    const ScopeNodeContent node_info) {
+  std::string trait_name = this->GetIdentifier();
+  if (need_type_add) {
+    target_scope->TypeAdd(trait_name, node_info);
+  }
+  if (need_value_add) {
+    target_scope->ValueAdd(trait_name, node_info);
+  }
+}
+void Implementation::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+    const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+    const ScopeNodeContent node_info) {}

@@ -118,10 +118,6 @@ void Node::AddChild(const NodeType node_type) {
       children_.push_back(new IdentifierPattern(tokens_, ptr_));
       type_.push_back(type_identifier_pattern);
       break;
-    case type_literal_pattern:
-      children_.push_back(new LiteralPattern(tokens_, ptr_));
-      type_.push_back(type_literal_pattern);
-      break;
     case type_path_in_expression:
       children_.push_back(new PathInExpression(tokens_, ptr_));
       type_.push_back(type_path_in_expression);
@@ -288,9 +284,6 @@ void Node::ThrowErr(const NodeType node_type, const std::string &info) const {
       break;
     case type_identifier_pattern:
       std::cerr << "IdentifierPattern: ";
-      break;
-    case type_literal_pattern:
-      std::cerr << "LiteralPattern: ";
       break;
     case type_path_in_expression:
       std::cerr << "PathInExpression: ";
@@ -473,4 +466,40 @@ std::string Node::GetStruct(const std::string& prefix, bool isLast) const {
     result += children_[i]->GetStruct(childPrefix, childIsLast);
   }
   return result;
+}
+
+void Crate::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+    const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+    const ScopeNodeContent node_info) {}
+void Item::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+    const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+    const ScopeNodeContent node_info) {
+  switch (type_[0]) {
+    case type_function: {
+      children_[0]->AddSymbol(target_scope, false, true, associated_item_add,
+          field_item_add, target_node, {children_[0], type_function});
+      break;
+    }
+    case type_struct: {
+      children_[0]->AddSymbol(target_scope, true, true, false,
+          false, target_node, {children_[0], type_struct});
+      break;
+    }
+    case type_enumeration: {
+      children_[0]->AddSymbol(target_scope, true, true, false,
+          false, target_node, {children_[0], type_enumeration});
+      break;
+    }
+    case type_constant_item: {
+      children_[0]->AddSymbol(target_scope, false, true, associated_item_add,
+          false, target_node, {children_[0], type_constant_item});
+      break;
+    }
+    case type_trait: {
+      children_[0]->AddSymbol(target_scope, true, false, false,
+          false, target_node, {children_[0], type_trait});
+      break;
+    }
+    default:;
+  }
 }

@@ -1,5 +1,6 @@
 #include "leaf_node.h"
 #include "scope.h"
+#include "item.h"
 
 Keyword::Keyword(const std::vector<Token> &tokens, int &ptr) : LeafNode(tokens, ptr) {}
 
@@ -105,3 +106,55 @@ void RawCStringLiteral::Accept(Visitor *visitor) {
 void IntegerLiteral::Accept(Visitor *visitor) {
   visitor->Visit(this);
 }
+
+void Keyword::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+    const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+    const ScopeNodeContent node_info) {}
+void Identifier::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+    const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+    const ScopeNodeContent node_info) {
+  const std::string identifier_name = this->GetContent().GetStr();
+  if (target_node.node_type == type_enumeration) {
+    const auto enum_ptr = dynamic_cast<Enumeration *>(target_node.node);
+    if (enum_ptr->enum_variants_.contains(identifier_name)) {
+      std::cerr << "Error: The name '" << identifier_name << "' is defined multiple times.\n";
+      throw "";
+    }
+    enum_ptr->enum_variants_.insert(identifier_name);
+  } else if (target_node.node_type == type_struct) {
+    const auto struct_ptr = dynamic_cast<Struct *>(target_node.node);
+    if (struct_ptr->field_items_.contains(identifier_name)) {
+      std::cerr << "Error: Field '" << identifier_name << "' is already declared.\n";
+      throw "";
+    }
+    struct_ptr->field_items_[identifier_name] = node_info;
+  } else {
+    if (need_type_add) {
+      target_scope->TypeAdd(identifier_name, node_info);
+    }
+    if (need_value_add) {
+      target_scope->ValueAdd(identifier_name, node_info);
+    }
+  }
+}
+void Punctuation::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+   const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+   const ScopeNodeContent node_info) {}
+void CharLiteral::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+   const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+   const ScopeNodeContent node_info) {}
+void StringLiteral::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+   const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+   const ScopeNodeContent node_info) {}
+void RawStringLiteral::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+   const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+   const ScopeNodeContent node_info) {}
+void CStringLiteral::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+   const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+   const ScopeNodeContent node_info) {}
+void RawCStringLiteral::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+   const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+   const ScopeNodeContent node_info) {}
+void IntegerLiteral::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+   const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+   const ScopeNodeContent node_info) {}

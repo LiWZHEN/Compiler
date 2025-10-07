@@ -16,24 +16,6 @@ Pattern::Pattern(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr)
   }
 }
 
-LiteralPattern::LiteralPattern(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
-  const int ptr_before_try = ptr;
-  try {
-    // -?
-    if (tokens[ptr].GetStr() == "-") {
-      AddChild(type_punctuation);
-      if (ptr >= tokens.size()) {
-        ThrowErr(type_literal_pattern, "");
-      }
-    }
-    // LiteralExpression
-    AddChild(type_literal_expression);
-  } catch (...) {
-    Restore(0, ptr_before_try);
-    throw "";
-  }
-}
-
 IdentifierPattern::IdentifierPattern(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
   const int ptr_before_try = ptr;
   try {
@@ -89,10 +71,6 @@ std::string Pattern::GetNodeLabel() const {
   return "Pattern";
 }
 
-std::string LiteralPattern::GetNodeLabel() const {
-  return "LiteralPattern";
-}
-
 std::string IdentifierPattern::GetNodeLabel() const {
   return "IdentifierPattern";
 }
@@ -105,14 +83,35 @@ void Pattern::Accept(Visitor *visitor) {
   visitor->Visit(this);
 }
 
-void LiteralPattern::Accept(Visitor *visitor) {
-  visitor->Visit(this);
-}
-
 void IdentifierPattern::Accept(Visitor *visitor) {
   visitor->Visit(this);
 }
 
 void ReferencePattern::Accept(Visitor *visitor) {
   visitor->Visit(this);
+}
+
+void Pattern::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+    const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+    const ScopeNodeContent node_info) {
+  for (const auto it : children_) {
+    it->AddSymbol(target_scope, need_type_add, need_value_add, associated_item_add,
+        field_item_add, target_node, node_info);
+  }
+}
+void IdentifierPattern::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+    const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+    const ScopeNodeContent node_info) {
+  for (const auto it : children_) {
+    it->AddSymbol(target_scope, need_type_add, need_value_add, associated_item_add,
+        field_item_add, target_node, node_info);
+  }
+}
+void ReferencePattern::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+    const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+    const ScopeNodeContent node_info) {
+  for (const auto it : children_) {
+    it->AddSymbol(target_scope, need_type_add, need_value_add, associated_item_add,
+        field_item_add, target_node, node_info);
+  }
 }

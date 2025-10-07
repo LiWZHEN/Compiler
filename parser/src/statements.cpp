@@ -182,3 +182,31 @@ void LetStatement::Accept(Visitor *visitor) {
 void ExpressionStatement::Accept(Visitor *visitor) {
   visitor->Visit(this);
 }
+
+void Statements::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+    const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+    const ScopeNodeContent node_info) {
+  for (int i = 0; i < children_.size(); ++i) {
+    if (type_[i] != type_statement) {
+      continue;
+    }
+    children_[i]->AddSymbol(target_scope, need_type_add, need_value_add, associated_item_add,
+        field_item_add, target_node, node_info);
+  }
+}
+void Statement::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+    const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+    const ScopeNodeContent node_info) {
+  for (int i = 0; i < children_.size(); ++i) {
+    if (type_[i] == type_item) {
+      children_[i]->AddSymbol(target_scope, need_type_add, need_value_add, associated_item_add,
+          field_item_add, target_node, node_info);
+    }
+  }
+}
+void LetStatement::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+    const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+    const ScopeNodeContent node_info) {}
+void ExpressionStatement::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+    const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+    const ScopeNodeContent node_info) {}

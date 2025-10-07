@@ -61,3 +61,10 @@ void PathInExpression::Accept(Visitor *visitor) {
 void PathExprSegment::Accept(Visitor *visitor) {
   visitor->Visit(this);
 }
+
+void PathInExpression::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+    const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+    const ScopeNodeContent node_info) {}
+void PathExprSegment::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
+    const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
+    const ScopeNodeContent node_info) {}
