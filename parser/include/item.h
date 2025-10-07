@@ -3,8 +3,8 @@
 
 #include "classes.h"
 #include "node.h"
-#include "unordered_map"
-#include "unordered_set"
+#include <unordered_map>
+#include <unordered_set>
 
 struct ScopeNodeContent;
 
@@ -41,6 +41,7 @@ public:
   void AddSymbol(ScopeNode *target_scope, bool need_type_add, bool need_value_add, bool associated_item_add,
       bool field_item_add, ScopeNodeContent target_node, ScopeNodeContent node_info) override;
   std::unordered_set<std::string> enum_variants_;
+  std::unordered_map<std::string, ScopeNodeContent> associated_items_;
 private:
   void Accept(Visitor *visitor) override;
 };
