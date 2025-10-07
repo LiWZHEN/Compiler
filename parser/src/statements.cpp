@@ -29,7 +29,7 @@ Statements::Statements(const std::vector<Token> &tokens, int &ptr) : Node(tokens
       AddChild(type_expression);
       const auto expr_ptr = reinterpret_cast<Expression *>(children_.back());
       ExprType expr_type = expr_ptr->GetExprType();
-      if (expr_type == block_expr || expr_type == const_block_expr || expr_type == infinite_loop_expr
+      if (expr_type == block_expr || expr_type == infinite_loop_expr
           || expr_type == predicate_loop_expr || expr_type == if_expr) {
         // ExpressionWithBlock
         ThrowErr(type_statements, "Expect expression without block.");
@@ -127,7 +127,7 @@ ExpressionStatement::ExpressionStatement(const std::vector<Token> &tokens, int &
     AddChild(type_expression);
     auto expr_ptr = reinterpret_cast<Expression *>(children_.back());
     ExprType expr_type = expr_ptr->GetExprType();
-    if (expr_type == block_expr || expr_type == const_block_expr || expr_type == infinite_loop_expr
+    if (expr_type == block_expr || expr_type == infinite_loop_expr
         || expr_type == predicate_loop_expr || expr_type == if_expr) {
       // ExpressionWithBlock
       // ;?
