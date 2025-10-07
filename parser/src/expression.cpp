@@ -263,9 +263,6 @@ ExprType Expression::GetNextExprType() const {
   if (next_token == "{") {
     return  block_expr;
   }
-  if (next_token == "const") {
-    return const_block_expr;
-  }
   if (next_token == "loop") {
     return infinite_loop_expr;
   }
@@ -319,36 +316,6 @@ Expression::Expression(const std::vector<Token> &tokens, int &ptr, ExprType expr
   try {
     if (expr_type_ == block_expr) {
       // {
-      if (tokens_[ptr_].GetStr() != "{") {
-        ThrowErr(type_expression, "Expect \"{\".");
-      }
-      AddChild(type_punctuation);
-      if (ptr_ >= tokens_.size()) {
-        ThrowErr(type_expression, "");
-      }
-      // Statements?
-      if (tokens_[ptr_].GetStr() != "}") {
-        // Statements
-        AddChild(type_statements);
-        if (ptr_ >= tokens_.size()) {
-          ThrowErr(type_expression, "");
-        }
-      }
-      // }
-      if (tokens_[ptr_].GetStr() != "}") {
-        ThrowErr(type_expression, "Expect \"}\".");
-      }
-      AddChild(type_punctuation);
-    } else if (expr_type_ == const_block_expr) {
-      // const
-      if (tokens_[ptr_].GetStr() != "const") {
-        ThrowErr(type_expression, "Expect \"const\".");
-      }
-      AddChild(type_keyword);
-      // {
-      if (ptr_ >= tokens_.size()) {
-        ThrowErr(type_expression, "");
-      }
       if (tokens_[ptr_].GetStr() != "{") {
         ThrowErr(type_expression, "Expect \"{\".");
       }
@@ -968,8 +935,6 @@ std::string Expression::GetNodeLabel() const {
       }
     case block_expr:
       return "block_expr";
-    case const_block_expr:
-      return "const_block_expr";
     case infinite_loop_expr:
       return "infinite_loop_expr";
     case predicate_loop_expr:
@@ -1002,12 +967,6 @@ std::string Expression::GetNodeLabel() const {
       return "break_expr";
     case return_expr:
       return "return_expr";
-    case lazy_boolean_expr:
-      return "lazy_boolean_expr";
-    case assignment_expr:
-      return "assignment_expr";
-    case compound_assignment_expr:
-      return "compound_assignment_expr";
     case prefix_expr:
       return "prefix_expr";
     case call_params:
