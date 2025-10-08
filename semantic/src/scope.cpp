@@ -134,15 +134,7 @@ void SymbolVisitor::Visit(Implementation *implementation_ptr) {
     std::cerr << "Expect a name of a struct or an enumeration.\n";
     throw "";
   }
-  ScopeNodeContent type_content = {nullptr, type_crate};
-  std::shared_ptr<ScopeNode> scope_ptr = current_scope_node_;
-  while (scope_ptr != nullptr) {
-    if (scope_ptr->type_namespace.contains(type_name)) {
-      type_content = scope_ptr->type_namespace[type_name];
-      break;
-    }
-    scope_ptr = scope_ptr->parent;
-  }
+  ScopeNodeContent type_content = current_scope_node_->FindInType(type_name);
   if (type_content.node == nullptr) {
     std::cerr << "Cannot find target struct / enumeration.\n";
     throw "";

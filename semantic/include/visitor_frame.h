@@ -43,6 +43,26 @@ struct ScopeNode {
     }
     value_namespace[name] = scope_node_content;
   }
+  ScopeNodeContent FindInType(const std::string &name) {
+    auto finding = this;
+    while (finding != nullptr) {
+      if (finding->type_namespace.contains(name)) {
+        return finding->type_namespace[name];
+      }
+      finding = finding->parent.get();
+    }
+    return {nullptr, type_crate};
+  }
+  ScopeNodeContent FindInValue(const std::string &name) {
+    auto finding = this;
+    while (finding != nullptr) {
+      if (finding->value_namespace.contains(name)) {
+        return finding->value_namespace[name];
+      }
+      finding = finding->parent.get();
+    }
+    return {nullptr, type_crate};
+  }
 };
 
 class Visitor {
