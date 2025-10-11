@@ -24,6 +24,86 @@ int Token::GetColumn() const {
   return column_;
 }
 
+int Token::GetInt() const {
+  int value = 0;
+  if (str_.length() >= 3) {
+    if (str_[0] == '0') {
+      if (str_[1] == 'b') { // bin
+        for (int i = 2; i < str_.length() - this->GetIntType().length(); ++i) {
+          if (str_[i] == '_') {
+            continue;
+          }
+          value <<= 1;
+          value |= str_[i] - '0';
+        }
+      } else if (str_[1] == 'o') { // oct
+        for (int i = 2; i < str_.length() - this->GetIntType().length(); ++i) {
+          if (str_[i] == '_') {
+            continue;
+          }
+          value <<= 3;
+          value += str_[i] - '0';
+        }
+      } else if (str_[1] == 'x') { // hex
+        for (int i = 2; i < str_.length() - this->GetIntType().length(); ++i) {
+          if (str_[i] == '_') {
+            continue;
+          }
+          value <<= 4;
+          if (str_[i] >= '0' && str_[i] <= '9') {
+            value += str_[i] - '0';
+          } else if (str_[i] >= 'a' && str_[i] <= 'f') { // a ~ f
+            value += str_[i] - 'a' + 10;
+          } else { // A ~ F
+            value += str_[i] - 'A' + 10;
+          }
+        }
+      } else { // dec
+        for (int i = 0; i < str_.length() - this->GetIntType().length(); ++i) {
+          if (str_[i] == '_') {
+            continue;
+          }
+          value *= 10;
+          value += str_[i] - '0';
+        }
+      }
+    } else { // dec
+      for (int i = 0; i < str_.length() - this->GetIntType().length(); ++i) {
+        if (str_[i] == '_') {
+          continue;
+        }
+        value *= 10;
+        value += str_[i] - '0';
+      }
+    }
+  } else {
+    for (int i = 0; i < str_.length(); ++i) {
+      if (str_[i] == '_') {
+        continue;
+      }
+      value *= 10;
+      value += str_[i] - '0';
+    }
+  }
+  return value;
+}
+
+std::string Token::GetIntType() const {
+  if (str_.substr(str_.length() - 3, 3) == "i32") {
+    return "i32";
+  }
+  if (str_.substr(str_.length() - 3, 3) == "u32") {
+    return "u32";
+  }
+  if (str_.substr(str_.length() - 5, 5) == "isize") {
+    return "isize";
+  }
+  if (str_.substr(str_.length() - 5, 5) == "usize") {
+    return "usize";
+  }
+  return "";
+}
+
 std::ostream &operator<<(std::ostream &output, const Token &token) {
   std::string type_str;
   switch (token.type_) {

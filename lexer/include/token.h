@@ -19,6 +19,8 @@ public:
   [[nodiscard]] type GetType() const;
   [[nodiscard]] int GetLine() const;
   [[nodiscard]] int GetColumn() const;
+  [[nodiscard]] int GetInt() const;
+  [[nodiscard]] std::string GetIntType() const;
   friend std::ostream &operator<<(std::ostream &output, const Token &token);
 };
 
