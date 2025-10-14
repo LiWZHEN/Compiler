@@ -24,8 +24,8 @@ int Token::GetColumn() const {
   return column_;
 }
 
-int Token::GetInt() const {
-  int value = 0;
+long long Token::GetInt() const {
+  long long value = 0;
   if (str_.length() >= 3) {
     if (str_[0] == '0') {
       if (str_[1] == 'b') { // bin
@@ -86,6 +86,42 @@ int Token::GetInt() const {
     }
   }
   return value;
+}
+
+std::string Token::GetStringContent() const {
+  switch (type_) {
+    case STRING_LITERAL: {
+      return str_.substr(1, str_.length() - 2);
+    }
+    case RAW_STRING_LITERAL: {
+      int begin = 1, end = static_cast<int>(str_.length()) - 1;
+      while (str_[begin] == '#' && str_[end] == '#') {
+        ++begin;
+        --end;
+      }
+      ++begin;
+      return str_.substr(begin, end - begin);
+    }
+    case C_STRING_LITERAL: {
+      return str_.substr(2, str_.length() - 3);
+    }
+    case RAW_C_STRING_LITERAL: {
+      int begin = 2, end = static_cast<int>(str_.length()) - 1;
+      while (str_[begin] == '#' && str_[end] == '#') {
+        ++begin;
+        --end;
+      }
+      ++begin;
+      return str_.substr(begin, end - begin);
+    }
+    default: {
+      return "";
+    }
+  }
+}
+
+std::string Token::GetCharContent() const {
+  return str_.substr(1, str_.length() - 2);
 }
 
 std::string Token::GetIntType() const {
