@@ -315,26 +315,21 @@ Expression::Expression(const std::vector<Token> &tokens, int &ptr, Expression *l
     case small_brackets: {
       if (lhs->children_.size() == 2) { // Expression . PathExprSegment ( CallParams? )
         expr_type_ = method_call_expr;
-        children_.push_back(lhs->children_[0]);
-        children_.push_back(lhs->children_[1]);
-        type_.push_back(lhs->type_[0]);
-        type_.push_back(lhs->type_[1]);
-        if (rhs == nullptr) {
-          ThrowErr(type_expression, "Missing call_params.");
-        }
-        children_.push_back(rhs);
-        type_.push_back(type_expression);
-      } else if (lhs->children_.size() == 1) {
+      } else { // Expression ( CallParams? )
         expr_type_ = call_expr;
-        children_.push_back(lhs->children_[0]);
-        type_.push_back(lhs->type_[0]);
-        if (rhs == nullptr) {
-          ThrowErr(type_expression, "Missing call_params.");
-        }
+      }
+      int ind = 0;
+      for (auto &it : lhs->children_) {
+        children_.push_back(lhs->children_[ind]);
+        type_.push_back(lhs->type_[ind]);
+        it = nullptr;
+        ++ind;
+      }
+      delete lhs;
+      lhs = nullptr;
+      if (rhs != nullptr) {
         children_.push_back(rhs);
         type_.push_back(type_expression);
-      } else {
-        ThrowErr(type_expression, "Unexpected lhs size.");
       }
       return;
     }
