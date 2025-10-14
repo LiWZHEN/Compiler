@@ -2,6 +2,8 @@
 #define NODE_H
 
 #include <vector>
+#include <unordered_set>
+#include <map>
 #include <memory>
 #include "classes.h"
 #include "token.h"
@@ -21,32 +23,75 @@ enum NodeType {
 
 enum BasicType {
   unknown_type, bool_type, i32_type, u32_type, isize_type, usize_type, char_type, str_type,
-  unit_type, array_types, struct_types, enumerated_types, pointer_types, never_type
+  string_type, unit_type, array_type, struct_type, enumeration_type, pointer_type, never_type
 };
 
 struct IntegratedType {
-  BasicType basic_type = unknown_type;
-  bool is_const = false;
-  bool is_mutable = false;
+  BasicType basic_type;
+  bool is_const;
+  bool is_mutable;
   // int
-  bool type_fixed = false;
-  bool signed_int = false;
+  bool is_int;
+  bool type_ignore;
+  std::unordered_set<BasicType> possible_types;
   // array
-  int size;
+  long long size;
+  // array / pointer
   std::shared_ptr<IntegratedType> element_type;
-  // struct / pointer
-  std::weak_ptr<Node> struct_node;
+  // struct / enum
+  Node *struct_node;
+  IntegratedType() {
+    basic_type = unknown_type;
+    is_const = false;
+    is_mutable = false;
+    is_int = false;
+    type_ignore = false;
+    possible_types.insert(i32_type);
+    possible_types.insert(u32_type);
+    possible_types.insert(isize_type);
+    possible_types.insert(usize_type);
+    size = 0;
+    struct_node = nullptr;
+  }
+  IntegratedType(const BasicType basic_type, const bool is_const, const bool is_mutable, const bool is_int,
+      const bool type_ignore, const int size) : basic_type(basic_type), is_const(is_const), is_mutable(is_mutable),
+      is_int(is_int), type_ignore(type_ignore), size(size) {
+    possible_types.insert(i32_type);
+    possible_types.insert(u32_type);
+    possible_types.insert(isize_type);
+    possible_types.insert(usize_type);
+    struct_node = nullptr;
+  }
+
+  void RemovePossibility(const BasicType to_be_removed) {
+    if (!possible_types.contains(to_be_removed)) {
+      return;
+    }
+    possible_types.erase(to_be_removed);
+    if (is_int && possible_types.empty()) {
+      std::cerr << "Error: No valid int type!\n";
+      throw "";
+    }
+    if (!possible_types.contains(basic_type)) {
+      basic_type = *possible_types.begin();
+    }
+  }
 };
 
 struct Value {
   // integer / bool
-  int int_value = 0; // bool: 0->false, 1->true
-  // char
-  char char_value;
-  // str
+  long long int_value = 0; // bool: 0->false, 1->true
+  // array
+  std::vector<Value> array_values;
+  // string / char / str
   std::string str_value;
-  // array / struct
-  std::vector<Value> values;
+  // struct
+  std::map<std::string, Value> struct_values;
+  // enumeration
+  Node *enum_value = nullptr;
+  // pointer
+  Node *pointer_value = nullptr;
+  bool operator==(const Value &other) const;
 };
 
 struct ScopeNode;
@@ -70,12 +115,13 @@ protected:
   virtual void Accept(Visitor *visitor) = 0;
   friend class SymbolVisitor;
   friend class ValueTypeVisitor;
+  friend struct Value;
   std::vector<Node *> children_;
   std::vector<NodeType> type_;
   const std::vector<Token> &tokens_;
   int &ptr_;
   std::shared_ptr<ScopeNode> scope_node_ = nullptr;
-  IntegratedType integrated_type_;
+  std::shared_ptr<IntegratedType> integrated_type_ = nullptr;
   Value value_;
 };
 

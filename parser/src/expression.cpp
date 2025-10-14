@@ -301,7 +301,45 @@ ExprType Expression::GetNextExprType() const {
   return unknown;
 }
 
-Expression::Expression(const std::vector<Token> &tokens, int &ptr, Expression *lhs, Expression *rhs, Infix infix) : Node(tokens, ptr), expr_type_(unknown), infix_(infix) {
+Expression::Expression(const std::vector<Token> &tokens, int &ptr, Expression *lhs, Expression *rhs, Infix infix) :
+    Node(tokens, ptr), expr_type_(unknown), infix_(infix) {
+  switch (infix_) {
+    case brackets: {
+      expr_type_ = index_expr;
+      break;
+    }
+    case dot: {
+      expr_type_ = field_expr;
+      break;
+    }
+    case small_brackets: {
+      if (lhs->children_.size() == 2) { // Expression . PathExprSegment ( CallParams? )
+        expr_type_ = method_call_expr;
+        children_.push_back(lhs->children_[0]);
+        children_.push_back(lhs->children_[1]);
+        type_.push_back(lhs->type_[0]);
+        type_.push_back(lhs->type_[1]);
+        if (rhs == nullptr) {
+          ThrowErr(type_expression, "Missing call_params.");
+        }
+        children_.push_back(rhs);
+        type_.push_back(type_expression);
+      } else if (lhs->children_.size() == 1) {
+        expr_type_ = call_expr;
+        children_.push_back(lhs->children_[0]);
+        type_.push_back(lhs->type_[0]);
+        if (rhs == nullptr) {
+          ThrowErr(type_expression, "Missing call_params.");
+        }
+        children_.push_back(rhs);
+        type_.push_back(type_expression);
+      } else {
+        ThrowErr(type_expression, "Unexpected lhs size.");
+      }
+      return;
+    }
+    default:;
+  }
   children_.push_back(lhs);
   type_.push_back(type_expression);
   if (rhs != nullptr) {
@@ -637,22 +675,23 @@ Expression::Expression(const std::vector<Token> &tokens, int &ptr, ExprType expr
       const std::string next_token = tokens_[ptr_].GetStr();
       if (next_token == "true" || next_token == "false") {
         AddChild(type_keyword);
-      }
-      const type next_token_type = tokens_[ptr_].GetType();
-      if (next_token_type == CHAR_LITERAL) {
-        AddChild(type_char_literal);
-      } else if (next_token_type == STRING_LITERAL) {
-        AddChild(type_string_literal);
-      } else if (next_token_type == RAW_STRING_LITERAL) {
-        AddChild(type_raw_string_literal);
-      } else if (next_token_type == C_STRING_LITERAL) {
-        AddChild(type_c_string_literal);
-      } else if (next_token_type == RAW_C_STRING_LITERAL) {
-        AddChild(type_raw_c_string_literal);
-      } else if (next_token_type == INTEGER_LITERAL) {
-        AddChild(type_integer_literal);
       } else {
-        ThrowErr(type_expression, R"(Expect LITERAL or "true" or "false".)");
+        const type next_token_type = tokens_[ptr_].GetType();
+        if (next_token_type == CHAR_LITERAL) {
+          AddChild(type_char_literal);
+        } else if (next_token_type == STRING_LITERAL) {
+          AddChild(type_string_literal);
+        } else if (next_token_type == RAW_STRING_LITERAL) {
+          AddChild(type_raw_string_literal);
+        } else if (next_token_type == C_STRING_LITERAL) {
+          AddChild(type_c_string_literal);
+        } else if (next_token_type == RAW_C_STRING_LITERAL) {
+          AddChild(type_raw_c_string_literal);
+        } else if (next_token_type == INTEGER_LITERAL) {
+          AddChild(type_integer_literal);
+        } else {
+          ThrowErr(type_expression, R"(Expect LITERAL or "true" or "false".)");
+        }
       }
     } else if (expr_type_ == path_in_expr) {
       AddChild(type_path_in_expression);
@@ -762,6 +801,13 @@ Expression::Expression(const std::vector<Token> &tokens, int &ptr, ExprType expr
             lhs = new Expression(tokens_, ptr_, lhs, rhs, infix_);
             rhs = nullptr;
             infix_ = not_infix;
+          } else if (infix_ == type_cast) {
+            lhs = new Expression(tokens_, ptr_, lhs, nullptr, infix_);
+            if (ptr_ >= tokens_.size()) {
+              ThrowErr(type_expression, "");
+            }
+            lhs->AddChild(type_type);
+            infix_ = not_infix;
           } else {
             if (ptr_ >= tokens_.size()) {
               ThrowErr(type_expression, "");
@@ -803,7 +849,7 @@ ExprType Expression::GetExprType() const {
   return expr_type_;
 }
 
-Infix Expression::GetInfixForTest() const {
+Infix Expression::GetExprInfix() const {
   return infix_;
 }
 
