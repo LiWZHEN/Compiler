@@ -26,7 +26,6 @@ public:
   void Visit(Pattern *pattern_ptr) override;
   void Visit(ReferencePattern *reference_pattern_ptr) override;
   void Visit(IdentifierPattern *identifier_pattern_ptr) override;
-  void Visit(LiteralPattern *literal_pattern_ptr) override;
   void Visit(PathInExpression *path_in_expression_ptr) override;
   void Visit(LiteralExpression *literal_expression_ptr) override;
   void Visit(PathExprSegment *path_expr_segment_ptr) override;
@@ -51,6 +50,10 @@ public:
   void Visit(StructField *struct_field_ptr) override;
   void Visit(EnumVariants *enum_variants_ptr) override;
   void Visit(AssociatedItem *associated_item_ptr) override;
+private:
+  bool is_reading_type_ = false;
+  Node *type_owner_ = nullptr;
+  std::vector<ScopeNodeContent> wrapping_structs_;
 };
 
 #endif
