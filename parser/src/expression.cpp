@@ -887,8 +887,7 @@ StructExprFields::StructExprFields(const std::vector<Token> &tokens, int &ptr) :
       const int size_before_trying_expression = static_cast<int>(children_.size()),
           ptr_before_trying_expression = ptr_;
       try {
-        // Expression
-        AddChild(type_expression);
+        AddChild(type_struct_expr_field);
       } catch (...) {
         Restore(size_before_trying_expression, ptr_before_trying_expression);
         std::cerr << "StructExprFields: Successfully handle expression try failure.\n";
