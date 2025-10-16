@@ -722,15 +722,13 @@ Expression::Expression(const std::vector<Token> &tokens, int &ptr, ExprType expr
         throw "";
       }
     } else if (expr_type_ == call_params) {
-      while (ptr_ < tokens_.size() && tokens_[ptr_].GetStr() != ")") {
-        AddChild(type_expression);
+      AddChild(type_expression);
+      while (ptr_ < tokens_.size() && tokens_[ptr_].GetStr() == ",") {
+        AddChild(type_punctuation);
         if (ptr_ >= tokens_.size() || tokens_[ptr_].GetStr() == ")") {
           return;
         }
-        if (tokens_[ptr_].GetStr() != ",") {
-          ThrowErr(type_expression, "Expect \",\".");
-        }
-        AddChild(type_punctuation);
+        AddChild(type_expression);
       }
     } else {
       // Pratt Parsing: Idea comes from https://www.bilibili.com/video/BV12d79zxEQn?vd_source=801f1864d3cf02d7adaecff6567a38bc
@@ -769,7 +767,9 @@ Expression::Expression(const std::vector<Token> &tokens, int &ptr, ExprType expr
             if (ptr_ >= tokens_.size()) {
               ThrowErr(type_expression, "");
             }
-            rhs = new Expression(tokens_, ptr_, call_params, 0.0);
+            if (tokens_[ptr_].GetStr() != ")") {
+              rhs = new Expression(tokens_, ptr_, call_params, 0.0);
+            }
             // expect small brackets closure
             if (ptr_ >= tokens_.size()) {
               ThrowErr(type_expression, "");
