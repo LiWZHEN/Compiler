@@ -420,15 +420,6 @@ void Function::AddSymbol(ScopeNode *target_scope, const bool need_type_add, cons
         target_trait_ptr->associated_items_[function_name] = node_info;
         break;
       }
-      case type_enumeration: {
-        const auto target_enum_ptr = dynamic_cast<Enumeration *>(target_node.node);
-        if (target_enum_ptr->associated_items_.contains(function_name)) {
-          std::cerr << "The name '" << function_name << "' is already in the associated item namespace.\n";
-          throw "";
-        }
-        target_enum_ptr->associated_items_[function_name] = node_info;
-        break;
-      }
       default:;
     }
   } else {
@@ -484,15 +475,6 @@ void ConstantItem::AddSymbol(ScopeNode *target_scope, const bool need_type_add, 
           throw "";
         }
         target_trait_ptr->associated_items_[const_item_name] = node_info;
-        break;
-      }
-      case type_enumeration: {
-        const auto target_enum_ptr = dynamic_cast<Enumeration *>(target_node.node);
-        if (target_enum_ptr->associated_items_.contains(const_item_name)) {
-          std::cerr << "The name \"" << const_item_name << "\" is already in the associated item namespace.\n";
-          throw "";
-        }
-        target_enum_ptr->associated_items_[const_item_name] = node_info;
         break;
       }
       default:;
