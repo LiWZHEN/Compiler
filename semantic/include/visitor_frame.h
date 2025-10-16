@@ -22,6 +22,7 @@ struct ScopeNode {
     type_namespace["u32"] = {nullptr, type_type};
     type_namespace["usize"] = {nullptr, type_type};
     type_namespace["isize"] = {nullptr, type_type};
+    type_namespace["String"] = {nullptr, type_type};
     value_namespace["print"] = {nullptr, type_function};
     value_namespace["println"] = {nullptr, type_function};
     value_namespace["printInt"] = {nullptr, type_function};
