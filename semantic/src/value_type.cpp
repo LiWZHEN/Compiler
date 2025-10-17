@@ -106,7 +106,6 @@ void ValueTypeVisitor::Visit(EnumVariants *enum_variants_ptr){}
 void ValueTypeVisitor::Visit(StructFields *struct_fields_ptr){}
 void ValueTypeVisitor::Visit(AssociatedItem *associated_item_ptr){}
 void ValueTypeVisitor::Visit(PathExprSegment *path_expr_segment_ptr) {}
-void ValueTypeVisitor::Visit(LiteralExpression *literal_expression_ptr) {}
 void ValueTypeVisitor::Visit(Crate *crate_ptr) {
   for (const auto it : crate_ptr->children_) {
     it->Accept(this);
@@ -570,21 +569,20 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
     case literal_expr: {
       switch (expression_ptr->type_[0]) {
         case type_keyword: {
-          expression_ptr->children_[0]->integrated_type_ = std::make_shared<IntegratedType>(bool_type,
+          expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(bool_type,
               true, false, false, false, 0);
           if (dynamic_cast<LeafNode *>(expression_ptr->children_[0])->GetContent().GetStr() == "true") {
-            expression_ptr->children_[0]->value_.int_value = 1;
+            expression_ptr->value_.int_value = 1;
           } else {
-            expression_ptr->children_[0]->value_.int_value = 0;
+            expression_ptr->value_.int_value = 0;
           }
-          expression_ptr->integrated_type_ = expression_ptr->children_[0]->integrated_type_;
-          expression_ptr->type_ = expression_ptr->children_[0]->type_;
           break;
         }
         case type_char_literal: {
-          expression_ptr->children_[0]->integrated_type_ = std::make_shared<IntegratedType>(char_type,
+          expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(char_type,
               true, false, false, false, 0);
-          expression_ptr->integrated_type_ = expression_ptr->children_[0]->integrated_type_;
+          expression_ptr->value_.str_value = dynamic_cast<LeafNode *>(expression_ptr->children_[0])
+              ->GetContent().GetCharContent();
           break;
         }
         case type_string_literal:
@@ -593,35 +591,38 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
         case type_raw_c_string_literal: {
           expression_ptr->children_[0]->integrated_type_ = std::make_shared<IntegratedType>(str_type,
               true, false, false, false, 0);
-          expression_ptr->integrated_type_ = expression_ptr->children_[0]->integrated_type_;
+          expression_ptr->children_[0]->value_.str_value = dynamic_cast<LeafNode *>(expression_ptr->children_[0])
+              ->GetContent().GetStringContent();
+          expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(pointer_type,
+              true, false, false, false, 0);
+          expression_ptr->integrated_type_->element_type = expression_ptr->children_[0]->integrated_type_;
+          expression_ptr->value_.pointer_value = expression_ptr->children_[0];
           break;
         }
         case type_integer_literal: {
-          expression_ptr->children_[0]->integrated_type_ = std::make_shared<IntegratedType>(i32_type,
+          expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(i32_type,
           true, false, true, false, 0);
           std::string int_type = dynamic_cast<LeafNode *>(expression_ptr->children_[0])->GetContent().GetIntType();
           if (int_type == "i32") {
-            expression_ptr->children_[0]->integrated_type_->RemovePossibility(u32_type);
-            expression_ptr->children_[0]->integrated_type_->RemovePossibility(isize_type);
-            expression_ptr->children_[0]->integrated_type_->RemovePossibility(usize_type);
+            expression_ptr->integrated_type_->RemovePossibility(u32_type);
+            expression_ptr->integrated_type_->RemovePossibility(isize_type);
+            expression_ptr->integrated_type_->RemovePossibility(usize_type);
           } else if (int_type == "u32") {
-            expression_ptr->children_[0]->integrated_type_->RemovePossibility(i32_type);
-            expression_ptr->children_[0]->integrated_type_->RemovePossibility(isize_type);
-            expression_ptr->children_[0]->integrated_type_->RemovePossibility(usize_type);
+            expression_ptr->integrated_type_->RemovePossibility(i32_type);
+            expression_ptr->integrated_type_->RemovePossibility(isize_type);
+            expression_ptr->integrated_type_->RemovePossibility(usize_type);
           } else if (int_type == "isize") {
-            expression_ptr->children_[0]->integrated_type_->RemovePossibility(i32_type);
-            expression_ptr->children_[0]->integrated_type_->RemovePossibility(u32_type);
-            expression_ptr->children_[0]->integrated_type_->RemovePossibility(usize_type);
+            expression_ptr->integrated_type_->RemovePossibility(i32_type);
+            expression_ptr->integrated_type_->RemovePossibility(u32_type);
+            expression_ptr->integrated_type_->RemovePossibility(usize_type);
           } else if (int_type == "usize") {
-            expression_ptr->children_[0]->integrated_type_->RemovePossibility(i32_type);
-            expression_ptr->children_[0]->integrated_type_->RemovePossibility(u32_type);
-            expression_ptr->children_[0]->integrated_type_->RemovePossibility(isize_type);
+            expression_ptr->integrated_type_->RemovePossibility(i32_type);
+            expression_ptr->integrated_type_->RemovePossibility(u32_type);
+            expression_ptr->integrated_type_->RemovePossibility(isize_type);
           }
           const long long literal_value = dynamic_cast<LeafNode *>(expression_ptr->children_[0])->GetContent().GetInt();
-          CheckOverflow(literal_value, expression_ptr->children_[0]->integrated_type_);
-          expression_ptr->children_[0]->value_.int_value = literal_value;
-          expression_ptr->integrated_type_ = expression_ptr->children_[0]->integrated_type_;
-          expression_ptr->value_ = expression_ptr->children_[0]->value_;
+          CheckOverflow(literal_value, expression_ptr->integrated_type_);
+          expression_ptr->value_.int_value = literal_value;
           break;
         }
         default:;
