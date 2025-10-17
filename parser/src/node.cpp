@@ -122,10 +122,6 @@ void Node::AddChild(const NodeType node_type) {
       children_.push_back(new PathInExpression(tokens_, ptr_));
       type_.push_back(type_path_in_expression);
       break;
-    case type_literal_expression:
-      children_.push_back(new LiteralExpression(tokens_, ptr_));
-      type_.push_back(type_literal_expression);
-      break;
     case type_path_expr_segment:
       children_.push_back(new PathExprSegment(tokens_, ptr_));
       type_.push_back(type_path_expr_segment);
@@ -215,7 +211,7 @@ void Node::AddChild(const NodeType node_type) {
       type_.push_back(type_associated_item);
       break;
     default:
-      std::cerr << "Invalid type!\n";
+      std::cerr << "Invalid type: " << node_type << "!\n";
       throw "";
   }
 }
@@ -287,9 +283,6 @@ void Node::ThrowErr(const NodeType node_type, const std::string &info) const {
       break;
     case type_path_in_expression:
       std::cerr << "PathInExpression: ";
-      break;
-    case type_literal_expression:
-      std::cerr << "LiteralExpression: ";
       break;
     case type_path_expr_segment:
       std::cerr << "PathExprSegment: ";

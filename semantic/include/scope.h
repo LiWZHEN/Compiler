@@ -27,7 +27,6 @@ public:
   void Visit(ReferencePattern *reference_pattern_ptr) override;
   void Visit(IdentifierPattern *identifier_pattern_ptr) override;
   void Visit(PathInExpression *path_in_expression_ptr) override;
-  void Visit(LiteralExpression *literal_expression_ptr) override;
   void Visit(PathExprSegment *path_expr_segment_ptr) override;
   void Visit(ReferenceType *reference_type_ptr) override;
   void Visit(ArrayType *array_type_ptr) override;

@@ -91,7 +91,6 @@ public:
   virtual void Visit(ReferencePattern *reference_pattern_ptr) = 0;
   virtual void Visit(IdentifierPattern *identifier_pattern_ptr) = 0;
   virtual void Visit(PathInExpression *path_in_expression_ptr) = 0;
-  virtual void Visit(LiteralExpression *literal_expression_ptr) = 0;
   virtual void Visit(PathExprSegment *path_expr_segment_ptr) = 0;
   virtual void Visit(ReferenceType *reference_type_ptr) = 0;
   virtual void Visit(ArrayType *array_type_ptr) = 0;

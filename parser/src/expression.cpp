@@ -218,16 +218,6 @@ Infix GetInfix(const std::string &op) {
   return not_infix;
 }
 
-LiteralExpression::LiteralExpression(const std::vector<Token> &tokens, int &ptr) : LeafNode(tokens, ptr) {
-  const std::string next_token = token_.GetStr();
-  const type next_type = token_.GetType();
-  if (next_type != CHAR_LITERAL && next_type != STRING_LITERAL && next_type != RAW_STRING_LITERAL && next_type != C_STRING_LITERAL
-      && next_type != RAW_C_STRING_LITERAL && next_type != INTEGER_LITERAL && next_token != "true" && next_token != "false") {
-    --ptr_;
-    ThrowErr(type_literal_expression, "Invalid literal expression.");
-  }
-}
-
 BlockExpression::BlockExpression(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
   const int ptr_before_try = ptr;
   try {
@@ -1016,10 +1006,6 @@ std::string Expression::GetNodeLabel() const {
   }
 }
 
-std::string LiteralExpression::GetNodeLabel() const {
-  return "LiteralExpression: " + token_.GetStr();
-}
-
 std::string BlockExpression::GetNodeLabel() const {
   return "BlockExpression";
 }
@@ -1030,10 +1016,6 @@ std::string StructExprField::GetNodeLabel() const {
 
 std::string StructExprFields::GetNodeLabel() const {
   return "StructExprFields";
-}
-
-void LiteralExpression::Accept(Visitor *visitor) {
-  visitor->Visit(this);
 }
 
 void BlockExpression::Accept(Visitor *visitor) {
@@ -1052,9 +1034,6 @@ void StructExprFields::Accept(Visitor *visitor) {
   visitor->Visit(this);
 }
 
-void LiteralExpression::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
-    const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
-    const ScopeNodeContent node_info) {}
 void BlockExpression::AddSymbol(ScopeNode *target_scope, const bool need_type_add, const bool need_value_add,
     const bool associated_item_add, const bool field_item_add, ScopeNodeContent target_node,
     const ScopeNodeContent node_info) {

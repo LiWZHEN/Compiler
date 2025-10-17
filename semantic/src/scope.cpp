@@ -252,12 +252,6 @@ void SymbolVisitor::Visit(PathInExpression *path_in_expression_ptr) {
     it->Accept(this);
   }
 }
-void SymbolVisitor::Visit(LiteralExpression *literal_expression_ptr) {
-  for (const auto it : literal_expression_ptr->children_) {
-    it->scope_node_ = current_scope_node_;
-    it->Accept(this);
-  }
-}
 void SymbolVisitor::Visit(PathExprSegment *path_expr_segment_ptr) {
   for (const auto it : path_expr_segment_ptr->children_) {
     it->scope_node_ = current_scope_node_;

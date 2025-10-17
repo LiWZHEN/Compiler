@@ -27,7 +27,6 @@ public:
   void Visit(ReferencePattern *reference_pattern_ptr) override;
   void Visit(IdentifierPattern *identifier_pattern_ptr) override;
   void Visit(PathInExpression *path_in_expression_ptr) override;
-  void Visit(LiteralExpression *literal_expression_ptr) override;
   void Visit(PathExprSegment *path_expr_segment_ptr) override;
   void Visit(ReferenceType *reference_type_ptr) override;
   void Visit(ArrayType *array_type_ptr) override;
@@ -54,6 +53,8 @@ private:
   bool is_reading_type_ = false;
   Node *type_owner_ = nullptr;
   std::vector<ScopeNodeContent> wrapping_structs_;
+  std::vector<ScopeNodeContent> wrapping_loop_;
+  std::vector<ScopeNodeContent> wrapping_function_;
 };
 
 #endif

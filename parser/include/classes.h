@@ -25,7 +25,6 @@ class Pattern;
 class ReferencePattern;
 class IdentifierPattern;
 class PathInExpression;
-class LiteralExpression;
 class PathExprSegment;
 class ReferenceType;
 class ArrayType;
