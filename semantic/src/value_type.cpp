@@ -147,6 +147,35 @@ void ValueTypeVisitor::Visit(Function *function_ptr) {
     TryToMatch(function_ptr->integrated_type_,
         function_ptr->children_[block_expr_ind]->integrated_type_, false);
   }
+  std::string function_name = dynamic_cast<LeafNode *>(function_ptr->children_[1])
+      ->GetContent().GetStr();
+  if (function_name == "main" && wrapping_function_.empty()) {
+    if (block_expr_ind == -1 || function_ptr->children_[block_expr_ind]->children_.size() == 2) {
+      Throw("Unexpected block expression missing in outermost main function.");
+    }
+    auto statements_ptr = function_ptr->children_[block_expr_ind]->children_[1];
+    if (statements_ptr->type_[statements_ptr->children_.size() - 1] == type_statement) {
+      auto statement_ptr = statements_ptr->children_[statements_ptr->children_.size() - 1];
+      if (statement_ptr->type_[0] != type_expression_statement) {
+        Throw("Expect exit function at the end of outermost main function.");
+      }
+      auto expr_ptr = dynamic_cast<Expression *>(statement_ptr->children_[0]->children_[0]);
+      if (expr_ptr->GetExprType() != call_expr) {
+        Throw("Expect exit function at the end of outermost main function.");
+      }
+      if (dynamic_cast<LeafNode *>(expr_ptr->children_[0]->children_[0])->GetContent().GetStr() != "exit") {
+        Throw("Expect exit function at the end of outermost main function.");
+      }
+    } else {
+      auto expr_ptr = dynamic_cast<Expression *>(statements_ptr->children_[statements_ptr->children_.size() - 1]);
+      if (expr_ptr->GetExprType() != call_expr) {
+        Throw("Expect exit function at the end of outermost main function.");
+      }
+      if (dynamic_cast<LeafNode *>(expr_ptr->children_[0]->children_[0])->GetContent().GetStr() != "exit") {
+        Throw("Expect exit function at the end of outermost main function.");
+      }
+    }
+  }
 }
 void ValueTypeVisitor::Visit(Struct *struct_ptr) {
   // check whether the struct has been analyzed
@@ -554,15 +583,77 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
       break;
     }
     case infinite_loop_expr: {
-      // todo
+      if (expression_ptr->children_.size() == 4) {
+        wrapping_loop_.push_back({expression_ptr, type_expression});
+        expression_ptr->children_[2]->Accept(this);
+        wrapping_loop_.pop_back();
+        auto target_type = std::make_shared<IntegratedType>(unit_type,
+          false, false, false, false, 0);
+        TryToMatch(target_type, expression_ptr->children_[2]->integrated_type_, false);
+      }
+      if (expression_ptr->integrated_type_->basic_type == unknown_type) {
+        Throw("Infinite loop");
+      }
       break;
     }
     case predicate_loop_expr: {
-      // todo
+      expression_ptr->children_[2]->Accept(this);
+      if (expression_ptr->children_[2]->integrated_type_->basic_type != bool_type) {
+        Throw("The expression in condition should be bool type.");
+      }
+      if (expression_ptr->children_.size() == 7) {
+        wrapping_loop_.push_back({expression_ptr, type_expression});
+        expression_ptr->children_[5]->Accept(this);
+        wrapping_loop_.pop_back();
+        auto target_type = std::make_shared<IntegratedType>(unit_type,
+          false, false, false, false, 0);
+        TryToMatch(target_type, expression_ptr->children_[5]->integrated_type_, false);
+      }
+      if (expression_ptr->integrated_type_->basic_type == unknown_type) {
+        expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
+            false, false, false, false, 0);
+      }
       break;
     }
     case if_expr: {
-      // todo
+      expression_ptr->children_[2]->Accept(this);
+      if (expression_ptr->children_[2]->integrated_type_->basic_type != bool_type) {
+        Throw("The expression in condition should be bool type.");
+      }
+      int if_statements_ind = -1, else_block_ind = -1;
+      for (int i = 5; i < expression_ptr->children_.size(); ++i) {
+        if (expression_ptr->type_[i] == type_statements) {
+          if_statements_ind = i;
+          expression_ptr->children_[i]->Accept(this);
+        } else if (expression_ptr->type_[i] == type_expression) {
+          else_block_ind = i;
+          expression_ptr->children_[i]->Accept(this);
+        }
+      }
+      if (if_statements_ind != -1 && else_block_ind != -1) {
+        TryToMatch(expression_ptr->children_[if_statements_ind]->integrated_type_,
+            expression_ptr->children_[else_block_ind]->integrated_type_, false);
+        if (expression_ptr->children_[else_block_ind]->integrated_type_->basic_type != never_type) {
+          expression_ptr->integrated_type_ = expression_ptr->children_[else_block_ind]->integrated_type_;
+          if (expression_ptr->children_[if_statements_ind]->integrated_type_->basic_type != never_type) {
+            if (!expression_ptr->children_[if_statements_ind]->integrated_type_->is_const) {
+              expression_ptr->integrated_type_->is_const = false;
+            }
+          }
+        } else {
+          expression_ptr->integrated_type_ = expression_ptr->children_[if_statements_ind]->integrated_type_;
+        }
+      } else { // either no 'if' or no 'else', expression has unit type
+        expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
+            false, false, false, false, 0);
+        if (if_statements_ind != -1) {
+          TryToMatch(expression_ptr->children_[if_statements_ind]->integrated_type_,
+              expression_ptr->integrated_type_, false);
+        } else if (else_block_ind != -1) {
+          TryToMatch(expression_ptr->children_[else_block_ind]->integrated_type_,
+              expression_ptr->integrated_type_, false);
+        }
+      }
       break;
     }
     case literal_expr: {
@@ -928,7 +1019,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
             break;
           }
           if (main_func_block_ptr == nullptr || main_func_block_ptr->children_.size() == 2) {
-            Throw("Unexpected main function block ptr.");
+            Throw("Unexpected main function block ptr missing.");
           }
           Node *statements_ptr = main_func_block_ptr->children_[1];
           if (statements_ptr->type_[statements_ptr->children_.size() - 1] == type_statement) {
@@ -1339,19 +1430,53 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
       break;
     }
     case continue_expr: {
+      if (wrapping_loop_.empty()) {
+        Throw("Invalid to call continue outside a loop.");
+      }
       expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(never_type,
           false, false, false, false, 0);
       break;
     }
     case break_expr: {
+      if (wrapping_loop_.empty()) {
+        Throw("Invalid to call break outside a loop.");
+      }
+      auto loop_info = wrapping_loop_.back();
       if (expression_ptr->children_.size() == 2) {
         expression_ptr->children_[1]->Accept(this);
+        if (loop_info.node->integrated_type_->basic_type == unknown_type) {
+          loop_info.node->integrated_type_ = expression_ptr->children_[1]->integrated_type_;
+        } else {
+          TryToMatch(expression_ptr->children_[1]->integrated_type_,
+              loop_info.node->integrated_type_, false);
+        }
+      } else {
+        if (loop_info.node->integrated_type_->basic_type == unknown_type) {
+          loop_info.node->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
+              false, false, false, false, 0);
+        } else {
+          TryToMatch(std::make_shared<IntegratedType>(unit_type, false, false,
+              false, false, 0), loop_info.node->integrated_type_, false);
+        }
       }
-      // todo
       break;
     }
     case return_expr: {
-      // todo
+      if (wrapping_function_.empty()) {
+        Throw("Invalid to call return outside a function.");
+      }
+      if (wrapping_function_.size() == 1) {
+        auto function_info = wrapping_function_.back();
+        if (dynamic_cast<LeafNode *>(function_info.node->children_[1])->GetContent().GetStr() == "main") {
+          Throw("The outermost main function should terminate with exit function.");
+        }
+      }
+      if (expression_ptr->children_.size() == 2) {
+        expression_ptr->children_[1]->Accept(this);
+      }
+      auto function_info = wrapping_function_.back();
+      TryToMatch(function_info.node->integrated_type_, expression_ptr->children_[1]->integrated_type_,
+          false);
       break;
     }
     case prefix_expr: {
