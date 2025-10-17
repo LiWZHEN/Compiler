@@ -993,10 +993,10 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           Throw("There is no target function in the associated-item field of the struct.");
         }
         const auto function_info = struct_ptr->associated_items_[function_name];
-        auto function_ptr = dynamic_cast<Function *>(function_info.node);
-        if (function_ptr == nullptr) {
+        if (function_info.node_type != type_function) {
           Throw("Cannot call a non-function.");
         }
+        auto function_ptr = dynamic_cast<Function *>(function_info.node);
         if (function_ptr->integrated_type_->basic_type == unknown_type) {
           function_info.node->Accept(this);
         }
@@ -1020,6 +1020,9 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
         if (call_expr_param_num == 0) {
           break;
         }
+        if (function_ptr->children_[function_parameters_node_ind]->type_[0] == type_self_param) {
+          Throw("function with self parameter should be called with method call expression.");
+        }
         expression_ptr->integrated_type_ = function_ptr->integrated_type_;
         for (int i = 0; i < expression_ptr->children_[1]->children_.size(); i += 2) {
           expression_ptr->children_[1]->children_[i]->Accept(this);
@@ -1030,10 +1033,281 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
       break;
     }
     case method_call_expr: {
-      // todo
-      // to_string() of type String : u32, usize
-      // as_str() of type &str : String
-      // len() of u32 : [T; N], &[T], String, &str
+      if (expression_ptr->children_[1]->children_[0]->children_.size() != 1) {
+        Throw("Expect an identifier following '.'.");
+      }
+      std::string function_name = dynamic_cast<LeafNode *>(expression_ptr->children_[1]->children_[0]->children_[0])
+          ->GetContent().GetStr();
+      expression_ptr->children_[0]->Accept(this);
+      if (function_name == "to_string") {
+        // to_string() of type String : u32, usize
+        if (expression_ptr->children_[0]->integrated_type_->is_int) {
+          expression_ptr->children_[0]->integrated_type_->RemovePossibility(i32_type);
+          expression_ptr->children_[0]->integrated_type_->RemovePossibility(isize_type);
+          if (expression_ptr->children_[0]->integrated_type_->is_const) {
+            CheckOverflow(expression_ptr->children_[0]->value_.int_value, expression_ptr->children_[0]->integrated_type_);
+          }
+          if (expression_ptr->children_.size() != 2) {
+            Throw("to_string method should be called with no parameter.");
+          }
+          expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(string_type,
+                false, false, false, false, 0);
+        } else { // created as a function in struct with self parameter
+          Node *function_ptr = nullptr;
+          if (expression_ptr->children_[0]->integrated_type_->basic_type == struct_type) {
+            auto struct_ptr = dynamic_cast<Struct *>(expression_ptr->children_[0]->integrated_type_->struct_node);
+            if (!struct_ptr->associated_items_.contains(function_name)) {
+              Throw("Cannot find target function in the associated-item-field of the struct.");
+            }
+            if (struct_ptr->associated_items_[function_name].node_type != type_function) {
+              Throw("Cannot apply method call operation to non-function.");
+            }
+            function_ptr = struct_ptr->associated_items_[function_name].node;
+          } else if (expression_ptr->children_[0]->integrated_type_->basic_type == pointer_type) {
+            Node *pointer = expression_ptr->children_[0]->value_.pointer_value;
+            if (pointer->integrated_type_->basic_type != struct_type) {
+              Throw("Cannot apply method call operation to non-struct type.");
+            }
+            auto struct_ptr = dynamic_cast<Struct *>(pointer->integrated_type_->struct_node);
+            if (!struct_ptr->associated_items_.contains(function_name)) {
+              Throw("Cannot find target function in the associated-item-field of the struct.");
+            }
+            if (struct_ptr->associated_items_[function_name].node_type != type_function) {
+              Throw("Cannot apply method call operation to non-function.");
+            }
+            function_ptr = struct_ptr->associated_items_[function_name].node;
+          } else {
+            Throw("Invalid type.");
+          }
+          // has got function_ptr
+          if (function_ptr->integrated_type_->basic_type == unknown_type) {
+            function_ptr->Accept(this);
+          }
+          int call_expr_param_num = 0;
+          if (expression_ptr->children_.size() == 3) {
+            call_expr_param_num = static_cast<int>(expression_ptr->children_[2]->children_.size() + 1) / 2;
+          }
+          int declared_param_num = 0;
+          int function_parameters_node_ind = -1;
+          for (int i = 0; i < function_ptr->children_.size(); ++i) {
+            if (function_ptr->type_[i] != type_function_parameters) {
+              continue;
+            }
+            function_parameters_node_ind = i;
+            declared_param_num = static_cast<int>(function_ptr->children_[i]->children_.size() + 1) / 2;
+            break;
+          }
+          if (call_expr_param_num + 1 != declared_param_num) {
+            Throw("Parameter number doesn't match.");
+          }
+          if (function_ptr->children_[function_parameters_node_ind]->type_[0] != type_self_param) {
+            Throw("function without self parameter should be called with call expression.");
+          }
+          expression_ptr->integrated_type_ = function_ptr->integrated_type_;
+          for (int i = 0; i < expression_ptr->children_[2]->children_.size(); i += 2) {
+            expression_ptr->children_[2]->children_[i]->Accept(this);
+            TryToMatch(function_ptr->children_[function_parameters_node_ind]->children_[i + 2]->integrated_type_,
+                expression_ptr->children_[2]->children_[i]->integrated_type_, false);
+          }
+        }
+      } else if (function_name == "as_str") {
+        // as_str() of type &str : String
+        if (expression_ptr->children_[0]->integrated_type_->basic_type == string_type) {
+          if (expression_ptr->children_.size() != 2) {
+            Throw("as_str method should be called with no parameter.");
+          }
+          expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(pointer_type,
+                false, false, false, false, 0);
+          expression_ptr->integrated_type_->element_type = std::make_shared<IntegratedType>(str_type,
+              false, false, false, false, 0);
+        } else { // created as a function in struct with self parameter
+          Node *function_ptr = nullptr;
+          if (expression_ptr->children_[0]->integrated_type_->basic_type == struct_type) {
+            auto struct_ptr = dynamic_cast<Struct *>(expression_ptr->children_[0]->integrated_type_->struct_node);
+            if (!struct_ptr->associated_items_.contains(function_name)) {
+              Throw("Cannot find target function in the associated-item-field of the struct.");
+            }
+            if (struct_ptr->associated_items_[function_name].node_type != type_function) {
+              Throw("Cannot apply method call operation to non-function.");
+            }
+            function_ptr = struct_ptr->associated_items_[function_name].node;
+          } else if (expression_ptr->children_[0]->integrated_type_->basic_type == pointer_type) {
+            Node *pointer = expression_ptr->children_[0]->value_.pointer_value;
+            if (pointer->integrated_type_->basic_type != struct_type) {
+              Throw("Cannot apply method call operation to non-struct type.");
+            }
+            auto struct_ptr = dynamic_cast<Struct *>(pointer->integrated_type_->struct_node);
+            if (!struct_ptr->associated_items_.contains(function_name)) {
+              Throw("Cannot find target function in the associated-item-field of the struct.");
+            }
+            if (struct_ptr->associated_items_[function_name].node_type != type_function) {
+              Throw("Cannot apply method call operation to non-function.");
+            }
+            function_ptr = struct_ptr->associated_items_[function_name].node;
+          } else {
+            Throw("Invalid type.");
+          }
+          // has got function_ptr
+          if (function_ptr->integrated_type_->basic_type == unknown_type) {
+            function_ptr->Accept(this);
+          }
+          int call_expr_param_num = 0;
+          if (expression_ptr->children_.size() == 3) {
+            call_expr_param_num = static_cast<int>(expression_ptr->children_[2]->children_.size() + 1) / 2;
+          }
+          int declared_param_num = 0;
+          int function_parameters_node_ind = -1;
+          for (int i = 0; i < function_ptr->children_.size(); ++i) {
+            if (function_ptr->type_[i] != type_function_parameters) {
+              continue;
+            }
+            function_parameters_node_ind = i;
+            declared_param_num = static_cast<int>(function_ptr->children_[i]->children_.size() + 1) / 2;
+            break;
+          }
+          if (call_expr_param_num + 1 != declared_param_num) {
+            Throw("Parameter number doesn't match.");
+          }
+          if (function_ptr->children_[function_parameters_node_ind]->type_[0] != type_self_param) {
+            Throw("function without self parameter should be called with call expression.");
+          }
+          expression_ptr->integrated_type_ = function_ptr->integrated_type_;
+          for (int i = 0; i < expression_ptr->children_[2]->children_.size(); i += 2) {
+            expression_ptr->children_[2]->children_[i]->Accept(this);
+            TryToMatch(function_ptr->children_[function_parameters_node_ind]->children_[i + 2]->integrated_type_,
+                expression_ptr->children_[2]->children_[i]->integrated_type_, false);
+          }
+        }
+      } else if (function_name == "len") {
+        // len() of u32 : [T; N], String, &str
+        if (expression_ptr->children_[0]->integrated_type_->basic_type == string_type
+            || expression_ptr->children_[0]->integrated_type_->basic_type == array_type
+            || (expression_ptr->children_[0]->integrated_type_->basic_type == pointer_type
+            && expression_ptr->children_[0]->integrated_type_->element_type->basic_type == str_type)) {
+          if (expression_ptr->children_.size() != 2) {
+            Throw("len method should be called with no parameter.");
+          }
+          expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(u32_type,
+              false, false, false, false, 0);
+          expression_ptr->integrated_type_->RemovePossibility(i32_type);
+          expression_ptr->integrated_type_->RemovePossibility(isize_type);
+          expression_ptr->integrated_type_->RemovePossibility(usize_type);
+        } else { // created as a function in struct with self parameter
+          Node *function_ptr = nullptr;
+          if (expression_ptr->children_[0]->integrated_type_->basic_type == struct_type) {
+            auto struct_ptr = dynamic_cast<Struct *>(expression_ptr->children_[0]->integrated_type_->struct_node);
+            if (!struct_ptr->associated_items_.contains(function_name)) {
+              Throw("Cannot find target function in the associated-item-field of the struct.");
+            }
+            if (struct_ptr->associated_items_[function_name].node_type != type_function) {
+              Throw("Cannot apply method call operation to non-function.");
+            }
+            function_ptr = struct_ptr->associated_items_[function_name].node;
+          } else if (expression_ptr->children_[0]->integrated_type_->basic_type == pointer_type) {
+            Node *pointer = expression_ptr->children_[0]->value_.pointer_value;
+            if (pointer->integrated_type_->basic_type != struct_type) {
+              Throw("Cannot apply method call operation to non-struct type.");
+            }
+            auto struct_ptr = dynamic_cast<Struct *>(pointer->integrated_type_->struct_node);
+            if (!struct_ptr->associated_items_.contains(function_name)) {
+              Throw("Cannot find target function in the associated-item-field of the struct.");
+            }
+            if (struct_ptr->associated_items_[function_name].node_type != type_function) {
+              Throw("Cannot apply method call operation to non-function.");
+            }
+            function_ptr = struct_ptr->associated_items_[function_name].node;
+          } else {
+            Throw("Invalid type.");
+          }
+          // has got function_ptr
+          if (function_ptr->integrated_type_->basic_type == unknown_type) {
+            function_ptr->Accept(this);
+          }
+          int call_expr_param_num = 0;
+          if (expression_ptr->children_.size() == 3) {
+            call_expr_param_num = static_cast<int>(expression_ptr->children_[2]->children_.size() + 1) / 2;
+          }
+          int declared_param_num = 0;
+          int function_parameters_node_ind = -1;
+          for (int i = 0; i < function_ptr->children_.size(); ++i) {
+            if (function_ptr->type_[i] != type_function_parameters) {
+              continue;
+            }
+            function_parameters_node_ind = i;
+            declared_param_num = static_cast<int>(function_ptr->children_[i]->children_.size() + 1) / 2;
+            break;
+          }
+          if (call_expr_param_num + 1 != declared_param_num) {
+            Throw("Parameter number doesn't match.");
+          }
+          if (function_ptr->children_[function_parameters_node_ind]->type_[0] != type_self_param) {
+            Throw("function without self parameter should be called with call expression.");
+          }
+          expression_ptr->integrated_type_ = function_ptr->integrated_type_;
+          for (int i = 0; i < expression_ptr->children_[2]->children_.size(); i += 2) {
+            expression_ptr->children_[2]->children_[i]->Accept(this);
+            TryToMatch(function_ptr->children_[function_parameters_node_ind]->children_[i + 2]->integrated_type_,
+                expression_ptr->children_[2]->children_[i]->integrated_type_, false);
+          }
+        }
+      } else {
+        Node *function_ptr = nullptr;
+        if (expression_ptr->children_[0]->integrated_type_->basic_type == struct_type) {
+          auto struct_ptr = dynamic_cast<Struct *>(expression_ptr->children_[0]->integrated_type_->struct_node);
+          if (!struct_ptr->associated_items_.contains(function_name)) {
+            Throw("Cannot find target function in the associated-item-field of the struct.");
+          }
+          if (struct_ptr->associated_items_[function_name].node_type != type_function) {
+            Throw("Cannot apply method call operation to non-function.");
+          }
+          function_ptr = struct_ptr->associated_items_[function_name].node;
+        } else if (expression_ptr->children_[0]->integrated_type_->basic_type == pointer_type) {
+          Node *pointer = expression_ptr->children_[0]->value_.pointer_value;
+          if (pointer->integrated_type_->basic_type != struct_type) {
+            Throw("Cannot apply method call operation to non-struct type.");
+          }
+          auto struct_ptr = dynamic_cast<Struct *>(pointer->integrated_type_->struct_node);
+          if (!struct_ptr->associated_items_.contains(function_name)) {
+            Throw("Cannot find target function in the associated-item-field of the struct.");
+          }
+          if (struct_ptr->associated_items_[function_name].node_type != type_function) {
+            Throw("Cannot apply method call operation to non-function.");
+          }
+          function_ptr = struct_ptr->associated_items_[function_name].node;
+        } else {
+          Throw("Invalid type.");
+        }
+        // has got function_ptr
+        if (function_ptr->integrated_type_->basic_type == unknown_type) {
+          function_ptr->Accept(this);
+        }
+        int call_expr_param_num = 0;
+        if (expression_ptr->children_.size() == 3) {
+          call_expr_param_num = static_cast<int>(expression_ptr->children_[2]->children_.size() + 1) / 2;
+        }
+        int declared_param_num = 0;
+        int function_parameters_node_ind = -1;
+        for (int i = 0; i < function_ptr->children_.size(); ++i) {
+          if (function_ptr->type_[i] != type_function_parameters) {
+            continue;
+          }
+          function_parameters_node_ind = i;
+          declared_param_num = static_cast<int>(function_ptr->children_[i]->children_.size() + 1) / 2;
+          break;
+        }
+        if (call_expr_param_num + 1 != declared_param_num) {
+          Throw("Parameter number doesn't match.");
+        }
+        if (function_ptr->children_[function_parameters_node_ind]->type_[0] != type_self_param) {
+          Throw("function without self parameter should be called with call expression.");
+        }
+        expression_ptr->integrated_type_ = function_ptr->integrated_type_;
+        for (int i = 0; i < expression_ptr->children_[2]->children_.size(); i += 2) {
+          expression_ptr->children_[2]->children_[i]->Accept(this);
+          TryToMatch(function_ptr->children_[function_parameters_node_ind]->children_[i + 2]->integrated_type_,
+              expression_ptr->children_[2]->children_[i]->integrated_type_, false);
+        }
+      }
       break;
     }
     case field_expr: {
