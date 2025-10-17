@@ -912,7 +912,38 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           target_type->RemovePossibility(u32_type);
           target_type->RemovePossibility(usize_type);
           TryToMatch(target_type, expression_ptr->children_[1]->children_[0]->integrated_type_, false);
-          // todo: check whether exit appears as the final statement of the main function
+          if (wrapping_function_.size() != 1) { // not outermost
+            Throw("exit() should be used in the end of the outermost main function");
+          }
+          auto exiting_function_info = wrapping_function_.back();
+          if (dynamic_cast<LeafNode *>(exiting_function_info.node->children_[1])->GetContent().GetStr() != "main") {
+            Throw("exit() should only be used in main function.");
+          }
+          Node *main_func_block_ptr = nullptr;
+          for (int i = 0; i < exiting_function_info.node->children_.size(); ++i) {
+            if (exiting_function_info.node->type_[i] != type_block_expression) {
+              continue;
+            }
+            main_func_block_ptr = exiting_function_info.node->children_[i];
+            break;
+          }
+          if (main_func_block_ptr == nullptr || main_func_block_ptr->children_.size() == 2) {
+            Throw("Unexpected main function block ptr.");
+          }
+          Node *statements_ptr = main_func_block_ptr->children_[1];
+          if (statements_ptr->type_[statements_ptr->children_.size() - 1] == type_statement) {
+            Node *last_statement_ptr = statements_ptr->children_[statements_ptr->children_.size() - 1];
+            if (last_statement_ptr->type_[0] != type_expression_statement) {
+              Throw("exit() is not the last expression in Statements.");
+            }
+            if (last_statement_ptr->children_[0]->children_[0] != expression_ptr) {
+              Throw("exit() is not the last expression in Statements.");
+            }
+          } else { // type_expression_without_block
+            if (statements_ptr->children_[statements_ptr->children_.size() - 1] != expression_ptr) {
+              Throw("exit() is not the last expression in Statements.");
+            }
+          }
         } else { // not builtin function
           const auto function_info = expression_ptr->scope_node_->FindInValue(function_name);
           if (function_info.node == nullptr) {
