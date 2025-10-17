@@ -1045,22 +1045,20 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
       expression_ptr->children_[0]->Accept(this);
       if (expression_ptr->children_[0]->integrated_type_->basic_type == struct_type) {
         auto struct_ptr = dynamic_cast<Struct *>(expression_ptr->children_[0]->integrated_type_->struct_node);
-        // check if the struct has been visited
-        if (!struct_ptr->field_items_.empty()) {
-          if (struct_ptr->field_items_.begin()->second.node->integrated_type_->basic_type == unknown_type) {
-            expression_ptr->children_[0]->integrated_type_->struct_node->Accept(this);
-          }
-        } else if (!struct_ptr->associated_items_.empty()) {
-          if (struct_ptr->associated_items_.begin()->second.node->integrated_type_->basic_type == unknown_type) {
-            expression_ptr->children_[0]->integrated_type_->struct_node->Accept(this);
-          }
-        } else {
-          Throw("Empty struct field.");
+        if (!struct_ptr->field_items_.contains(identifier_name)) {
+          Throw("Cannot find target element in the field of the struct.");
         }
-        // the struct is visited
-        // todo
+        expression_ptr->integrated_type_ = struct_ptr->field_items_[identifier_name].node->integrated_type_;
       } else if (expression_ptr->children_[0]->integrated_type_->basic_type == pointer_type) {
-        // todo: need auto dereference
+        Node *pointer = expression_ptr->children_[0]->value_.pointer_value;
+        if (pointer->integrated_type_->basic_type != struct_type) {
+          Throw("Cannot apply field operation to non-struct type.");
+        }
+        auto struct_ptr = dynamic_cast<Struct *>(pointer->integrated_type_->struct_node);
+        if (!struct_ptr->field_items_.contains(identifier_name)) {
+          Throw("Cannot find target element in the field of the struct.");
+        }
+        expression_ptr->integrated_type_ = struct_ptr->field_items_[identifier_name].node->integrated_type_;
       } else {
         Throw("Invalid type.");
       }
