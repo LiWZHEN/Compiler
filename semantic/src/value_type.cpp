@@ -542,8 +542,7 @@ void ValueTypeVisitor::Visit(StructField *struct_field_ptr) {
   type_owner_ = nullptr;
 }
 void ValueTypeVisitor::Visit(Expression *expression_ptr) {
-  auto expr_type = expression_ptr->GetExprType();
-  switch (expr_type) {
+  switch (expression_ptr->GetExprType()) {
     case block_expr: {
       if (expression_ptr->children_.size() == 2) {
         expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
@@ -831,19 +830,89 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
         std::string function_name = dynamic_cast<LeafNode *>(expression_ptr->children_[0]->children_[0])
             ->GetContent().GetStr();
         if (function_name == "print") {
-          // todo
+          // call parameter type: &str
+          expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
+              false, false, false, false, 0);
+          if (expression_ptr->children_.size() == 1 || (expression_ptr->children_[1]->children_.size() + 1) / 2 != 1) {
+            Throw("print(s : &str) should be called with one parameter.");
+          }
+          expression_ptr->children_[1]->children_[0]->Accept(this);
+          if (expression_ptr->children_[1]->children_[0]->integrated_type_->basic_type != pointer_type
+              || expression_ptr->children_[1]->children_[0]->integrated_type_->element_type->basic_type != str_type) {
+            Throw("Type mismatch.");
+          }
         } else if (function_name == "println") {
-          // todo
+          // call parameter type: &str
+          expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
+              false, false, false, false, 0);
+          if (expression_ptr->children_.size() == 1 || (expression_ptr->children_[1]->children_.size() + 1) / 2 != 1) {
+            Throw("println(s : &str) should be called with one parameter.");
+          }
+          expression_ptr->children_[1]->children_[0]->Accept(this);
+          if (expression_ptr->children_[1]->children_[0]->integrated_type_->basic_type != pointer_type
+              || expression_ptr->children_[1]->children_[0]->integrated_type_->element_type->basic_type != str_type) {
+            Throw("Type mismatch.");
+          }
         } else if (function_name == "printInt") {
-          // todo
+          // call parameter type: i32
+          expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
+              false, false, false, false, 0);
+          if (expression_ptr->children_.size() == 1 || (expression_ptr->children_[1]->children_.size() + 1) / 2 != 1) {
+            Throw("printInt(n : i32) should be called with one parameter.");
+          }
+          expression_ptr->children_[1]->children_[0]->Accept(this);
+          auto target_type = std::make_shared<IntegratedType>(i32_type,
+              false, false, false, false, 0);
+          target_type->RemovePossibility(isize_type);
+          target_type->RemovePossibility(u32_type);
+          target_type->RemovePossibility(usize_type);
+          TryToMatch(target_type, expression_ptr->children_[1]->children_[0]->integrated_type_, false);
         } else if (function_name == "printlnInt") {
-          // todo
+          // call parameter type: i32
+          expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
+              false, false, false, false, 0);
+          if (expression_ptr->children_.size() == 1 || (expression_ptr->children_[1]->children_.size() + 1) / 2 != 1) {
+            Throw("printlnInt(n : i32) should be called with one parameter.");
+          }
+          expression_ptr->children_[1]->children_[0]->Accept(this);
+          auto target_type = std::make_shared<IntegratedType>(i32_type,
+              false, false, false, false, 0);
+          target_type->RemovePossibility(isize_type);
+          target_type->RemovePossibility(u32_type);
+          target_type->RemovePossibility(usize_type);
+          TryToMatch(target_type, expression_ptr->children_[1]->children_[0]->integrated_type_, false);
         } else if (function_name == "getString") {
-          // todo
+          // no call parameter
+          expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(string_type,
+              false, false, false, false, 0);
+          if (expression_ptr->children_.size() != 1) {
+            Throw("getString() should be called with no parameter");
+          }
         } else if (function_name == "getInt") {
-          // todo
+          // no call parameter
+          expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(i32_type,
+              false, false, false, false, 0);
+          expression_ptr->integrated_type_->RemovePossibility(isize_type);
+          expression_ptr->integrated_type_->RemovePossibility(u32_type);
+          expression_ptr->integrated_type_->RemovePossibility(usize_type);
+          if (expression_ptr->children_.size() != 1) {
+            Throw("getString() should be called with no parameter");
+          }
         } else if (function_name == "exit") {
-          // todo
+          // call parameter type: i32
+          expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
+              false, false, false, false, 0);
+          if (expression_ptr->children_.size() == 1 || (expression_ptr->children_[1]->children_.size() + 1) / 2 != 1) {
+            Throw("exit(code : i32) should be called with one parameter.");
+          }
+          expression_ptr->children_[1]->children_[0]->Accept(this);
+          auto target_type = std::make_shared<IntegratedType>(i32_type,
+              false, false, false, false, 0);
+          target_type->RemovePossibility(isize_type);
+          target_type->RemovePossibility(u32_type);
+          target_type->RemovePossibility(usize_type);
+          TryToMatch(target_type, expression_ptr->children_[1]->children_[0]->integrated_type_, false);
+          // todo: check whether exit appears as the final statement of the main function
         } else { // not builtin function
           const auto function_info = expression_ptr->scope_node_->FindInValue(function_name);
           if (function_info.node == nullptr) {
