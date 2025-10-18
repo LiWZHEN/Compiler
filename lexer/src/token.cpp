@@ -125,11 +125,17 @@ std::string Token::GetCharContent() const {
 }
 
 std::string Token::GetIntType() const {
+  if (str_.length() < 3) {
+    return "";
+  }
   if (str_.substr(str_.length() - 3, 3) == "i32") {
     return "i32";
   }
   if (str_.substr(str_.length() - 3, 3) == "u32") {
     return "u32";
+  }
+  if (str_.length() < 5) {
+    return "";
   }
   if (str_.substr(str_.length() - 5, 5) == "isize") {
     return "isize";
