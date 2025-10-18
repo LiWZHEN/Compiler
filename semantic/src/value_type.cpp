@@ -110,6 +110,9 @@ void ValueTypeVisitor::Visit(Crate *crate_ptr) {
   for (const auto it : crate_ptr->children_) {
     it->Accept(this);
   }
+  if (crate_ptr->scope_node_->FindInValue("main").node == nullptr) {
+    Throw("There is no outermost main function.");
+  }
 }
 void ValueTypeVisitor::Visit(Item *item_ptr) {
   item_ptr->children_[0]->Accept(this);
@@ -126,7 +129,10 @@ void ValueTypeVisitor::Visit(Function *function_ptr) {
     is_reading_type_ = false;
     type_owner_ = nullptr;
   }
-  if (function_ptr->integrated_type_->basic_type == unknown_type) {
+  if (function_ptr->integrated_type_ == nullptr) {
+    function_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
+        false, false, false, false, 0);
+  } else if (function_ptr->integrated_type_->basic_type == unknown_type) {
     function_ptr->integrated_type_->basic_type = unit_type;
   }
   int block_expr_ind = -1;
