@@ -728,7 +728,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
             ->GetContent().GetStr();
         const auto path_node_info = expression_ptr->scope_node_->FindInValue(path_name);
         if (path_node_info.node == nullptr) {
-          Throw("Cannot find the path name in value namespace.");
+          Throw("Cannot find the path name '" + path_name + "' in value namespace.");
         }
         if (path_node_info.node->integrated_type_->basic_type == unknown_type) {
           path_node_info.node->Accept(this);
