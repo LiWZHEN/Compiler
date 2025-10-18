@@ -32,7 +32,7 @@ struct IntegratedType {
   bool is_mutable;
   // int
   bool is_int;
-  bool type_ignore;
+  bool type_completed;
   std::unordered_set<BasicType> possible_types;
   // array
   long long size;
@@ -45,7 +45,7 @@ struct IntegratedType {
     is_const = false;
     is_mutable = false;
     is_int = false;
-    type_ignore = false;
+    type_completed = false;
     possible_types.insert(i32_type);
     possible_types.insert(u32_type);
     possible_types.insert(isize_type);
@@ -54,8 +54,8 @@ struct IntegratedType {
     struct_node = nullptr;
   }
   IntegratedType(const BasicType basic_type, const bool is_const, const bool is_mutable, const bool is_int,
-      const bool type_ignore, const int size) : basic_type(basic_type), is_const(is_const), is_mutable(is_mutable),
-      is_int(is_int), type_ignore(type_ignore), size(size) {
+      const bool type_completed, const int size) : basic_type(basic_type), is_const(is_const), is_mutable(is_mutable),
+      is_int(is_int), type_completed(type_completed), size(size) {
     possible_types.insert(i32_type);
     possible_types.insert(u32_type);
     possible_types.insert(isize_type);

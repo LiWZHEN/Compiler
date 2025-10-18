@@ -26,10 +26,17 @@ void TryToMatch(const std::shared_ptr<IntegratedType> &target_type, std::shared_
       Throw("Type mismatch.");
     }
     // different but both int
-    for (const auto it : expr_type->possible_types) {
-      if (!target_type->possible_types.contains(it)) {
-        expr_type->RemovePossibility(it);
-      }
+    if (expr_type->possible_types.contains(i32_type) && !target_type->possible_types.contains(i32_type)) {
+      expr_type->RemovePossibility(i32_type);
+    }
+    if (expr_type->possible_types.contains(u32_type) && !target_type->possible_types.contains(u32_type)) {
+      expr_type->RemovePossibility(u32_type);
+    }
+    if (expr_type->possible_types.contains(isize_type) && !target_type->possible_types.contains(isize_type)) {
+      expr_type->RemovePossibility(isize_type);
+    }
+    if (expr_type->possible_types.contains(usize_type) && !target_type->possible_types.contains(usize_type)) {
+      expr_type->RemovePossibility(usize_type);
     }
     // be able to fit
   } else {// basic type matched
@@ -126,12 +133,13 @@ void ValueTypeVisitor::Visit(Function *function_ptr) {
     type_owner_ = function_ptr;
     function_ptr->integrated_type_ = std::make_shared<IntegratedType>();
     function_ptr->children_[i]->Accept(this);
+    function_ptr->integrated_type_->type_completed = true;
     is_reading_type_ = false;
     type_owner_ = nullptr;
   }
   if (function_ptr->integrated_type_ == nullptr) {
     function_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
-        false, false, false, false, 0);
+        false, false, false, true, 0);
   } else if (function_ptr->integrated_type_->basic_type == unknown_type) {
     function_ptr->integrated_type_->basic_type = unit_type;
   }
@@ -206,6 +214,7 @@ void ValueTypeVisitor::Visit(ConstantItem *constant_item_ptr) {
   is_reading_type_ = true;
   type_owner_ = constant_item_ptr->children_[1];
   constant_item_ptr->children_[3]->Accept(this); // visit Type
+  constant_item_ptr->integrated_type_->type_completed = true;
   is_reading_type_ = false;
   type_owner_ = nullptr;
   constant_item_ptr->children_[1]->integrated_type_->is_const = true;
@@ -223,7 +232,7 @@ void ValueTypeVisitor::Visit(ConstantItem *constant_item_ptr) {
 void ValueTypeVisitor::Visit(BlockExpression *block_expression_ptr) {
   if (block_expression_ptr->children_.size() == 2) {
     block_expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type, true,
-        false, false, false, 0);
+        false, false, true, 0);
     return;
   }
   block_expression_ptr->children_[1]->Accept(this); // visit Statements
@@ -259,13 +268,13 @@ void ValueTypeVisitor::Visit(SelfParam *self_param_ptr) {
       switch (target_struct.node_type) {
         case type_struct: {
           self_param_ptr->integrated_type_->element_type = std::make_shared<IntegratedType>(struct_type,
-              false, false, false, false, 0);
+              false, false, false, true, 0);
           self_param_ptr->integrated_type_->element_type->struct_node = target_struct.node;
           break;
         }
         case type_enumeration: {
           self_param_ptr->integrated_type_->element_type = std::make_shared<IntegratedType>(enumeration_type,
-              false, false, false, false, 0);
+              false, false, false, true, 0);
           self_param_ptr->integrated_type_->element_type->struct_node = target_struct.node;
           break;
         }
@@ -280,13 +289,13 @@ void ValueTypeVisitor::Visit(SelfParam *self_param_ptr) {
       switch (target_struct.node_type) {
         case type_struct: {
           self_param_ptr->integrated_type_->element_type = std::make_shared<IntegratedType>(struct_type,
-              false, true, false, false, 0);
+              false, true, false, true, 0);
           self_param_ptr->integrated_type_->element_type->struct_node = target_struct.node;
           break;
         }
         case type_enumeration: {
           self_param_ptr->integrated_type_->element_type = std::make_shared<IntegratedType>(enumeration_type,
-              false, true, false, false, 0);
+              false, true, false, true, 0);
           self_param_ptr->integrated_type_->element_type->struct_node = target_struct.node;
           break;
         }
@@ -298,6 +307,7 @@ void ValueTypeVisitor::Visit(SelfParam *self_param_ptr) {
     }
     default:;
   }
+  self_param_ptr->integrated_type_->type_completed = true;
 }
 void ValueTypeVisitor::Visit(FunctionParam *function_param_ptr) {
   function_param_ptr->integrated_type_ = std::make_shared<IntegratedType>();
@@ -309,6 +319,7 @@ void ValueTypeVisitor::Visit(FunctionParam *function_param_ptr) {
   is_reading_type_ = true;
   type_owner_ = function_param_ptr;
   function_param_ptr->children_[2]->Accept(this);
+  function_param_ptr->integrated_type_->type_completed = true;
   is_reading_type_ = false;
   type_owner_ = nullptr;
 }
@@ -318,7 +329,8 @@ void ValueTypeVisitor::Visit(Type *type_ptr) {
   }
   if (type_owner_->integrated_type_ == nullptr) {
     type_owner_->integrated_type_ = std::make_shared<IntegratedType>();
-  } else if (type_owner_->integrated_type_->basic_type != unknown_type) {
+  }
+  if (type_owner_->integrated_type_->type_completed) {
     return;
   }
   type_ptr->children_[0]->Accept(this);
@@ -352,6 +364,7 @@ void ValueTypeVisitor::Visit(UnitType *unit_type_ptr) {
     }
   }
   (*current_type_ptr)->basic_type = unit_type;
+  (*current_type_ptr)->type_completed = true;
 }
 void ValueTypeVisitor::Visit(ReferenceType *reference_type_ptr) {
   auto current_type_ptr = &type_owner_->integrated_type_;
@@ -389,6 +402,7 @@ void ValueTypeVisitor::Visit(ReferenceType *reference_type_ptr) {
   } else {
     reference_type_ptr->children_[1]->Accept(this);
   }
+  (*current_type_ptr)->type_completed = true;
 }
 void ValueTypeVisitor::Visit(ArrayType *array_type_ptr) {
   if (is_reading_type_ == false) {
@@ -426,12 +440,13 @@ void ValueTypeVisitor::Visit(ArrayType *array_type_ptr) {
   array_type_ptr->children_[1]->Accept(this);
   array_type_ptr->children_[3]->Accept(this);
   const auto target_size_ptr = std::make_shared<IntegratedType>(usize_type, true,
-      false, true, false, 0);
+      false, true, true, 0);
   target_size_ptr->RemovePossibility(u32_type);
   target_size_ptr->RemovePossibility(i32_type);
   target_size_ptr->RemovePossibility(isize_type);
   TryToMatch(target_size_ptr, array_type_ptr->children_[3]->integrated_type_, true);
   (*current_type_ptr)->size = array_type_ptr->children_[3]->value_.int_value;
+  (*current_type_ptr)->type_completed = true;
 }
 void ValueTypeVisitor::Visit(TypePath *type_path_ptr) {
   if (is_reading_type_ == false) {
@@ -466,12 +481,28 @@ void ValueTypeVisitor::Visit(TypePath *type_path_ptr) {
   std::string type_name = type_path_ptr->GetContent().GetStr();
   if (type_name == "i32") {
     (*current_type_ptr)->basic_type = i32_type;
+    (*current_type_ptr)->is_int = true;
+    (*current_type_ptr)->RemovePossibility(u32_type);
+    (*current_type_ptr)->RemovePossibility(isize_type);
+    (*current_type_ptr)->RemovePossibility(usize_type);
   } else if (type_name == "u32") {
     (*current_type_ptr)->basic_type = u32_type;
+    (*current_type_ptr)->is_int = true;
+    (*current_type_ptr)->RemovePossibility(i32_type);
+    (*current_type_ptr)->RemovePossibility(isize_type);
+    (*current_type_ptr)->RemovePossibility(usize_type);
   } else if (type_name == "isize") {
     (*current_type_ptr)->basic_type = isize_type;
+    (*current_type_ptr)->is_int = true;
+    (*current_type_ptr)->RemovePossibility(i32_type);
+    (*current_type_ptr)->RemovePossibility(u32_type);
+    (*current_type_ptr)->RemovePossibility(usize_type);
   } else if (type_name == "usize") {
     (*current_type_ptr)->basic_type = usize_type;
+    (*current_type_ptr)->is_int = true;
+    (*current_type_ptr)->RemovePossibility(i32_type);
+    (*current_type_ptr)->RemovePossibility(u32_type);
+    (*current_type_ptr)->RemovePossibility(isize_type);
   } else if (type_name == "bool") {
     (*current_type_ptr)->basic_type = bool_type;
   } else if (type_name == "char") {
@@ -494,6 +525,7 @@ void ValueTypeVisitor::Visit(TypePath *type_path_ptr) {
     (*current_type_ptr)->basic_type = struct_type;
     (*current_type_ptr)->struct_node = type_node.node;
   }
+  (*current_type_ptr)->type_completed = true;
 }
 void ValueTypeVisitor::Visit(Statements *statements_ptr) {
   for (const auto it : statements_ptr->children_) {
@@ -509,11 +541,11 @@ void ValueTypeVisitor::Visit(Statements *statements_ptr) {
         statements_ptr->integrated_type_ = statement_ptr->children_[0]->children_[0]->integrated_type_;
       } else {
         statements_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
-            false, false, false, false, 0);
+            false, false, false, true, 0);
       }
     } else {
       statements_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
-          false, false, false, false, 0);
+          false, false, false, true, 0);
     }
   }
 }
@@ -521,7 +553,7 @@ void ValueTypeVisitor::Visit(Statement *statement_ptr) {
   statement_ptr->children_[0]->Accept(this);
   if (statement_ptr->type_[0] != type_expression_statement) {
     statement_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
-        false, false, false, false, 0);
+        false, false, false, true, 0);
   } else {
     statement_ptr->integrated_type_ = statement_ptr->children_[0]->integrated_type_;
   }
@@ -531,6 +563,7 @@ void ValueTypeVisitor::Visit(LetStatement *let_statement_ptr) {
   is_reading_type_ = true;
   type_owner_ = let_statement_ptr->children_[1];
   let_statement_ptr->children_[3]->Accept(this); // visit type
+  let_statement_ptr->children_[1]->integrated_type_->type_completed = true;
   is_reading_type_ = false;
   type_owner_ = nullptr;
   let_statement_ptr->children_[5]->Accept(this); // visit expression
@@ -539,7 +572,7 @@ void ValueTypeVisitor::Visit(LetStatement *let_statement_ptr) {
   auto identifier_pattern_ptr = let_statement_ptr->children_[1]->children_[0];
   std::string identifier_pattern_name;
   if (identifier_pattern_ptr->children_.size() > 1) {
-    let_statement_ptr->integrated_type_->is_mutable = true;
+    let_statement_ptr->children_[1]->integrated_type_->is_mutable = true;
     identifier_pattern_name = dynamic_cast<LeafNode *>(identifier_pattern_ptr->children_[1])->GetContent().GetStr();
   } else {
     identifier_pattern_name = dynamic_cast<LeafNode *>(identifier_pattern_ptr->children_[0])->GetContent().GetStr();
@@ -551,7 +584,7 @@ void ValueTypeVisitor::Visit(ExpressionStatement *expression_statement_ptr) {
   expression_statement_ptr->children_[0]->Accept(this);
   if (expression_statement_ptr->children_.size() > 1) {
     expression_statement_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
-        false, false, false, false, 0);
+        false, false, false, true, 0);
   } else {
     expression_statement_ptr->integrated_type_ = expression_statement_ptr->children_[0]->integrated_type_;
   }
@@ -569,6 +602,7 @@ void ValueTypeVisitor::Visit(StructField *struct_field_ptr) {
   is_reading_type_ = true;
   type_owner_ = struct_field_ptr;
   struct_field_ptr->children_[2]->Accept(this);
+  struct_field_ptr->integrated_type_->type_completed = true;
   is_reading_type_ = false;
   type_owner_ = nullptr;
 }
@@ -577,7 +611,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
     case block_expr: {
       if (expression_ptr->children_.size() == 2) {
         expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
-            false, false, false, false, 0);
+            false, false, false, true, 0);
       } else {
         expression_ptr->children_[1]->Accept(this);
         expression_ptr->integrated_type_ = expression_ptr->children_[1]->integrated_type_;
@@ -590,10 +624,11 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
         expression_ptr->children_[2]->Accept(this);
         wrapping_loop_.pop_back();
         auto target_type = std::make_shared<IntegratedType>(unit_type,
-          false, false, false, false, 0);
+          false, false, false, true, 0);
         TryToMatch(target_type, expression_ptr->children_[2]->integrated_type_, false);
       }
-      if (expression_ptr->integrated_type_->basic_type == unknown_type) {
+      if (expression_ptr->integrated_type_ == nullptr ||
+          expression_ptr->integrated_type_->basic_type == unknown_type) {
         Throw("Infinite loop");
       }
       break;
@@ -608,12 +643,15 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
         expression_ptr->children_[5]->Accept(this);
         wrapping_loop_.pop_back();
         auto target_type = std::make_shared<IntegratedType>(unit_type,
-          false, false, false, false, 0);
+          false, false, false, true, 0);
         TryToMatch(target_type, expression_ptr->children_[5]->integrated_type_, false);
       }
-      if (expression_ptr->integrated_type_->basic_type == unknown_type) {
+      if (expression_ptr->integrated_type_ == nullptr) {
         expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
-            false, false, false, false, 0);
+            false, false, false, true, 0);
+      } else if (expression_ptr->integrated_type_->basic_type == unknown_type) {
+        expression_ptr->integrated_type_->basic_type = unit_type;
+        expression_ptr->integrated_type_->type_completed = true;
       }
       break;
     }
@@ -647,7 +685,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
         }
       } else { // either no 'if' or no 'else', expression has unit type
         expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
-            false, false, false, false, 0);
+            false, false, false, true, 0);
         if (if_statements_ind != -1) {
           TryToMatch(expression_ptr->children_[if_statements_ind]->integrated_type_,
               expression_ptr->integrated_type_, false);
@@ -662,7 +700,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
       switch (expression_ptr->type_[0]) {
         case type_keyword: {
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(bool_type,
-              true, false, false, false, 0);
+              true, false, false, true, 0);
           if (dynamic_cast<LeafNode *>(expression_ptr->children_[0])->GetContent().GetStr() == "true") {
             expression_ptr->value_.int_value = 1;
           } else {
@@ -672,7 +710,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
         }
         case type_char_literal: {
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(char_type,
-              true, false, false, false, 0);
+              true, false, false, true, 0);
           expression_ptr->value_.str_value = dynamic_cast<LeafNode *>(expression_ptr->children_[0])
               ->GetContent().GetCharContent();
           break;
@@ -682,11 +720,11 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
         case type_c_string_literal:
         case type_raw_c_string_literal: {
           expression_ptr->children_[0]->integrated_type_ = std::make_shared<IntegratedType>(str_type,
-              true, false, false, false, 0);
+              true, false, false, true, 0);
           expression_ptr->children_[0]->value_.str_value = dynamic_cast<LeafNode *>(expression_ptr->children_[0])
               ->GetContent().GetStringContent();
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(pointer_type,
-              true, false, false, false, 0);
+              true, false, false, true, 0);
           expression_ptr->integrated_type_->element_type = expression_ptr->children_[0]->integrated_type_;
           expression_ptr->value_.pointer_value = expression_ptr->children_[0];
           break;
@@ -715,6 +753,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           const long long literal_value = dynamic_cast<LeafNode *>(expression_ptr->children_[0])->GetContent().GetInt();
           CheckOverflow(literal_value, expression_ptr->integrated_type_);
           expression_ptr->value_.int_value = literal_value;
+          expression_ptr->integrated_type_->type_completed = true;
           break;
         }
         default:;
@@ -765,6 +804,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
                         is_reading_type_ = true;
                         type_owner_ = function_ptr;
                         function_ptr->children_[i]->Accept(this);
+                        function_ptr->integrated_type_->type_completed = true;
                         is_reading_type_ = false;
                         type_owner_ = nullptr;
                       } else if (function_ptr->type_[i] == type_function_parameters) {
@@ -773,15 +813,17 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
                     }
                     if (function_ptr->integrated_type_ == nullptr) {
                       function_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
-                          false, false, false, false, 0);
+                          false, false, false, true, 0);
                     } else if (function_ptr->integrated_type_->basic_type == unknown_type) {
                       function_ptr->integrated_type_->basic_type = unit_type;
+                      function_ptr->integrated_type_->type_completed = true;
                     }
                   } else { // it.second.node_type == type_constant_item
                     auto const_item_ptr = it.second.node;
                     is_reading_type_ = true;
                     type_owner_ = const_item_ptr;
                     const_item_ptr->children_[3]->Accept(this);
+                    const_item_ptr->integrated_type_->type_completed = true;
                     is_reading_type_ = false;
                     type_owner_ = nullptr;
                   }
@@ -818,7 +860,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
             Throw("There is no target enum variable in the enumeration field.");
           }
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(enumeration_type,
-              true, false, false, false, 0);
+              true, false, false, true, 0);
           expression_ptr->value_.pointer_value = enum_ptr;
         }
       }
@@ -833,46 +875,46 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
     case array_expr: {
       if (expression_ptr->children_.size() == 2) {
         expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(array_type,
-            true, false, false, false, 0);
+            true, false, false, true, 0);
+        expression_ptr->integrated_type_->element_type = std::make_shared<IntegratedType>(never_type,
+            true, false, false, true, 0);
         break;
       }
-      auto array_elements_expr = expression_ptr->children_[1];
-      if (array_elements_expr->children_.size() == 3 &&
-          dynamic_cast<LeafNode *>(array_elements_expr->children_[1])->GetContent().GetStr() == ";") {
+      if (expression_ptr->children_.size() == 5 &&
+          dynamic_cast<LeafNode *>(expression_ptr->children_[2])->GetContent().GetStr() == ";") {
         // [Expression ; Expression]
-        array_elements_expr->children_[0]->Accept(this);
-        array_elements_expr->children_[2]->Accept(this);
-        if (!array_elements_expr->children_[2]->integrated_type_->is_const) {
+        expression_ptr->children_[1]->Accept(this);
+        expression_ptr->children_[3]->Accept(this);
+        if (!expression_ptr->children_[3]->integrated_type_->is_const) {
           Throw("The length operand must be a constant expression.");
         }
         auto target_type = std::make_shared<IntegratedType>(usize_type, false,
-            false, false, false, 0);
+            false, false, true, 0);
         target_type->RemovePossibility(i32_type);
         target_type->RemovePossibility(isize_type);
         target_type->RemovePossibility(u32_type);
-        TryToMatch(target_type, array_elements_expr->children_[2]->integrated_type_,
+        TryToMatch(target_type, expression_ptr->children_[3]->integrated_type_,
           true);
         expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(array_type,
-            array_elements_expr->children_[0]->integrated_type_->is_const, false,
-            false, false, array_elements_expr->children_[2]->value_.int_value);
-        expression_ptr->integrated_type_->element_type = expression_ptr->children_[0]->integrated_type_;
-        for (int i = 0; i < expression_ptr->children_[2]->value_.int_value; ++i) {
-          expression_ptr->value_.array_values.push_back(expression_ptr->children_[0]->value_);
+            expression_ptr->children_[1]->integrated_type_->is_const, false,
+            false, true, expression_ptr->children_[3]->value_.int_value);
+        expression_ptr->integrated_type_->element_type = expression_ptr->children_[1]->integrated_type_;
+        for (int i = 0; i < expression_ptr->children_[3]->value_.int_value; ++i) {
+          expression_ptr->value_.array_values.push_back(expression_ptr->children_[1]->value_);
         }
       } else { // [Expression ( , Expression )* ,?]
-        for (int i = 0; i < array_elements_expr->children_.size(); i += 2) {
-          array_elements_expr->children_[i]->Accept(this);
+        for (int i = 1; i < expression_ptr->children_.size() - 1; i += 2) {
+          expression_ptr->children_[i]->Accept(this);
         }
-        const int elem_num = static_cast<int>(array_elements_expr->children_.size() + 1) / 2;
+        const int elem_num = static_cast<int>(expression_ptr->children_.size() - 1) / 2;
         expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(array_type,
-            array_elements_expr->children_[0]->integrated_type_->is_const, false,
-            false, false, elem_num);
-        expression_ptr->integrated_type_->element_type = expression_ptr->children_[0]->integrated_type_;
-        for (int i = 0; i < array_elements_expr->children_.size(); i += 2) {
-          TryToMatch(array_elements_expr->children_[i]->integrated_type_,
+            true, false, false, true, elem_num);
+        expression_ptr->integrated_type_->element_type = expression_ptr->children_[1]->integrated_type_;
+        for (int i = 1; i < expression_ptr->children_.size() - 1; i += 2) {
+          TryToMatch(expression_ptr->children_[i]->integrated_type_,
               expression_ptr->integrated_type_->element_type, false);
-          expression_ptr->value_.array_values.push_back(array_elements_expr->children_[i]->value_);
-          if (!array_elements_expr->children_[i]->integrated_type_->is_const) {
+          expression_ptr->value_.array_values.push_back(expression_ptr->children_[i]->value_);
+          if (!expression_ptr->children_[i]->integrated_type_->is_const) {
             expression_ptr->integrated_type_->is_const = false;
           }
         }
@@ -883,7 +925,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
       expression_ptr->children_[0]->Accept(this);
       expression_ptr->children_[2]->Accept(this);
       auto target_type = std::make_shared<IntegratedType>(usize_type, false,
-          false, false, false, 0);
+          false, false, true, 0);
       target_type->RemovePossibility(i32_type);
       target_type->RemovePossibility(isize_type);
       target_type->RemovePossibility(u32_type);
@@ -928,7 +970,8 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
       }
       // now the field items in target struct are all visited
       expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(struct_type,
-          true, false, false, false, 0);
+          true, false, false, true, 0);
+      expression_ptr->integrated_type_->struct_node = struct_info.node;
       if (expression_ptr->children_.size() == 3) {
         break;
       }
@@ -969,7 +1012,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
         if (function_name == "print") {
           // call parameter type: &str
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
-              false, false, false, false, 0);
+              false, false, false, true, 0);
           if (expression_ptr->children_.size() == 1 || (expression_ptr->children_[1]->children_.size() + 1) / 2 != 1) {
             Throw("print(s : &str) should be called with one parameter.");
           }
@@ -981,7 +1024,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
         } else if (function_name == "println") {
           // call parameter type: &str
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
-              false, false, false, false, 0);
+              false, false, false, true, 0);
           if (expression_ptr->children_.size() == 1 || (expression_ptr->children_[1]->children_.size() + 1) / 2 != 1) {
             Throw("println(s : &str) should be called with one parameter.");
           }
@@ -993,13 +1036,13 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
         } else if (function_name == "printInt") {
           // call parameter type: i32
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
-              false, false, false, false, 0);
+              false, false, false, true, 0);
           if (expression_ptr->children_.size() == 1 || (expression_ptr->children_[1]->children_.size() + 1) / 2 != 1) {
             Throw("printInt(n : i32) should be called with one parameter.");
           }
           expression_ptr->children_[1]->children_[0]->Accept(this);
           auto target_type = std::make_shared<IntegratedType>(i32_type,
-              false, false, false, false, 0);
+              false, false, false, true, 0);
           target_type->RemovePossibility(isize_type);
           target_type->RemovePossibility(u32_type);
           target_type->RemovePossibility(usize_type);
@@ -1007,13 +1050,13 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
         } else if (function_name == "printlnInt") {
           // call parameter type: i32
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
-              false, false, false, false, 0);
+              false, false, false, true, 0);
           if (expression_ptr->children_.size() == 1 || (expression_ptr->children_[1]->children_.size() + 1) / 2 != 1) {
             Throw("printlnInt(n : i32) should be called with one parameter.");
           }
           expression_ptr->children_[1]->children_[0]->Accept(this);
           auto target_type = std::make_shared<IntegratedType>(i32_type,
-              false, false, false, false, 0);
+              false, false, false, true, 0);
           target_type->RemovePossibility(isize_type);
           target_type->RemovePossibility(u32_type);
           target_type->RemovePossibility(usize_type);
@@ -1021,14 +1064,14 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
         } else if (function_name == "getString") {
           // no call parameter
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(string_type,
-              false, false, false, false, 0);
+              false, false, false, true, 0);
           if (expression_ptr->children_.size() != 1) {
             Throw("getString() should be called with no parameter");
           }
         } else if (function_name == "getInt") {
           // no call parameter
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(i32_type,
-              false, false, false, false, 0);
+              false, false, false, true, 0);
           expression_ptr->integrated_type_->RemovePossibility(isize_type);
           expression_ptr->integrated_type_->RemovePossibility(u32_type);
           expression_ptr->integrated_type_->RemovePossibility(usize_type);
@@ -1038,13 +1081,13 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
         } else if (function_name == "exit") {
           // call parameter type: i32
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
-              false, false, false, false, 0);
+              false, false, false, true, 0);
           if (expression_ptr->children_.size() == 1 || (expression_ptr->children_[1]->children_.size() + 1) / 2 != 1) {
             Throw("exit(code : i32) should be called with one parameter.");
           }
           expression_ptr->children_[1]->children_[0]->Accept(this);
           auto target_type = std::make_shared<IntegratedType>(i32_type,
-              false, false, false, false, 0);
+              false, false, false, true, 0);
           target_type->RemovePossibility(isize_type);
           target_type->RemovePossibility(u32_type);
           target_type->RemovePossibility(usize_type);
@@ -1114,6 +1157,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
                 is_reading_type_ = true;
                 type_owner_ = function_info.node;
                 function_info.node->children_[i]->Accept(this);
+                function_info.node->integrated_type_->type_completed = true;
                 is_reading_type_ = false;
                 type_owner_ = nullptr;
               } else if (function_info.node->type_[i] == type_function_parameters) {
@@ -1122,9 +1166,10 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
             }
             if (function_info.node->integrated_type_ == nullptr) {
               function_info.node->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
-                  false, false, false, false, 0);
+                  false, false, false, true, 0);
             } else if (function_info.node->integrated_type_->basic_type == unknown_type) {
               function_info.node->integrated_type_->basic_type = unit_type;
+              function_info.node->integrated_type_->type_completed = true;
             }
           }
           // now the function's type is ready
@@ -1165,6 +1210,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
               is_reading_type_ = true;
               type_owner_ = function_info.node;
               function_info.node->children_[i]->Accept(this);
+              function_info.node->integrated_type_->type_completed = true;
               is_reading_type_ = false;
               type_owner_ = nullptr;
             } else if (function_info.node->type_[i] == type_function_parameters) {
@@ -1173,9 +1219,10 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           }
           if (function_info.node->integrated_type_ == nullptr) {
             function_info.node->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
-                false, false, false, false, 0);
+                false, false, false, true, 0);
           } else if (function_info.node->integrated_type_->basic_type == unknown_type) {
             function_info.node->integrated_type_->basic_type = unit_type;
+            function_info.node->integrated_type_->type_completed = true;
           }
         }
         // now the function type is ready
@@ -1229,7 +1276,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           Throw("to_string method should be called with no parameter.");
         }
         expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(string_type,
-            false, false, false, false, 0);
+            false, false, false, true, 0);
       } else if (function_name == "as_str" &&
           expression_ptr->children_[0]->integrated_type_->basic_type == string_type) {
         // as_str() of type &str : String
@@ -1237,9 +1284,9 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           Throw("as_str method should be called with no parameter.");
         }
         expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(pointer_type,
-            false, false, false, false, 0);
+            false, false, false, true, 0);
         expression_ptr->integrated_type_->element_type = std::make_shared<IntegratedType>(str_type,
-            false, false, false, false, 0);
+            false, false, false, true, 0);
       } else if (function_name == "len" &&
           (expression_ptr->children_[0]->integrated_type_->basic_type == string_type
           || expression_ptr->children_[0]->integrated_type_->basic_type == array_type
@@ -1250,7 +1297,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           Throw("len method should be called with no parameter.");
         }
         expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(u32_type,
-            false, false, false, false, 0);
+            false, false, false, true, 0);
         expression_ptr->integrated_type_->RemovePossibility(i32_type);
         expression_ptr->integrated_type_->RemovePossibility(isize_type);
         expression_ptr->integrated_type_->RemovePossibility(usize_type);
@@ -1282,6 +1329,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
                   is_reading_type_ = true;
                   type_owner_ = function_ptr;
                   function_ptr->children_[i]->Accept(this);
+                  function_ptr->integrated_type_->type_completed = true;
                   is_reading_type_ = false;
                   type_owner_ = nullptr;
                 } else if (function_ptr->type_[i] == type_function_parameters) {
@@ -1290,15 +1338,17 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
               }
               if (function_ptr->integrated_type_ == nullptr) {
                 function_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
-                    false, false, false, false, 0);
+                    false, false, false, true, 0);
               } else if (function_ptr->integrated_type_->basic_type == unknown_type) {
                 function_ptr->integrated_type_->basic_type = unit_type;
+                function_ptr->integrated_type_->type_completed = true;
               }
             } else { // it.second.node_type == type_constant_item
               auto const_item_ptr = it.second.node;
               is_reading_type_ = true;
               type_owner_ = const_item_ptr;
               const_item_ptr->children_[3]->Accept(this);
+              const_item_ptr->integrated_type_->type_completed = true;
               is_reading_type_ = false;
               type_owner_ = nullptr;
             }
@@ -1377,7 +1427,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
         Throw("Invalid to call continue outside a loop.");
       }
       expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(never_type,
-          false, false, false, false, 0);
+          false, false, false, true, 0);
       break;
     }
     case break_expr: {
@@ -1394,12 +1444,15 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
               loop_info.node->integrated_type_, false);
         }
       } else {
-        if (loop_info.node->integrated_type_->basic_type == unknown_type) {
+        if (loop_info.node->integrated_type_ == nullptr) {
           loop_info.node->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
-              false, false, false, false, 0);
+              false, false, false, true, 0);
+        } else if (loop_info.node->integrated_type_->basic_type == unknown_type) {
+          loop_info.node->integrated_type_->basic_type = unit_type;
+          loop_info.node->integrated_type_->type_completed = true;
         } else {
           TryToMatch(std::make_shared<IntegratedType>(unit_type, false, false,
-              false, false, 0), loop_info.node->integrated_type_, false);
+              false, true, 0), loop_info.node->integrated_type_, false);
         }
       }
       break;
@@ -1455,7 +1508,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
       } else if (prefix == "&") {
         expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(pointer_type,
             expression_ptr->children_[1]->integrated_type_->is_const, expression_ptr->children_[1]->integrated_type_->is_mutable,
-            false, false, 0);
+            false, true, 0);
         expression_ptr->integrated_type_->element_type = expression_ptr->children_[1]->integrated_type_;
         if (expression_ptr->integrated_type_->is_const) {
           expression_ptr->value_.pointer_value = expression_ptr->children_[1];
@@ -1463,10 +1516,10 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
       } else if (prefix == "&&") {
         expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(pointer_type,
             expression_ptr->children_[1]->integrated_type_->is_const, expression_ptr->children_[1]->integrated_type_->is_mutable,
-            false, false, 0);
+            false, true, 0);
         expression_ptr->integrated_type_->element_type = std::make_shared<IntegratedType>(pointer_type,
             expression_ptr->children_[1]->integrated_type_->is_const, expression_ptr->children_[1]->integrated_type_->is_mutable,
-            false, false, 0);
+            false, true, 0);
         expression_ptr->integrated_type_->element_type->element_type = expression_ptr->children_[1]->integrated_type_;
         if (expression_ptr->integrated_type_->is_const) {
           Throw("The value of '&&' type has not been completed yet.");
@@ -1655,7 +1708,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
             Throw("Left-shift operation is only available between integer values.");
           }
           const auto target_type = std::make_shared<IntegratedType>(u32_type,
-              false, false, true, false, 0);
+              false, false, true, true, 0);
           target_type->RemovePossibility(i32_type);
           target_type->RemovePossibility(isize_type);
           TryToMatch(target_type, expression_ptr->children_[1]->integrated_type_,
@@ -1680,7 +1733,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
             Throw("Right-shift operation is only available between integer values.");
           }
           const auto target_type = std::make_shared<IntegratedType>(u32_type,
-              false, false, true, false, 0);
+              false, false, true, true, 0);
           target_type->RemovePossibility(i32_type);
           target_type->RemovePossibility(isize_type);
           TryToMatch(target_type, expression_ptr->children_[1]->integrated_type_,
@@ -1709,7 +1762,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           TryToMatch(expression_ptr->children_[0]->integrated_type_,
               expression_ptr->children_[1]->integrated_type_, false);
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(bool_type,
-              false, false, false, false, 0);
+              false, false, false, true, 0);
           if (expression_ptr->children_[0]->integrated_type_->is_const &&
               expression_ptr->children_[1]->integrated_type_->is_const) {
             expression_ptr->integrated_type_->is_const = true;
@@ -1795,7 +1848,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           TryToMatch(expression_ptr->children_[0]->integrated_type_,
               expression_ptr->children_[1]->integrated_type_, false);
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(bool_type,
-              false, false, false, false, 0);
+              false, false, false, true, 0);
           if (expression_ptr->children_[0]->integrated_type_->is_const &&
               expression_ptr->children_[1]->integrated_type_->is_const) {
             expression_ptr->integrated_type_->is_const = true;
@@ -1879,7 +1932,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           TryToMatch(expression_ptr->children_[0]->integrated_type_,
               expression_ptr->children_[1]->integrated_type_, false);
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(bool_type,
-              false, false, false, false, 0);
+              false, false, false, true, 0);
           if (expression_ptr->children_[0]->integrated_type_->is_const &&
               expression_ptr->children_[1]->integrated_type_->is_const) {
             expression_ptr->integrated_type_->is_const = true;
@@ -1901,7 +1954,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           TryToMatch(expression_ptr->children_[0]->integrated_type_,
               expression_ptr->children_[1]->integrated_type_, false);
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(bool_type,
-              false, false, false, false, 0);
+              false, false, false, true, 0);
           if (expression_ptr->children_[0]->integrated_type_->is_const &&
               expression_ptr->children_[1]->integrated_type_->is_const) {
             expression_ptr->integrated_type_->is_const = true;
@@ -1923,7 +1976,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           TryToMatch(expression_ptr->children_[0]->integrated_type_,
               expression_ptr->children_[1]->integrated_type_, false);
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(bool_type,
-              false, false, false, false, 0);
+              false, false, false, true, 0);
           if (expression_ptr->children_[0]->integrated_type_->is_const &&
               expression_ptr->children_[1]->integrated_type_->is_const) {
             expression_ptr->integrated_type_->is_const = true;
@@ -1945,7 +1998,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           TryToMatch(expression_ptr->children_[0]->integrated_type_,
               expression_ptr->children_[1]->integrated_type_, false);
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(bool_type,
-              false, false, false, false, 0);
+              false, false, false, true, 0);
           if (expression_ptr->children_[0]->integrated_type_->is_const &&
               expression_ptr->children_[1]->integrated_type_->is_const) {
             expression_ptr->integrated_type_->is_const = true;
@@ -1965,7 +2018,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
             Throw("Logic-or is only available between bool values.");
           }
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(bool_type,
-              false, false, false, false, 0);
+              false, false, false, true, 0);
           if (expression_ptr->children_[0]->integrated_type_->is_const &&
               expression_ptr->children_[1]->integrated_type_->is_const) {
             expression_ptr->integrated_type_->is_const = true;
@@ -1985,7 +2038,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
             Throw("Logic-and is only available between bool values.");
           }
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(bool_type,
-              false, false, false, false, 0);
+              false, false, false, true, 0);
           if (expression_ptr->children_[0]->integrated_type_->is_const &&
               expression_ptr->children_[1]->integrated_type_->is_const) {
             expression_ptr->integrated_type_->is_const = true;
@@ -2006,7 +2059,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           TryToMatch(expression_ptr->children_[0]->integrated_type_,
               expression_ptr->children_[1]->integrated_type_, false);
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
-              false, false, false, false, 0);
+              false, false, false, true, 0);
           switch (expression_ptr->children_[1]->integrated_type_->basic_type) {
             case bool_type:
             case i32_type:
@@ -2055,7 +2108,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           TryToMatch(expression_ptr->children_[0]->integrated_type_,
               expression_ptr->children_[1]->integrated_type_, false);
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
-              false, false, false, false, 0);
+              false, false, false, true, 0);
           const long long ans = expression_ptr->children_[0]->value_.int_value
               + expression_ptr->children_[1]->value_.int_value;
           CheckOverflow(ans, expression_ptr->children_[0]->integrated_type_);
@@ -2075,7 +2128,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           TryToMatch(expression_ptr->children_[0]->integrated_type_,
               expression_ptr->children_[1]->integrated_type_, false);
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
-              false, false, false, false, 0);
+              false, false, false, true, 0);
           const long long ans = expression_ptr->children_[0]->value_.int_value
               - expression_ptr->children_[1]->value_.int_value;
           CheckOverflow(ans, expression_ptr->children_[0]->integrated_type_);
@@ -2095,7 +2148,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           TryToMatch(expression_ptr->children_[0]->integrated_type_,
               expression_ptr->children_[1]->integrated_type_, false);
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
-              false, false, false, false, 0);
+              false, false, false, true, 0);
           const long long ans = expression_ptr->children_[0]->value_.int_value
               * expression_ptr->children_[1]->value_.int_value;
           CheckOverflow(ans, expression_ptr->children_[0]->integrated_type_);
@@ -2115,7 +2168,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           TryToMatch(expression_ptr->children_[0]->integrated_type_,
               expression_ptr->children_[1]->integrated_type_, false);
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
-              false, false, false, false, 0);
+              false, false, false, true, 0);
           const long long ans = expression_ptr->children_[0]->value_.int_value
               / expression_ptr->children_[1]->value_.int_value;
           CheckOverflow(ans, expression_ptr->children_[0]->integrated_type_);
@@ -2135,7 +2188,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           TryToMatch(expression_ptr->children_[0]->integrated_type_,
               expression_ptr->children_[1]->integrated_type_, false);
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
-              false, false, false, false, 0);
+              false, false, false, true, 0);
           const long long ans = expression_ptr->children_[0]->value_.int_value
               % expression_ptr->children_[1]->value_.int_value;
           CheckOverflow(ans, expression_ptr->children_[0]->integrated_type_);
@@ -2155,7 +2208,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           TryToMatch(expression_ptr->children_[0]->integrated_type_,
               expression_ptr->children_[1]->integrated_type_, false);
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
-              false, false, false, false, 0);
+              false, false, false, true, 0);
           const long long ans = expression_ptr->children_[0]->value_.int_value
               & expression_ptr->children_[1]->value_.int_value;
           CheckOverflow(ans, expression_ptr->children_[0]->integrated_type_);
@@ -2175,7 +2228,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           TryToMatch(expression_ptr->children_[0]->integrated_type_,
               expression_ptr->children_[1]->integrated_type_, false);
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
-              false, false, false, false, 0);
+              false, false, false, true, 0);
           const long long ans = expression_ptr->children_[0]->value_.int_value
               | expression_ptr->children_[1]->value_.int_value;
           CheckOverflow(ans, expression_ptr->children_[0]->integrated_type_);
@@ -2195,7 +2248,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           TryToMatch(expression_ptr->children_[0]->integrated_type_,
               expression_ptr->children_[1]->integrated_type_, false);
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
-              false, false, false, false, 0);
+              false, false, false, true, 0);
           const long long ans = expression_ptr->children_[0]->value_.int_value
               ^ expression_ptr->children_[1]->value_.int_value;
           CheckOverflow(ans, expression_ptr->children_[0]->integrated_type_);
@@ -2213,13 +2266,13 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
             Throw("Left-shift operation is only available between integer values.");
           }
           const auto target_type = std::make_shared<IntegratedType>(u32_type,
-              false, false, true, false, 0);
+              false, false, true, true, 0);
           target_type->RemovePossibility(i32_type);
           target_type->RemovePossibility(isize_type);
           TryToMatch(target_type, expression_ptr->children_[1]->integrated_type_,
               false);
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
-              false, false, false, false, 0);
+              false, false, false, true, 0);
           const long long ans = expression_ptr->children_[0]->value_.int_value
               << expression_ptr->children_[1]->value_.int_value;
           CheckOverflow(ans, expression_ptr->children_[0]->integrated_type_);
@@ -2237,13 +2290,13 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
             Throw("Right-shift operation is only available between integer values.");
               }
           const auto target_type = std::make_shared<IntegratedType>(u32_type,
-              false, false, true, false, 0);
+              false, false, true, true, 0);
           target_type->RemovePossibility(i32_type);
           target_type->RemovePossibility(isize_type);
           TryToMatch(target_type, expression_ptr->children_[1]->integrated_type_,
               false);
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
-              false, false, false, false, 0);
+              false, false, false, true, 0);
           const long long ans = expression_ptr->children_[0]->value_.int_value
               >> expression_ptr->children_[1]->value_.int_value;
           CheckOverflow(ans, expression_ptr->children_[0]->integrated_type_);
@@ -2255,6 +2308,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           is_reading_type_ = true;
           type_owner_ = expression_ptr;
           expression_ptr->children_[1]->Accept(this);
+          expression_ptr->integrated_type_->type_completed = true;
           is_reading_type_ = false;
           type_owner_ = nullptr;
           long long int_value = 0;
