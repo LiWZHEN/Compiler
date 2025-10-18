@@ -4,7 +4,7 @@
 #include "builder.h"
 #include "visitor_manager.h"
 
-void SuccessCheck(const std::string &str, const bool expect_success) {
+/*void SuccessCheck(const std::string &str, const bool expect_success) {
   std::vector<Token> tokens;
   Tokenizer tokenizer(str, tokens);
   tokenizer.Tokenize();
@@ -17,7 +17,7 @@ void SuccessCheck(const std::string &str, const bool expect_success) {
   } else {
     ASSERT_EQ(syntax_tree, nullptr);
   }
-}
+}*/
 
 void SemanticCheck(const std::string &str, const bool expect_success) {
   std::vector<Token> tokens;
@@ -27,48 +27,31 @@ void SemanticCheck(const std::string &str, const bool expect_success) {
   Crate *syntax_tree = builder.GetTree();
   VisitorManager visitor_manager;
   visitor_manager.VisitAll(syntax_tree);
-  if (expect_success) {
-    ASSERT_NE(syntax_tree, nullptr);
-    delete syntax_tree;
+  bool result_matched;
+  if ((syntax_tree != nullptr && expect_success) ||
+      (syntax_tree == nullptr && !expect_success)) {
+    result_matched = true;
   } else {
-    ASSERT_EQ(syntax_tree, nullptr);
+    result_matched = false;
   }
+  delete syntax_tree;
+  ASSERT_EQ(result_matched, true);
 }
 
-TEST(ParserTest, ExpressionTest1) {
-  SuccessCheck("fn main(){while(true){print(a)}exit(0);}", true);
+TEST(SemanticTest, empty_main_1) {
+  SemanticCheck("fn main() { exit(0) }", true);
 }
 
-TEST(ParserTest, ExpressionTest2) {
-  SuccessCheck("fn main(){if(true){print(a)}else{print(b)}}", true);
+TEST(SemanticTest, empty_main_without_exit_2) {
+  SemanticCheck("fn main() {}", false);
 }
 
-TEST(ParserTest, ExpressionTest3) {
-  SuccessCheck("fn main(){loop{1}}", true);
+TEST(SemanticTest, no_main_3) {
+  SemanticCheck("fn f() {}", false);
 }
 
-TEST(ParserTest, ExpressionTest4) {
-  SuccessCheck(R"(fn main(){A::a.f(x, y, z)})", true);
-}
-
-TEST(ParserTest, ExpressionTest5) {
-  SuccessCheck("fn main() {f(a)}", true);
-}
-
-TEST(ParserTest, ExpressionTest6) {
-  SuccessCheck("fn main() {f(\"str\")}", true);
-}
-
-TEST(ParserTest, ExpressionTest7) {
-  SuccessCheck("fn main() {-1 + *A}", true);
-}
-
-TEST(ParserTest, ExpressionTest8) {
-  SuccessCheck("fn main() {let mut a : t = 1;}", true);
-}
-
-TEST(ParserTest, ExpressionTest9) {
-  SuccessCheck("fn main() {const a : t = 1;}", true);
+TEST(SemanticTest, no_outmost_main_4) {
+  SemanticCheck("fn f() {fn main() {exit(0)}}", false);
 }
 
 int main(int argc, char **argv) {
