@@ -178,18 +178,6 @@ void ValueTypeVisitor::Visit(Function *function_ptr) {
   }
 }
 void ValueTypeVisitor::Visit(Struct *struct_ptr) {
-  // check whether the struct has been analyzed
-  if (!struct_ptr->field_items_.empty()) {
-    if (struct_ptr->field_items_.begin()->second.node->integrated_type_ != nullptr) {
-      return;
-    }
-  }
-  if (!struct_ptr->associated_items_.empty()) {
-    if (struct_ptr->associated_items_.begin()->second.node->integrated_type_ != nullptr) {
-      return;
-    }
-  }
-  // has not been analyzed
   this->wrapping_structs_.push_back({struct_ptr, type_struct});
   for (const auto &it : struct_ptr->field_items_) {
     it.second.node->Accept(this);
@@ -324,6 +312,8 @@ void ValueTypeVisitor::Visit(Type *type_ptr) {
   }
   if (type_owner_->integrated_type_ == nullptr) {
     type_owner_->integrated_type_ = std::make_shared<IntegratedType>();
+  } else if (type_owner_->integrated_type_->basic_type != unknown_type) {
+    return;
   }
   type_ptr->children_[0]->Accept(this);
 }
@@ -484,6 +474,12 @@ void ValueTypeVisitor::Visit(TypePath *type_path_ptr) {
     (*current_type_ptr)->basic_type = str_type;
   } else if (type_name == "String") {
     (*current_type_ptr)->basic_type = string_type;
+  } else if (type_name == "Self") {
+    if (wrapping_structs_.empty()) {
+      Throw("'Self' is undefined outside a struct.");
+    }
+    (*current_type_ptr)->basic_type = struct_type;
+    (*current_type_ptr)->struct_node = wrapping_structs_.back().node;
   } else {
     auto type_node = type_path_ptr->scope_node_->FindInType(type_name);
     if (type_node.node == nullptr) {
@@ -738,8 +734,13 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
       } else { // PathExprSegment :: PathExprSegment
         const std::string first_path_name = dynamic_cast<LeafNode *>(path_in_expression_ptr->children_[0])
             ->GetContent().GetStr();
-        const auto first_path_node_info = expression_ptr->scope_node_->FindInType(first_path_name);
-        if (first_path_node_info.node == nullptr) {
+        auto first_path_node_info = expression_ptr->scope_node_->FindInType(first_path_name);
+        if (first_path_name == "Self") {
+          if (wrapping_structs_.empty()) {
+            Throw("'Self' is undefined outside a struct.");
+          }
+          first_path_node_info = wrapping_structs_.back();
+        } else if (first_path_node_info.node == nullptr) {
           Throw("Cannot find the path name in type namespace.");
         }
         // visit struct/enum node if hasn't
@@ -747,8 +748,38 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           case type_struct: {
             auto struct_ptr = dynamic_cast<Struct *>(first_path_node_info.node);
             if (!struct_ptr->associated_items_.empty()) {
-              if (struct_ptr->associated_items_.begin()->second.node->integrated_type_->basic_type == unknown_type) {
-                first_path_node_info.node->Accept(this);
+              if (struct_ptr->associated_items_.begin()->second.node->integrated_type_ == nullptr ||
+                  struct_ptr->associated_items_.begin()->second.node->integrated_type_->basic_type == unknown_type) {
+                // target struct has not been visited yet
+                for (const auto &it : struct_ptr->associated_items_) {
+                  if (it.second.node_type == type_function) {
+                    auto function_ptr = it.second.node;
+                    for (int i = 0; i < function_ptr->children_.size(); ++i) {
+                      if (function_ptr->type_[i] == type_type) {
+                        is_reading_type_ = true;
+                        type_owner_ = function_ptr;
+                        function_ptr->children_[i]->Accept(this);
+                        is_reading_type_ = false;
+                        type_owner_ = nullptr;
+                      } else if (function_ptr->type_[i] == type_function_parameters) {
+                        function_ptr->children_[i]->Accept(this);
+                      }
+                    }
+                    if (function_ptr->integrated_type_ == nullptr) {
+                      function_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
+                          false, false, false, false, 0);
+                    } else if (function_ptr->integrated_type_->basic_type == unknown_type) {
+                      function_ptr->integrated_type_->basic_type = unit_type;
+                    }
+                  } else { // it.second.node_type == type_constant_item
+                    auto const_item_ptr = it.second.node;
+                    is_reading_type_ = true;
+                    type_owner_ = const_item_ptr;
+                    const_item_ptr->children_[3]->Accept(this);
+                    is_reading_type_ = false;
+                    type_owner_ = nullptr;
+                  }
+                }
                 break;
               }
             } else {
@@ -872,15 +903,24 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
     case struct_expr: {
       const std::string struct_name = dynamic_cast<LeafNode *>(expression_ptr->children_[0]->children_[0])
           ->GetContent().GetStr();
-      const auto struct_info = expression_ptr->scope_node_->FindInType(struct_name);
-      if (struct_info.node == nullptr) {
+      auto struct_info = expression_ptr->scope_node_->FindInType(struct_name);
+      if (struct_name == "Self") {
+        if (wrapping_structs_.empty()) {
+          Throw("'Self' is undefined outside a struct.");
+        }
+        struct_info = wrapping_structs_.back();
+      } else if (struct_info.node == nullptr) {
         Throw("Cannot find target struct.");
       }
       const auto struct_ptr = dynamic_cast<Struct *>(struct_info.node);
-      if (!struct_ptr->field_items_.empty() &&
-          struct_ptr->field_items_.begin()->second.node->integrated_type_->basic_type == unknown_type) {
-        struct_info.node->Accept(this);
+      // if target struct has not been visited, visit its field items
+      if (!struct_ptr->field_items_.empty() && (struct_ptr->field_items_.begin()->second.node->integrated_type_ == nullptr
+          || struct_ptr->field_items_.begin()->second.node->integrated_type_->basic_type == unknown_type)) {
+        for (const auto &it : struct_ptr->field_items_) {
+          it.second.node->Accept(this);
+        }
       }
+      // now the field items in target struct are all visited
       expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(struct_type,
           true, false, false, false, 0);
       if (expression_ptr->children_.size() == 3) {
@@ -1060,9 +1100,28 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           if (call_expr_param_num == 0) {
             break;
           }
-          if (function_info.node->integrated_type_->basic_type == unknown_type) {
-            function_info.node->Accept(this);
+          // if the target function has not been visited, visit its type and parameter type
+          if (function_info.node->integrated_type_ == nullptr ||
+              function_info.node->integrated_type_->basic_type == unknown_type) {
+            for (int i = 0; i < function_info.node->children_.size(); ++i) {
+              if (function_info.node->type_[i] == type_type) {
+                is_reading_type_ = true;
+                type_owner_ = function_info.node;
+                function_info.node->children_[i]->Accept(this);
+                is_reading_type_ = false;
+                type_owner_ = nullptr;
+              } else if (function_info.node->type_[i] == type_function_parameters) {
+                function_info.node->children_[i]->Accept(this);
+              }
+            }
+            if (function_info.node->integrated_type_ == nullptr) {
+              function_info.node->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
+                  false, false, false, false, 0);
+            } else if (function_info.node->integrated_type_->basic_type == unknown_type) {
+              function_info.node->integrated_type_->basic_type = unit_type;
+            }
           }
+          // now the function's type is ready
           expression_ptr->integrated_type_ = function_info.node->integrated_type_;
           for (int i = 0; i < expression_ptr->children_[1]->children_.size(); i += 2) {
             expression_ptr->children_[1]->children_[i]->Accept(this);
@@ -1073,8 +1132,13 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
       } else { // expression_ptr->children_[0]->children_.size == 3
         std::string struct_name = dynamic_cast<LeafNode *>(expression_ptr->children_[0]->children_[0])
             ->GetContent().GetStr();
-        const auto struct_info = expression_ptr->scope_node_->FindInType(struct_name);
-        if (struct_info.node == nullptr) {
+        auto struct_info = expression_ptr->scope_node_->FindInType(struct_name);
+        if (struct_name == "Self") {
+          if (wrapping_structs_.empty()) {
+            Throw("'Self' is undefined outside a struct.");
+          }
+          struct_info = wrapping_structs_.back();
+        } else if (struct_info.node == nullptr) {
           Throw("Cannot find target struct in the scope.");
         }
         std::string function_name = dynamic_cast<LeafNode *>(expression_ptr->children_[0]->children_[3])
@@ -1087,22 +1151,40 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
         if (function_info.node_type != type_function) {
           Throw("Cannot call a non-function.");
         }
-        auto function_ptr = dynamic_cast<Function *>(function_info.node);
-        if (function_ptr->integrated_type_->basic_type == unknown_type) {
-          function_info.node->Accept(this);
+        // make sure the function type is ready
+        if (function_info.node->integrated_type_ == nullptr ||
+            function_info.node->integrated_type_->basic_type == unknown_type) {
+          for (int i = 0; i < function_info.node->children_.size(); ++i) {
+            if (function_info.node->type_[i] == type_type) {
+              is_reading_type_ = true;
+              type_owner_ = function_info.node;
+              function_info.node->children_[i]->Accept(this);
+              is_reading_type_ = false;
+              type_owner_ = nullptr;
+            } else if (function_info.node->type_[i] == type_function_parameters) {
+              function_info.node->children_[i]->Accept(this);
+            }
+          }
+          if (function_info.node->integrated_type_ == nullptr) {
+            function_info.node->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
+                false, false, false, false, 0);
+          } else if (function_info.node->integrated_type_->basic_type == unknown_type) {
+            function_info.node->integrated_type_->basic_type = unit_type;
+          }
         }
+        // now the function type is ready
         int call_expr_param_num = 0;
         if (expression_ptr->children_.size() == 2) {
           call_expr_param_num = static_cast<int>(expression_ptr->children_[1]->children_.size() + 1) / 2;
         }
         int declared_param_num = 0;
         int function_parameters_node_ind = -1;
-        for (int i = 0; i < function_ptr->children_.size(); ++i) {
-          if (function_ptr->type_[i] != type_function_parameters) {
+        for (int i = 0; i < function_info.node->children_.size(); ++i) {
+          if (function_info.node->type_[i] != type_function_parameters) {
             continue;
           }
           function_parameters_node_ind = i;
-          declared_param_num = static_cast<int>(function_ptr->children_[i]->children_.size() + 1) / 2;
+          declared_param_num = static_cast<int>(function_info.node->children_[i]->children_.size() + 1) / 2;
           break;
         }
         if (call_expr_param_num != declared_param_num) {
@@ -1111,13 +1193,13 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
         if (call_expr_param_num == 0) {
           break;
         }
-        if (function_ptr->children_[function_parameters_node_ind]->type_[0] == type_self_param) {
+        if (function_info.node->children_[function_parameters_node_ind]->type_[0] == type_self_param) {
           Throw("function with self parameter should be called with method call expression.");
         }
-        expression_ptr->integrated_type_ = function_ptr->integrated_type_;
+        expression_ptr->integrated_type_ = function_info.node->integrated_type_;
         for (int i = 0; i < expression_ptr->children_[1]->children_.size(); i += 2) {
           expression_ptr->children_[1]->children_[i]->Accept(this);
-          TryToMatch(function_ptr->children_[function_parameters_node_ind]->children_[i]->integrated_type_,
+          TryToMatch(function_info.node->children_[function_parameters_node_ind]->children_[i]->integrated_type_,
               expression_ptr->children_[1]->children_[i]->integrated_type_, false);
         }
       }
@@ -1130,248 +1212,98 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
       std::string function_name = dynamic_cast<LeafNode *>(expression_ptr->children_[1]->children_[0]->children_[0])
           ->GetContent().GetStr();
       expression_ptr->children_[0]->Accept(this);
-      if (function_name == "to_string") {
+      if (function_name == "to_string" && expression_ptr->children_[0]->integrated_type_->is_int) {
         // to_string() of type String : u32, usize
-        if (expression_ptr->children_[0]->integrated_type_->is_int) {
-          expression_ptr->children_[0]->integrated_type_->RemovePossibility(i32_type);
-          expression_ptr->children_[0]->integrated_type_->RemovePossibility(isize_type);
-          if (expression_ptr->children_[0]->integrated_type_->is_const) {
-            CheckOverflow(expression_ptr->children_[0]->value_.int_value, expression_ptr->children_[0]->integrated_type_);
-          }
-          if (expression_ptr->children_.size() != 2) {
-            Throw("to_string method should be called with no parameter.");
-          }
-          expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(string_type,
-                false, false, false, false, 0);
-        } else { // created as a function in struct with self parameter
-          Node *function_ptr = nullptr;
-          if (expression_ptr->children_[0]->integrated_type_->basic_type == struct_type) {
-            auto struct_ptr = dynamic_cast<Struct *>(expression_ptr->children_[0]->integrated_type_->struct_node);
-            if (!struct_ptr->associated_items_.contains(function_name)) {
-              Throw("Cannot find target function in the associated-item-field of the struct.");
-            }
-            if (struct_ptr->associated_items_[function_name].node_type != type_function) {
-              Throw("Cannot apply method call operation to non-function.");
-            }
-            function_ptr = struct_ptr->associated_items_[function_name].node;
-          } else if (expression_ptr->children_[0]->integrated_type_->basic_type == pointer_type) {
-            Node *pointer = expression_ptr->children_[0]->value_.pointer_value;
-            if (pointer->integrated_type_->basic_type != struct_type) {
-              Throw("Cannot apply method call operation to non-struct type.");
-            }
-            auto struct_ptr = dynamic_cast<Struct *>(pointer->integrated_type_->struct_node);
-            if (!struct_ptr->associated_items_.contains(function_name)) {
-              Throw("Cannot find target function in the associated-item-field of the struct.");
-            }
-            if (struct_ptr->associated_items_[function_name].node_type != type_function) {
-              Throw("Cannot apply method call operation to non-function.");
-            }
-            function_ptr = struct_ptr->associated_items_[function_name].node;
-          } else {
-            Throw("Invalid type.");
-          }
-          // has got function_ptr
-          if (function_ptr->integrated_type_->basic_type == unknown_type) {
-            function_ptr->Accept(this);
-          }
-          int call_expr_param_num = 0;
-          if (expression_ptr->children_.size() == 3) {
-            call_expr_param_num = static_cast<int>(expression_ptr->children_[2]->children_.size() + 1) / 2;
-          }
-          int declared_param_num = 0;
-          int function_parameters_node_ind = -1;
-          for (int i = 0; i < function_ptr->children_.size(); ++i) {
-            if (function_ptr->type_[i] != type_function_parameters) {
-              continue;
-            }
-            function_parameters_node_ind = i;
-            declared_param_num = static_cast<int>(function_ptr->children_[i]->children_.size() + 1) / 2;
-            break;
-          }
-          if (call_expr_param_num + 1 != declared_param_num) {
-            Throw("Parameter number doesn't match.");
-          }
-          if (function_ptr->children_[function_parameters_node_ind]->type_[0] != type_self_param) {
-            Throw("function without self parameter should be called with call expression.");
-          }
-          expression_ptr->integrated_type_ = function_ptr->integrated_type_;
-          for (int i = 0; i < expression_ptr->children_[2]->children_.size(); i += 2) {
-            expression_ptr->children_[2]->children_[i]->Accept(this);
-            TryToMatch(function_ptr->children_[function_parameters_node_ind]->children_[i + 2]->integrated_type_,
-                expression_ptr->children_[2]->children_[i]->integrated_type_, false);
-          }
+        expression_ptr->children_[0]->integrated_type_->RemovePossibility(i32_type);
+        expression_ptr->children_[0]->integrated_type_->RemovePossibility(isize_type);
+        if (expression_ptr->children_[0]->integrated_type_->is_const) {
+          CheckOverflow(expression_ptr->children_[0]->value_.int_value, expression_ptr->children_[0]->integrated_type_);
         }
-      } else if (function_name == "as_str") {
+        if (expression_ptr->children_.size() != 2) {
+          Throw("to_string method should be called with no parameter.");
+        }
+        expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(string_type,
+            false, false, false, false, 0);
+      } else if (function_name == "as_str" &&
+          expression_ptr->children_[0]->integrated_type_->basic_type == string_type) {
         // as_str() of type &str : String
-        if (expression_ptr->children_[0]->integrated_type_->basic_type == string_type) {
-          if (expression_ptr->children_.size() != 2) {
-            Throw("as_str method should be called with no parameter.");
-          }
-          expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(pointer_type,
-                false, false, false, false, 0);
-          expression_ptr->integrated_type_->element_type = std::make_shared<IntegratedType>(str_type,
-              false, false, false, false, 0);
-        } else { // created as a function in struct with self parameter
-          Node *function_ptr = nullptr;
-          if (expression_ptr->children_[0]->integrated_type_->basic_type == struct_type) {
-            auto struct_ptr = dynamic_cast<Struct *>(expression_ptr->children_[0]->integrated_type_->struct_node);
-            if (!struct_ptr->associated_items_.contains(function_name)) {
-              Throw("Cannot find target function in the associated-item-field of the struct.");
-            }
-            if (struct_ptr->associated_items_[function_name].node_type != type_function) {
-              Throw("Cannot apply method call operation to non-function.");
-            }
-            function_ptr = struct_ptr->associated_items_[function_name].node;
-          } else if (expression_ptr->children_[0]->integrated_type_->basic_type == pointer_type) {
-            Node *pointer = expression_ptr->children_[0]->value_.pointer_value;
-            if (pointer->integrated_type_->basic_type != struct_type) {
-              Throw("Cannot apply method call operation to non-struct type.");
-            }
-            auto struct_ptr = dynamic_cast<Struct *>(pointer->integrated_type_->struct_node);
-            if (!struct_ptr->associated_items_.contains(function_name)) {
-              Throw("Cannot find target function in the associated-item-field of the struct.");
-            }
-            if (struct_ptr->associated_items_[function_name].node_type != type_function) {
-              Throw("Cannot apply method call operation to non-function.");
-            }
-            function_ptr = struct_ptr->associated_items_[function_name].node;
-          } else {
-            Throw("Invalid type.");
-          }
-          // has got function_ptr
-          if (function_ptr->integrated_type_->basic_type == unknown_type) {
-            function_ptr->Accept(this);
-          }
-          int call_expr_param_num = 0;
-          if (expression_ptr->children_.size() == 3) {
-            call_expr_param_num = static_cast<int>(expression_ptr->children_[2]->children_.size() + 1) / 2;
-          }
-          int declared_param_num = 0;
-          int function_parameters_node_ind = -1;
-          for (int i = 0; i < function_ptr->children_.size(); ++i) {
-            if (function_ptr->type_[i] != type_function_parameters) {
-              continue;
-            }
-            function_parameters_node_ind = i;
-            declared_param_num = static_cast<int>(function_ptr->children_[i]->children_.size() + 1) / 2;
-            break;
-          }
-          if (call_expr_param_num + 1 != declared_param_num) {
-            Throw("Parameter number doesn't match.");
-          }
-          if (function_ptr->children_[function_parameters_node_ind]->type_[0] != type_self_param) {
-            Throw("function without self parameter should be called with call expression.");
-          }
-          expression_ptr->integrated_type_ = function_ptr->integrated_type_;
-          for (int i = 0; i < expression_ptr->children_[2]->children_.size(); i += 2) {
-            expression_ptr->children_[2]->children_[i]->Accept(this);
-            TryToMatch(function_ptr->children_[function_parameters_node_ind]->children_[i + 2]->integrated_type_,
-                expression_ptr->children_[2]->children_[i]->integrated_type_, false);
-          }
+        if (expression_ptr->children_.size() != 2) {
+          Throw("as_str method should be called with no parameter.");
         }
-      } else if (function_name == "len") {
+        expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(pointer_type,
+            false, false, false, false, 0);
+        expression_ptr->integrated_type_->element_type = std::make_shared<IntegratedType>(str_type,
+            false, false, false, false, 0);
+      } else if (function_name == "len" &&
+          (expression_ptr->children_[0]->integrated_type_->basic_type == string_type
+          || expression_ptr->children_[0]->integrated_type_->basic_type == array_type
+          || (expression_ptr->children_[0]->integrated_type_->basic_type == pointer_type
+          && expression_ptr->children_[0]->integrated_type_->element_type->basic_type == str_type))) {
         // len() of u32 : [T; N], String, &str
-        if (expression_ptr->children_[0]->integrated_type_->basic_type == string_type
-            || expression_ptr->children_[0]->integrated_type_->basic_type == array_type
-            || (expression_ptr->children_[0]->integrated_type_->basic_type == pointer_type
-            && expression_ptr->children_[0]->integrated_type_->element_type->basic_type == str_type)) {
-          if (expression_ptr->children_.size() != 2) {
-            Throw("len method should be called with no parameter.");
-          }
-          expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(u32_type,
-              false, false, false, false, 0);
-          expression_ptr->integrated_type_->RemovePossibility(i32_type);
-          expression_ptr->integrated_type_->RemovePossibility(isize_type);
-          expression_ptr->integrated_type_->RemovePossibility(usize_type);
-        } else { // created as a function in struct with self parameter
-          Node *function_ptr = nullptr;
-          if (expression_ptr->children_[0]->integrated_type_->basic_type == struct_type) {
-            auto struct_ptr = dynamic_cast<Struct *>(expression_ptr->children_[0]->integrated_type_->struct_node);
-            if (!struct_ptr->associated_items_.contains(function_name)) {
-              Throw("Cannot find target function in the associated-item-field of the struct.");
-            }
-            if (struct_ptr->associated_items_[function_name].node_type != type_function) {
-              Throw("Cannot apply method call operation to non-function.");
-            }
-            function_ptr = struct_ptr->associated_items_[function_name].node;
-          } else if (expression_ptr->children_[0]->integrated_type_->basic_type == pointer_type) {
-            Node *pointer = expression_ptr->children_[0]->value_.pointer_value;
-            if (pointer->integrated_type_->basic_type != struct_type) {
-              Throw("Cannot apply method call operation to non-struct type.");
-            }
-            auto struct_ptr = dynamic_cast<Struct *>(pointer->integrated_type_->struct_node);
-            if (!struct_ptr->associated_items_.contains(function_name)) {
-              Throw("Cannot find target function in the associated-item-field of the struct.");
-            }
-            if (struct_ptr->associated_items_[function_name].node_type != type_function) {
-              Throw("Cannot apply method call operation to non-function.");
-            }
-            function_ptr = struct_ptr->associated_items_[function_name].node;
-          } else {
-            Throw("Invalid type.");
-          }
-          // has got function_ptr
-          if (function_ptr->integrated_type_->basic_type == unknown_type) {
-            function_ptr->Accept(this);
-          }
-          int call_expr_param_num = 0;
-          if (expression_ptr->children_.size() == 3) {
-            call_expr_param_num = static_cast<int>(expression_ptr->children_[2]->children_.size() + 1) / 2;
-          }
-          int declared_param_num = 0;
-          int function_parameters_node_ind = -1;
-          for (int i = 0; i < function_ptr->children_.size(); ++i) {
-            if (function_ptr->type_[i] != type_function_parameters) {
-              continue;
-            }
-            function_parameters_node_ind = i;
-            declared_param_num = static_cast<int>(function_ptr->children_[i]->children_.size() + 1) / 2;
-            break;
-          }
-          if (call_expr_param_num + 1 != declared_param_num) {
-            Throw("Parameter number doesn't match.");
-          }
-          if (function_ptr->children_[function_parameters_node_ind]->type_[0] != type_self_param) {
-            Throw("function without self parameter should be called with call expression.");
-          }
-          expression_ptr->integrated_type_ = function_ptr->integrated_type_;
-          for (int i = 0; i < expression_ptr->children_[2]->children_.size(); i += 2) {
-            expression_ptr->children_[2]->children_[i]->Accept(this);
-            TryToMatch(function_ptr->children_[function_parameters_node_ind]->children_[i + 2]->integrated_type_,
-                expression_ptr->children_[2]->children_[i]->integrated_type_, false);
-          }
+        if (expression_ptr->children_.size() != 2) {
+          Throw("len method should be called with no parameter.");
         }
+        expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(u32_type,
+            false, false, false, false, 0);
+        expression_ptr->integrated_type_->RemovePossibility(i32_type);
+        expression_ptr->integrated_type_->RemovePossibility(isize_type);
+        expression_ptr->integrated_type_->RemovePossibility(usize_type);
       } else {
-        Node *function_ptr = nullptr;
+        Struct *struct_ptr = nullptr;
         if (expression_ptr->children_[0]->integrated_type_->basic_type == struct_type) {
-          auto struct_ptr = dynamic_cast<Struct *>(expression_ptr->children_[0]->integrated_type_->struct_node);
-          if (!struct_ptr->associated_items_.contains(function_name)) {
-            Throw("Cannot find target function in the associated-item-field of the struct.");
-          }
-          if (struct_ptr->associated_items_[function_name].node_type != type_function) {
-            Throw("Cannot apply method call operation to non-function.");
-          }
-          function_ptr = struct_ptr->associated_items_[function_name].node;
+          struct_ptr = dynamic_cast<Struct *>(expression_ptr->children_[0]->integrated_type_->struct_node);
         } else if (expression_ptr->children_[0]->integrated_type_->basic_type == pointer_type) {
           Node *pointer = expression_ptr->children_[0]->value_.pointer_value;
           if (pointer->integrated_type_->basic_type != struct_type) {
             Throw("Cannot apply method call operation to non-struct type.");
           }
-          auto struct_ptr = dynamic_cast<Struct *>(pointer->integrated_type_->struct_node);
-          if (!struct_ptr->associated_items_.contains(function_name)) {
-            Throw("Cannot find target function in the associated-item-field of the struct.");
-          }
-          if (struct_ptr->associated_items_[function_name].node_type != type_function) {
-            Throw("Cannot apply method call operation to non-function.");
-          }
-          function_ptr = struct_ptr->associated_items_[function_name].node;
+          struct_ptr = dynamic_cast<Struct *>(pointer->integrated_type_->struct_node);
         } else {
           Throw("Invalid type.");
         }
-        // has got function_ptr
-        if (function_ptr->integrated_type_->basic_type == unknown_type) {
-          function_ptr->Accept(this);
+        if (!struct_ptr->associated_items_.contains(function_name)) {
+          Throw("Cannot find target function in the associated-item-field of the struct.");
         }
+        // make sure the struct type is ready
+        if (struct_ptr->associated_items_.begin()->second.node->integrated_type_ == nullptr ||
+            struct_ptr->associated_items_.begin()->second.node->integrated_type_->basic_type == unknown_type) {
+          // target struct has not been visited yet
+          for (const auto &it : struct_ptr->associated_items_) {
+            if (it.second.node_type == type_function) {
+              auto function_ptr = it.second.node;
+              for (int i = 0; i < function_ptr->children_.size(); ++i) {
+                if (function_ptr->type_[i] == type_type) {
+                  is_reading_type_ = true;
+                  type_owner_ = function_ptr;
+                  function_ptr->children_[i]->Accept(this);
+                  is_reading_type_ = false;
+                  type_owner_ = nullptr;
+                } else if (function_ptr->type_[i] == type_function_parameters) {
+                  function_ptr->children_[i]->Accept(this);
+                }
+              }
+              if (function_ptr->integrated_type_ == nullptr) {
+                function_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
+                    false, false, false, false, 0);
+              } else if (function_ptr->integrated_type_->basic_type == unknown_type) {
+                function_ptr->integrated_type_->basic_type = unit_type;
+              }
+            } else { // it.second.node_type == type_constant_item
+              auto const_item_ptr = it.second.node;
+              is_reading_type_ = true;
+              type_owner_ = const_item_ptr;
+              const_item_ptr->children_[3]->Accept(this);
+              is_reading_type_ = false;
+              type_owner_ = nullptr;
+            }
+          }
+        }
+        // now the struct type is ready
+        if (struct_ptr->associated_items_[function_name].node_type != type_function) {
+          Throw("Cannot apply method call operation to non-function.");
+        }
+        auto function_ptr = struct_ptr->associated_items_[function_name].node;
+        // has got function_ptr
         int call_expr_param_num = 0;
         if (expression_ptr->children_.size() == 3) {
           call_expr_param_num = static_cast<int>(expression_ptr->children_[2]->children_.size() + 1) / 2;
@@ -1408,25 +1340,30 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
       std::string identifier_name = dynamic_cast<LeafNode *>(expression_ptr->children_[1]->children_[0]->children_[0])
           ->GetContent().GetStr();
       expression_ptr->children_[0]->Accept(this);
+      Struct *struct_ptr = nullptr;
       if (expression_ptr->children_[0]->integrated_type_->basic_type == struct_type) {
-        auto struct_ptr = dynamic_cast<Struct *>(expression_ptr->children_[0]->integrated_type_->struct_node);
-        if (!struct_ptr->field_items_.contains(identifier_name)) {
-          Throw("Cannot find target element in the field of the struct.");
-        }
-        expression_ptr->integrated_type_ = struct_ptr->field_items_[identifier_name].node->integrated_type_;
+        struct_ptr = dynamic_cast<Struct *>(expression_ptr->children_[0]->integrated_type_->struct_node);
       } else if (expression_ptr->children_[0]->integrated_type_->basic_type == pointer_type) {
         Node *pointer = expression_ptr->children_[0]->value_.pointer_value;
         if (pointer->integrated_type_->basic_type != struct_type) {
           Throw("Cannot apply field operation to non-struct type.");
         }
-        auto struct_ptr = dynamic_cast<Struct *>(pointer->integrated_type_->struct_node);
-        if (!struct_ptr->field_items_.contains(identifier_name)) {
-          Throw("Cannot find target element in the field of the struct.");
-        }
-        expression_ptr->integrated_type_ = struct_ptr->field_items_[identifier_name].node->integrated_type_;
+        struct_ptr = dynamic_cast<Struct *>(pointer->integrated_type_->struct_node);
       } else {
         Throw("Invalid type.");
       }
+      if (!struct_ptr->field_items_.contains(identifier_name)) {
+        Throw("Cannot find target element in the field of the struct.");
+      }
+      // make sure struct type is ready
+      if (struct_ptr->field_items_.begin()->second.node->integrated_type_ == nullptr ||
+          struct_ptr->field_items_.begin()->second.node->integrated_type_->basic_type == unknown_type) {
+        for (const auto &it : struct_ptr->field_items_) {
+          it.second.node->Accept(this);
+        }
+      }
+      // now struct type is ready
+      expression_ptr->integrated_type_ = struct_ptr->field_items_[identifier_name].node->integrated_type_;
       break;
     }
     case continue_expr: {
