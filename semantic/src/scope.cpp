@@ -129,7 +129,7 @@ void SymbolVisitor::Visit(Implementation *implementation_ptr) {
   }
   std::string type_name;
   if (target_type->type_[0] == type_type_path) {
-    type_name = dynamic_cast<LeafNode *>(target_type->children_[0]->children_[0])->GetContent().GetStr();
+    type_name = dynamic_cast<LeafNode *>(target_type->children_[0])->GetContent().GetStr();
   } else {
     std::cerr << "Expect a name of a struct or an enumeration.\n";
     throw "";
@@ -302,7 +302,12 @@ void SymbolVisitor::Visit(Expression *expression_ptr) {
       }
       break;
     }
-    default:;
+    default: {
+      for (const auto it : expression_ptr->children_) {
+        it->scope_node_ = expression_ptr->scope_node_;
+        it->Accept(this);
+      }
+    }
   }
 }
 void SymbolVisitor::Visit(Statements *statements_ptr) {
