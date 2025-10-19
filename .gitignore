@@ -7,5 +7,4 @@ RCompiler-Spec
 cmake-build-debug
 .idea
 touch_file
-RCompiler-Testcases
 .gitmodules
