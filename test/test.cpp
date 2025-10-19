@@ -179,6 +179,15 @@ void RunBatchTests(const std::vector<std::string> &test_cases, const std::string
   std::cout << "Summary: " << passed_count << " passed, " << failed_count << " failed" << std::endl;
 }
 
+// Type tests
+TEST_F(SemanticTestBatch, TypeTests) {
+  std::vector<std::string> test_cases;
+  for (int i = 1; i <= 20; i++) {
+    test_cases.push_back("type" + std::to_string(i));
+  }
+  RunBatchTests(test_cases, "Type Tests", testcases_base_path_);
+}
+
 // Array tests
 TEST_F(SemanticTestBatch, ArrayTests) {
   std::vector<std::string> test_cases;
@@ -313,15 +322,6 @@ TEST_F(SemanticTestBatch, ReturnTests) {
     test_cases.push_back("return" + std::to_string(i));
   }
   RunBatchTests(test_cases, "Return Tests", testcases_base_path_);
-}
-
-// Type tests
-TEST_F(SemanticTestBatch, TypeTests) {
-  std::vector<std::string> test_cases;
-  for (int i = 1; i <= 20; i++) {
-    test_cases.push_back("type" + std::to_string(i));
-  }
-  RunBatchTests(test_cases, "Type Tests", testcases_base_path_);
 }
 
 // Single test for debugging
