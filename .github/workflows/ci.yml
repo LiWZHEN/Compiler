@@ -33,6 +33,11 @@ jobs:
       - name: Build
         run: cmake --build ${{github.workspace}}/build --config Release
 
+      - name: Show directory structure with find
+        run: |
+          echo "=== 仓库目录结构 ==="
+          find . -type d | sort | sed -e 's|[^/]*/|- |g' -e 's|- |  |g'
+
       - name: Run tests
         working-directory: ${{github.workspace}}/build
         run: ./tests
