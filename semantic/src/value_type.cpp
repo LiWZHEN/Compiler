@@ -796,6 +796,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
               if (struct_ptr->associated_items_.begin()->second.node->integrated_type_ == nullptr ||
                   struct_ptr->associated_items_.begin()->second.node->integrated_type_->basic_type == unknown_type) {
                 // target struct has not been visited yet
+                wrapping_structs_.push_back(first_path_node_info);
                 for (const auto &it : struct_ptr->associated_items_) {
                   if (it.second.node_type == type_function) {
                     auto function_ptr = it.second.node;
@@ -828,6 +829,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
                     type_owner_ = nullptr;
                   }
                 }
+                wrapping_structs_.pop_back();
                 break;
               }
             } else {
@@ -962,12 +964,14 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
       }
       const auto struct_ptr = dynamic_cast<Struct *>(struct_info.node);
       // if target struct has not been visited, visit its field items
+      wrapping_structs_.push_back(struct_info);
       if (!struct_ptr->field_items_.empty() && (struct_ptr->field_items_.begin()->second.node->integrated_type_ == nullptr
           || struct_ptr->field_items_.begin()->second.node->integrated_type_->basic_type == unknown_type)) {
         for (const auto &it : struct_ptr->field_items_) {
           it.second.node->Accept(this);
         }
       }
+      wrapping_structs_.pop_back();
       // now the field items in target struct are all visited
       expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(struct_type,
           true, false, false, true, 0);
@@ -1321,6 +1325,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
         if (struct_ptr->associated_items_.begin()->second.node->integrated_type_ == nullptr ||
             struct_ptr->associated_items_.begin()->second.node->integrated_type_->basic_type == unknown_type) {
           // target struct has not been visited yet
+          wrapping_structs_.push_back({struct_ptr, type_struct});
           for (const auto &it : struct_ptr->associated_items_) {
             if (it.second.node_type == type_function) {
               auto function_ptr = it.second.node;
@@ -1353,6 +1358,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
               type_owner_ = nullptr;
             }
           }
+          wrapping_structs_.pop_back();
         }
         // now the struct type is ready
         if (struct_ptr->associated_items_[function_name].node_type != type_function) {
@@ -1414,9 +1420,11 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
       // make sure struct type is ready
       if (struct_ptr->field_items_.begin()->second.node->integrated_type_ == nullptr ||
           struct_ptr->field_items_.begin()->second.node->integrated_type_->basic_type == unknown_type) {
+        wrapping_structs_.push_back({struct_ptr, type_struct});
         for (const auto &it : struct_ptr->field_items_) {
           it.second.node->Accept(this);
         }
+        wrapping_structs_.pop_back();
       }
       // now struct type is ready
       expression_ptr->integrated_type_ = struct_ptr->field_items_[identifier_name].node->integrated_type_;
