@@ -1,0 +1,130 @@
+=== Test Case: basic8 ===
+Expected Verdict: Fail
+Comment: basic test, dynamic array size in function parameter
+Input code:
+/*
+Test Package: Semantic-1
+Test Target: basic
+Author: Wenxin Zheng
+Time: 2025-08-08
+Verdict: Fail
+Comment: basic test, dynamic array size in function parameter
+*/
+
+fn main() {
+    let size: usize = 5;
+    let table: [[i32; 5]; 5] = make_table(size);
+    let unused: [[i32; 5]; 5] = table;
+    exit(0);
+}
+
+fn make_table(n: usize) -> [[i32; n]; n] {
+    let mut arr: [[i32; n]; n] = [[0; n]; n];
+    let mut row: usize = 0usize;
+    while (row < n) {
+        let mut col: usize = 0usize;
+        while (col < n) {
+            arr[row][col] = (row * col) as i32;
+            col += 1;
+        }
+        row += 1;
+    }
+    arr
+}
+
+
+Expression: line 12 column 42: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Expression: line 12 column 47: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Expression: line 13 column 38: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Item: line 14 column 5: Invalid keyword!
+Statement: Successfully handle the item try failure.
+Expression: line 14 column 9: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Item: line 15 column 1: Invalid keyword!
+Statement: Successfully handle the item try failure.
+PathExprSegment: line 15 column 1: Expect identifier or keyword.
+Expression: Successfully handle the struct expression try failure.
+PathExprSegment: line 15 column 1: Expect identifier or keyword.
+PathExprSegment: line 15 column 1: Expect identifier or keyword.
+Expression: Successfully handle the struct expression try failure.
+PathExprSegment: line 15 column 1: Expect identifier or keyword.
+Statements: Successfully handle the expression without block try failure.
+ShorthandSelf: line 17 column 15: Expect "self".
+FunctionParameters: Successfully handle the failure.
+Expression: line 17 column 36: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Expression: line 17 column 40: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Expression: line 18 column 26: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Expression: line 18 column 30: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Expression: line 18 column 40: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Expression: line 18 column 44: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Item: line 20 column 5: Invalid keyword!
+Statement: Successfully handle the item try failure.
+Expression: line 20 column 16: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Expression: line 20 column 19: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Item: line 22 column 9: Invalid keyword!
+Statement: Successfully handle the item try failure.
+Expression: line 22 column 20: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Expression: line 22 column 23: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Item: line 23 column 13: Invalid keyword!
+Statement: Successfully handle the item try failure.
+Expression: line 23 column 16: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Expression: line 23 column 20: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Expression: line 23 column 25: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Expression: line 23 column 34: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Expression: line 23 column 39: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Item: line 24 column 13: Invalid keyword!
+Statement: Successfully handle the item try failure.
+Expression: line 24 column 17: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Item: line 25 column 9: Invalid keyword!
+Statement: Successfully handle the item try failure.
+PathExprSegment: line 25 column 9: Expect identifier or keyword.
+Expression: Successfully handle the struct expression try failure.
+PathExprSegment: line 25 column 9: Expect identifier or keyword.
+PathExprSegment: line 25 column 9: Expect identifier or keyword.
+Expression: Successfully handle the struct expression try failure.
+PathExprSegment: line 25 column 9: Expect identifier or keyword.
+Statements: Successfully handle the expression without block try failure.
+Item: line 26 column 9: Invalid keyword!
+Statement: Successfully handle the item try failure.
+Expression: line 26 column 13: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Item: line 27 column 5: Invalid keyword!
+Statement: Successfully handle the item try failure.
+PathExprSegment: line 27 column 5: Expect identifier or keyword.
+Expression: Successfully handle the struct expression try failure.
+PathExprSegment: line 27 column 5: Expect identifier or keyword.
+PathExprSegment: line 27 column 5: Expect identifier or keyword.
+Expression: Successfully handle the struct expression try failure.
+PathExprSegment: line 27 column 5: Expect identifier or keyword.
+Statements: Successfully handle the expression without block try failure.
+Item: line 28 column 5: Invalid keyword!
+Statement: Successfully handle the item try failure.
+Expression: line 29 column 1: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+ExpressionStatement: line 29 column 1: Expect ";".
+Expression: line 29 column 1: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Error in value_type check: Type mismatch.
+[basic8] Semantic analysis failed
+Actual result: FAIL
+✓ TEST PASSED: Expected Fail, got Fail
+Final result: PASS

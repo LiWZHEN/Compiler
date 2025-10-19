@@ -1,0 +1,46 @@
+=== Test Case: type7 ===
+Expected Verdict: Fail
+Comment: Type error: enum variant type mismatch
+Input code:
+/*
+Test Package: Semantic-1
+Test Target: type
+Author: Wenxin Zheng
+Time: 2025-08-08
+Verdict: Fail
+Comment: Type error: enum variant type mismatch
+*/
+
+// Type error: enum variant type mismatch
+enum Color {
+    Red,
+    Green,
+    Blue,
+}
+
+fn main() {
+    let c: Color = Color::Blue(5);
+    exit(0);
+}
+
+
+Expression: line 18 column 31: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Item: line 19 column 5: Invalid keyword!
+Statement: Successfully handle the item try failure.
+Expression: line 19 column 9: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Item: line 20 column 1: Invalid keyword!
+Statement: Successfully handle the item try failure.
+PathExprSegment: line 20 column 1: Expect identifier or keyword.
+Expression: Successfully handle the struct expression try failure.
+PathExprSegment: line 20 column 1: Expect identifier or keyword.
+PathExprSegment: line 20 column 1: Expect identifier or keyword.
+Expression: Successfully handle the struct expression try failure.
+PathExprSegment: line 20 column 1: Expect identifier or keyword.
+Statements: Successfully handle the expression without block try failure.
+Error in value_type check: Cannot find target struct.
+[type7] Semantic analysis failed
+Actual result: FAIL
+✓ TEST PASSED: Expected Fail, got Fail
+Final result: PASS

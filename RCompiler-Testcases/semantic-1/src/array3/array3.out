@@ -1,0 +1,39 @@
+=== Test Case: array3 ===
+Expected Verdict: Success
+Comment: array test, multiple dimensions and array length
+Input code:
+/*
+Test Package: Semantic-1
+Test Target: array
+Author: Wenxin Zheng
+Time: 2025-08-07
+Verdict: Success
+Comment: array test, multiple dimensions and array length
+*/
+
+fn main() {
+    const MATRIX: [[u32; 3]; 2] = [
+        [1, 2, 3],
+        [4, 5, 6],
+    ];
+    exit(0);
+}
+
+Item: line 15 column 5: Invalid keyword!
+Statement: Successfully handle the item try failure.
+Expression: line 15 column 9: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Item: line 16 column 1: Invalid keyword!
+Statement: Successfully handle the item try failure.
+PathExprSegment: line 16 column 1: Expect identifier or keyword.
+Expression: Successfully handle the struct expression try failure.
+PathExprSegment: line 16 column 1: Expect identifier or keyword.
+PathExprSegment: line 16 column 1: Expect identifier or keyword.
+Expression: Successfully handle the struct expression try failure.
+PathExprSegment: line 16 column 1: Expect identifier or keyword.
+Statements: Successfully handle the expression without block try failure.
+The name "MATRIX" is already in the value namespace.
+[array3] Semantic analysis successful
+Actual result: PASS
+✓ TEST PASSED: Expected Success, got Success
+Final result: PASS

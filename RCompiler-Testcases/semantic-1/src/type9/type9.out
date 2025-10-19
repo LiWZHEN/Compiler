@@ -1,0 +1,39 @@
+=== Test Case: type9 ===
+Expected Verdict: Fail
+Comment: Type error: boolean cannot be used as array index
+Input code:
+/*
+Test Package: Semantic-1
+Test Target: type
+Author: Wenxin Zheng
+Time: 2025-08-08
+Verdict: Fail
+Comment: Type error: boolean cannot be used as array index
+*/
+
+// Type error: boolean cannot be used as array index
+fn main() {
+    let arr: [i32; 3] = [1, 2, 3];
+    let index: bool = true;
+    let value: i32 = arr[index];
+    exit(0);
+}
+
+
+Expression: line 14 column 25: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Expression: line 14 column 31: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Item: line 15 column 5: Invalid keyword!
+Statement: Successfully handle the item try failure.
+Expression: line 15 column 9: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Item: line 16 column 1: Invalid keyword!
+Statement: Successfully handle the item try failure.
+PathExprSegment: line 16 column 1: Expect identifier or keyword.
+Expression: Successfully handle the struct expression try failure.
+PathExprSegment: line 16 column 1: Expect identifier or keyword.
+PathExprSegment: line 16 column 1: Expect identifier or keyword.
+Expression: Successfully handle the struct expression try failure.
+PathExprSegment: line 16 column 1: Expect identifier or keyword.
+Statements: Successfully handle the expression without block try failure.

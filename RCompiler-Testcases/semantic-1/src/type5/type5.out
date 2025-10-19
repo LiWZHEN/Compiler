@@ -1,0 +1,55 @@
+=== Test Case: type5 ===
+Expected Verdict: Fail
+Comment: Type error: function return type mismatch
+Input code:
+/*
+Test Package: Semantic-1
+Test Target: type
+Author: Wenxin Zheng
+Time: 2025-08-08
+Verdict: Fail
+Comment: Type error: function return type mismatch
+*/
+
+// Type error: function return type mismatch
+fn get_number() -> i32 {
+    return "not a number";
+}
+
+fn main() {
+    let x: i32 = get_number();
+    exit(0);
+}
+
+
+Item: line 12 column 5: Invalid keyword!
+Statement: Successfully handle the item try failure.
+Item: line 13 column 1: Invalid keyword!
+Statement: Successfully handle the item try failure.
+PathExprSegment: line 13 column 1: Expect identifier or keyword.
+Expression: Successfully handle the struct expression try failure.
+PathExprSegment: line 13 column 1: Expect identifier or keyword.
+PathExprSegment: line 13 column 1: Expect identifier or keyword.
+Expression: Successfully handle the struct expression try failure.
+PathExprSegment: line 13 column 1: Expect identifier or keyword.
+Statements: Successfully handle the expression without block try failure.
+Expression: line 16 column 28: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Item: line 17 column 5: Invalid keyword!
+Statement: Successfully handle the item try failure.
+Expression: line 17 column 9: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Item: line 18 column 1: Invalid keyword!
+Statement: Successfully handle the item try failure.
+PathExprSegment: line 18 column 1: Expect identifier or keyword.
+Expression: Successfully handle the struct expression try failure.
+PathExprSegment: line 18 column 1: Expect identifier or keyword.
+PathExprSegment: line 18 column 1: Expect identifier or keyword.
+Expression: Successfully handle the struct expression try failure.
+PathExprSegment: line 18 column 1: Expect identifier or keyword.
+Statements: Successfully handle the expression without block try failure.
+Error in value_type check: Type mismatch.
+[type5] Semantic analysis failed
+Actual result: FAIL
+✓ TEST PASSED: Expected Fail, got Fail
+Final result: PASS

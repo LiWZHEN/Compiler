@@ -1,0 +1,45 @@
+=== Test Case: type4 ===
+Expected Verdict: Fail
+Comment: Type error: struct field type mismatch
+Input code:
+/*
+Test Package: Semantic-1
+Test Target: type
+Author: Wenxin Zheng
+Time: 2025-08-08
+Verdict: Fail
+Comment: Type error: struct field type mismatch
+*/
+
+// Type error: struct field type mismatch
+struct Person {
+    age: i32,
+    name: &str,
+}
+
+fn main() {
+    let p: Person = Person { age: "twenty", name: "John" };
+    exit(0);
+}
+
+
+StructField: line 14 column 1: Expect Identifier.
+StructFields: Successfully handle the struct field trying failure.
+Item: line 18 column 5: Invalid keyword!
+Statement: Successfully handle the item try failure.
+Expression: line 18 column 9: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Item: line 19 column 1: Invalid keyword!
+Statement: Successfully handle the item try failure.
+PathExprSegment: line 19 column 1: Expect identifier or keyword.
+Expression: Successfully handle the struct expression try failure.
+PathExprSegment: line 19 column 1: Expect identifier or keyword.
+PathExprSegment: line 19 column 1: Expect identifier or keyword.
+Expression: Successfully handle the struct expression try failure.
+PathExprSegment: line 19 column 1: Expect identifier or keyword.
+Statements: Successfully handle the expression without block try failure.
+Error in value_type check: Type mismatch.
+[type4] Semantic analysis failed
+Actual result: FAIL
+✓ TEST PASSED: Expected Fail, got Fail
+Final result: PASS

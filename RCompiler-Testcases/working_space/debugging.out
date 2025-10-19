@@ -1,0 +1,120 @@
+=== Debug Test Case: debugging ===
+Expected Verdict: Fail
+Comment: Type error: boolean cannot be used as array index
+Input code:
+/*
+Test Package: Semantic-1
+Test Target: type
+Author: Wenxin Zheng
+Time: 2025-08-08
+Verdict: Fail
+Comment: Type error: boolean cannot be used as array index
+*/
+
+// Type error: boolean cannot be used as array index
+fn main() {
+    let arr: [i32; 3] = [1, 2, 3];
+    let index: bool = true;
+    let value: i32 = arr[index];
+    exit(0);
+}
+
+
+Expression: line 14 column 25: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Expression: line 14 column 31: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Item: line 15 column 5: Invalid keyword!
+Statement: Successfully handle the item try failure.
+Expression: line 15 column 9: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Item: line 16 column 1: Invalid keyword!
+Statement: Successfully handle the item try failure.
+PathExprSegment: line 16 column 1: Expect identifier or keyword.
+Expression: Successfully handle the struct expression try failure.
+PathExprSegment: line 16 column 1: Expect identifier or keyword.
+PathExprSegment: line 16 column 1: Expect identifier or keyword.
+Expression: Successfully handle the struct expression try failure.
+PathExprSegment: line 16 column 1: Expect identifier or keyword.
+Statements: Successfully handle the expression without block try failure.
+└── Crate
+    └── Item
+        └── Function
+            ├── Keyword: fn
+            ├── Identifier: main
+            ├── Punctuation: (
+            ├── Punctuation: )
+            └── BlockExpression
+                ├── Punctuation: {
+                ├── Statements
+                │   ├── Statement
+                │   │   └── LetStatement
+                │   │       ├── Keyword: let
+                │   │       ├── Pattern
+                │   │       │   └── IdentifierPattern
+                │   │       │       └── Identifier: arr
+                │   │       ├── Punctuation: :
+                │   │       ├── Type
+                │   │       │   └── ArrayType
+                │   │       │       ├── Punctuation: [
+                │   │       │       ├── Type
+                │   │       │       │   └── TypePath: i32
+                │   │       │       ├── Punctuation: ;
+                │   │       │       ├── literal_expr
+                │   │       │       │   └── IntegerLiteral: 3
+                │   │       │       └── Punctuation: ]
+                │   │       ├── Punctuation: =
+                │   │       ├── array_expr
+                │   │       │   ├── Punctuation: [
+                │   │       │   ├── literal_expr
+                │   │       │   │   └── IntegerLiteral: 1
+                │   │       │   ├── Punctuation: ,
+                │   │       │   ├── literal_expr
+                │   │       │   │   └── IntegerLiteral: 2
+                │   │       │   ├── Punctuation: ,
+                │   │       │   ├── literal_expr
+                │   │       │   │   └── IntegerLiteral: 3
+                │   │       │   └── Punctuation: ]
+                │   │       └── Punctuation: ;
+                │   ├── Statement
+                │   │   └── LetStatement
+                │   │       ├── Keyword: let
+                │   │       ├── Pattern
+                │   │       │   └── IdentifierPattern
+                │   │       │       └── Identifier: index
+                │   │       ├── Punctuation: :
+                │   │       ├── Type
+                │   │       │   └── TypePath: bool
+                │   │       ├── Punctuation: =
+                │   │       ├── literal_expr
+                │   │       │   └── Keyword: true
+                │   │       └── Punctuation: ;
+                │   ├── Statement
+                │   │   └── LetStatement
+                │   │       ├── Keyword: let
+                │   │       ├── Pattern
+                │   │       │   └── IdentifierPattern
+                │   │       │       └── Identifier: value
+                │   │       ├── Punctuation: :
+                │   │       ├── Type
+                │   │       │   └── TypePath: i32
+                │   │       ├── Punctuation: =
+                │   │       ├── index_expr
+                │   │       │   ├── path_in_expr
+                │   │       │   │   └── PathInExpression
+                │   │       │   │       └── PathExprSegment: arr
+                │   │       │   └── path_in_expr
+                │   │       │       └── PathInExpression
+                │   │       │           └── PathExprSegment: index
+                │   │       └── Punctuation: ;
+                │   └── Statement
+                │       └── ExpressionStatement
+                │           ├── call_expr
+                │           │   ├── PathInExpression
+                │           │   │   └── PathExprSegment: exit
+                │           │   └── call_params
+                │           │       └── literal_expr
+                │           │           └── IntegerLiteral: 0
+                │           └── Punctuation: ;
+                └── Punctuation: }
+

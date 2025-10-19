@@ -1,0 +1,35 @@
+=== Test Case: array1 ===
+Expected Verdict: Success
+Comment: array test, basic array declaration
+Input code:
+/*
+Test Package: Semantic-1
+Test Target: array
+Author: Wenxin Zheng
+Time: 2025-08-07
+Verdict: Success
+Comment: array test, basic array declaration
+*/
+
+fn main() {
+    let numbers: [i32; 3] = [10, 20, 30];
+    exit(0);
+}
+
+Item: line 12 column 5: Invalid keyword!
+Statement: Successfully handle the item try failure.
+Expression: line 12 column 9: Expect "{".
+Expression: Successfully handle the struct expression try failure.
+Item: line 13 column 1: Invalid keyword!
+Statement: Successfully handle the item try failure.
+PathExprSegment: line 13 column 1: Expect identifier or keyword.
+Expression: Successfully handle the struct expression try failure.
+PathExprSegment: line 13 column 1: Expect identifier or keyword.
+PathExprSegment: line 13 column 1: Expect identifier or keyword.
+Expression: Successfully handle the struct expression try failure.
+PathExprSegment: line 13 column 1: Expect identifier or keyword.
+Statements: Successfully handle the expression without block try failure.
+[array1] Semantic analysis successful
+Actual result: PASS
+✓ TEST PASSED: Expected Success, got Success
+Final result: PASS
