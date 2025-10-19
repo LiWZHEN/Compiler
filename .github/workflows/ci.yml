@@ -12,8 +12,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-        with:
-          submodules: recursive  # 关键修改
+
+      - name: Verify testcases directory
+        run: |
+          ls -la RCompiler-Testcases/
+          echo "Testcases directory verified"
 
       - name: Install dependencies
         run: |
@@ -37,11 +40,14 @@ jobs:
         working-directory: ${{github.workspace}}/build
         run: ctest --output-on-failure
 
-      # 可选：如果 CMake 测试不包含你的语义测试
       - name: Run semantic tests
         run: |
-          # 编译语义测试
-          g++ -std=c++17 -I./src -I./include ./test/semantic_test.cpp \
-              -o semantic_test -lgtest -lgtest_main -lpthread
-          # 运行语义测试
+          echo "Compiling semantic test program..."
+          g++ -std=c++17 -I./lexer/include -I./parser/include -I./semantic/include \
+              ./test/test.cpp -o semantic_test \
+              -lgtest -lgtest_main -lpthread
+          
+          echo "Running semantic tests..."
           ./semantic_test --gtest_output="xml:semantic_test_results.xml"
+          
+          echo "Semantic tests completed. Results saved to semantic_test_results.xml"

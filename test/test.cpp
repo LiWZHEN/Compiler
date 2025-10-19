@@ -15,10 +15,31 @@ namespace fs = std::filesystem;
 class SemanticTestBatch : public ::testing::Test {
 protected:
   void SetUp() override {
-    testcases_root_ = "RCompiler-Testcases/semantic-1/src";
+    testcases_base_path_ = DetectTestcasesPath();
+    std::cout << "Testcases base path: " << testcases_base_path_ << std::endl;
   }
 
-  std::string testcases_root_;
+  std::string DetectTestcasesPath() {
+    // 首先尝试相对路径（CI 环境）
+    if (fs::exists("RCompiler-Testcases/semantic-1/src")) {
+      return "RCompiler-Testcases";
+    }
+    // 然后尝试上级目录（本地调试环境）
+    else if (fs::exists("../RCompiler-Testcases/semantic-1/src")) {
+      return "../RCompiler-Testcases";
+    }
+    // 如果都找不到，抛出错误
+    else {
+      std::cerr << "Error: Cannot find RCompiler-Testcases directory" << std::endl;
+      std::cerr << "Current working directory: " << fs::current_path() << std::endl;
+      std::cerr << "Tried paths:" << std::endl;
+      std::cerr << "  - RCompiler-Testcases/semantic-1/src" << std::endl;
+      std::cerr << "  - ../RCompiler-Testcases/semantic-1/src" << std::endl;
+      return "../RCompiler-Testcases"; // 回退到默认值
+    }
+  }
+
+  std::string testcases_base_path_;
 };
 
 class StderrRedirector {
@@ -111,15 +132,15 @@ bool SemanticCheck(const std::string &test_name, const std::string &code, const 
   return success;
 }
 
-void RunBatchTests(const std::vector<std::string> &test_cases, const std::string &batch_name) {
+void RunBatchTests(const std::vector<std::string> &test_cases, const std::string &batch_name, std::string testcases_base_path) {
   std::cout << "=== Running Batch: " << batch_name << " ===" << std::endl;
 
   int passed_count = 0;
   int failed_count = 0;
 
   for (const auto &test_case: test_cases) {
-    std::string test_path = "../RCompiler-Testcases/semantic-1/src/" + test_case + "/" + test_case + ".rx";
-    std::string output_path = "../RCompiler-Testcases/semantic-1/src/" + test_case + "/" + test_case + ".out";
+    std::string test_path = testcases_base_path + "/semantic-1/src/" + test_case + "/" + test_case + ".rx";
+    std::string output_path = testcases_base_path + "/semantic-1/src/" + test_case + "/" + test_case + ".out";
 
     TestCaseInfo test_info = ParseTestFile(test_path);
     if (test_info.code.empty()) {
@@ -170,7 +191,7 @@ TEST_F(SemanticTestBatch, ArrayTests) {
   for (int i = 1; i <= 8; i++) {
     test_cases.push_back("array" + std::to_string(i));
   }
-  RunBatchTests(test_cases, "Array Tests");
+  RunBatchTests(test_cases, "Array Tests", testcases_base_path_);
 }
 
 // Autoref tests
@@ -179,7 +200,7 @@ TEST_F(SemanticTestBatch, AutorefTests) {
   for (int i = 1; i <= 9; i++) {
     test_cases.push_back("autoref" + std::to_string(i));
   }
-  RunBatchTests(test_cases, "Autoref Tests");
+  RunBatchTests(test_cases, "Autoref Tests", testcases_base_path_);
 }
 
 // Basic tests - divided into smaller batches
@@ -188,7 +209,7 @@ TEST_F(SemanticTestBatch, BasicTests_1_10) {
   for (int i = 1; i <= 10; i++) {
     test_cases.push_back("basic" + std::to_string(i));
   }
-  RunBatchTests(test_cases, "Basic Tests 1-10");
+  RunBatchTests(test_cases, "Basic Tests 1-10", testcases_base_path_);
 }
 
 TEST_F(SemanticTestBatch, BasicTests_11_20) {
@@ -196,7 +217,7 @@ TEST_F(SemanticTestBatch, BasicTests_11_20) {
   for (int i = 11; i <= 20; i++) {
     test_cases.push_back("basic" + std::to_string(i));
   }
-  RunBatchTests(test_cases, "Basic Tests 11-20");
+  RunBatchTests(test_cases, "Basic Tests 11-20", testcases_base_path_);
 }
 
 TEST_F(SemanticTestBatch, BasicTests_21_30) {
@@ -204,7 +225,7 @@ TEST_F(SemanticTestBatch, BasicTests_21_30) {
   for (int i = 21; i <= 30; i++) {
     test_cases.push_back("basic" + std::to_string(i));
   }
-  RunBatchTests(test_cases, "Basic Tests 21-30");
+  RunBatchTests(test_cases, "Basic Tests 21-30", testcases_base_path_);
 }
 
 TEST_F(SemanticTestBatch, BasicTests_31_40) {
@@ -212,7 +233,7 @@ TEST_F(SemanticTestBatch, BasicTests_31_40) {
   for (int i = 31; i <= 40; i++) {
     test_cases.push_back("basic" + std::to_string(i));
   }
-  RunBatchTests(test_cases, "Basic Tests 31-40");
+  RunBatchTests(test_cases, "Basic Tests 31-40", testcases_base_path_);
 }
 
 // Expression tests - divided into smaller batches
@@ -221,7 +242,7 @@ TEST_F(SemanticTestBatch, ExpressionTests_1_10) {
   for (int i = 1; i <= 10; i++) {
     test_cases.push_back("expr" + std::to_string(i));
   }
-  RunBatchTests(test_cases, "Expression Tests 1-10");
+  RunBatchTests(test_cases, "Expression Tests 1-10", testcases_base_path_);
 }
 
 TEST_F(SemanticTestBatch, ExpressionTests_11_20) {
@@ -229,7 +250,7 @@ TEST_F(SemanticTestBatch, ExpressionTests_11_20) {
   for (int i = 11; i <= 20; i++) {
     test_cases.push_back("expr" + std::to_string(i));
   }
-  RunBatchTests(test_cases, "Expression Tests 11-20");
+  RunBatchTests(test_cases, "Expression Tests 11-20", testcases_base_path_);
 }
 
 TEST_F(SemanticTestBatch, ExpressionTests_21_30) {
@@ -237,7 +258,7 @@ TEST_F(SemanticTestBatch, ExpressionTests_21_30) {
   for (int i = 21; i <= 30; i++) {
     test_cases.push_back("expr" + std::to_string(i));
   }
-  RunBatchTests(test_cases, "Expression Tests 21-30");
+  RunBatchTests(test_cases, "Expression Tests 21-30", testcases_base_path_);
 }
 
 TEST_F(SemanticTestBatch, ExpressionTests_31_40) {
@@ -245,7 +266,7 @@ TEST_F(SemanticTestBatch, ExpressionTests_31_40) {
   for (int i = 31; i <= 40; i++) {
     test_cases.push_back("expr" + std::to_string(i));
   }
-  RunBatchTests(test_cases, "Expression Tests 31-40");
+  RunBatchTests(test_cases, "Expression Tests 31-40", testcases_base_path_);
 }
 
 // If tests
@@ -254,7 +275,7 @@ TEST_F(SemanticTestBatch, IfTests) {
   for (int i = 1; i <= 15; i++) {
     test_cases.push_back("if" + std::to_string(i));
   }
-  RunBatchTests(test_cases, "If Tests");
+  RunBatchTests(test_cases, "If Tests", testcases_base_path_);
 }
 
 // Loop tests
@@ -263,7 +284,7 @@ TEST_F(SemanticTestBatch, LoopTests) {
   for (int i = 1; i <= 10; i++) {
     test_cases.push_back("loop" + std::to_string(i));
   }
-  RunBatchTests(test_cases, "Loop Tests");
+  RunBatchTests(test_cases, "Loop Tests", testcases_base_path_);
 }
 
 // Misc tests - divided into smaller batches
@@ -272,7 +293,7 @@ TEST_F(SemanticTestBatch, MiscTests_1_20) {
   for (int i = 1; i <= 20; i++) {
     test_cases.push_back("misc" + std::to_string(i));
   }
-  RunBatchTests(test_cases, "Misc Tests 1-20");
+  RunBatchTests(test_cases, "Misc Tests 1-20", testcases_base_path_);
 }
 
 TEST_F(SemanticTestBatch, MiscTests_21_40) {
@@ -280,7 +301,7 @@ TEST_F(SemanticTestBatch, MiscTests_21_40) {
   for (int i = 21; i <= 40; i++) {
     test_cases.push_back("misc" + std::to_string(i));
   }
-  RunBatchTests(test_cases, "Misc Tests 21-40");
+  RunBatchTests(test_cases, "Misc Tests 21-40", testcases_base_path_);
 }
 
 TEST_F(SemanticTestBatch, MiscTests_41_65) {
@@ -288,7 +309,7 @@ TEST_F(SemanticTestBatch, MiscTests_41_65) {
   for (int i = 41; i <= 65; i++) {
     test_cases.push_back("misc" + std::to_string(i));
   }
-  RunBatchTests(test_cases, "Misc Tests 41-65");
+  RunBatchTests(test_cases, "Misc Tests 41-65", testcases_base_path_);
 }
 
 // Return tests
@@ -297,7 +318,7 @@ TEST_F(SemanticTestBatch, ReturnTests) {
   for (int i = 1; i <= 15; i++) {
     test_cases.push_back("return" + std::to_string(i));
   }
-  RunBatchTests(test_cases, "Return Tests");
+  RunBatchTests(test_cases, "Return Tests", testcases_base_path_);
 }
 
 // Type tests
@@ -306,14 +327,14 @@ TEST_F(SemanticTestBatch, TypeTests) {
   for (int i = 1; i <= 20; i++) {
     test_cases.push_back("type" + std::to_string(i));
   }
-  RunBatchTests(test_cases, "Type Tests");
+  RunBatchTests(test_cases, "Type Tests", testcases_base_path_);
 }
 
 // Single test for debugging
 TEST_F(SemanticTestBatch, SingleTest_Debug) {
   std::string test_case = "debugging"; // Change this to any test case you want to debug
-  std::string test_path = "../RCompiler-Testcases/working_space/" + test_case + ".rx";
-  std::string output_path = "../RCompiler-Testcases/working_space/" + test_case + ".out";
+  std::string test_path = testcases_base_path_ + "/working_space/" + test_case + ".rx";
+  std::string output_path = testcases_base_path_ + "/working_space/" + test_case + ".out";
 
   TestCaseInfo test_info = ParseTestFile(test_path);
   ASSERT_FALSE(test_info.code.empty()) << "Test file is empty or not found: " << test_path;
