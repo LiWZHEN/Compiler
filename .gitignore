@@ -6,5 +6,3 @@ RCompiler-Spec
 .vscode
 cmake-build-debug
 .idea
-touch_file
-.gitmodules

@@ -19,5 +19,3 @@ add_executable(tests test/test.cpp
     semantic/src/scope.cpp semantic/src/value_type.cpp
     semantic/src/visitor_manager.cpp)
 target_link_libraries(tests GTest::GTest GTest::Main)
-
-add_executable(TouchFiles touch_file/touch_file.cpp)
