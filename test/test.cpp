@@ -25,14 +25,14 @@ protected:
       return "../RCompiler-Testcases";
     }
     // 再尝试github环境
-    if (fs::exists("/home/runner/work/Compiler/RCompiler-Testcases/semantic-1/src")) {
-      return "/home/runner/work/Compiler/RCompiler-Testcases";
+    if (fs::exists("/home/runner/work/Compiler/Compiler/RCompiler-Testcases/semantic-1/src")) {
+      return "/home/runner/work/Compiler/Compiler/RCompiler-Testcases";
     }
     // 如果都找不到，抛出错误
     std::cerr << "Error: Cannot find RCompiler-Testcases directory" << std::endl;
     std::cerr << "Current working directory: " << fs::current_path() << std::endl;
     std::cerr << "Tried paths:" << std::endl;
-    std::cerr << "  - RCompiler-Testcases/semantic-1/src" << std::endl;
+    std::cerr << "  - /home/runner/work/Compiler/Compiler/RCompiler-Testcases/semantic-1/src" << std::endl;
     std::cerr << "  - ../RCompiler-Testcases/semantic-1/src" << std::endl;
     return "../RCompiler-Testcases"; // 回退到默认值
   }
