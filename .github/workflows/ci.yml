@@ -33,13 +33,6 @@ jobs:
       - name: Build
         run: cmake --build ${{github.workspace}}/build --config Release
 
-      - name: Show structure with ls
-        run: |
-          echo "=== 目录结构 ==="
-          ls -la
-          echo "=== 递归显示子目录 ==="
-          find . -type d -exec ls -la {} \; | head -50
-
       - name: Run tests
         working-directory: ${{github.workspace}}/build
         run: ./tests
