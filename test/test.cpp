@@ -20,23 +20,21 @@ protected:
   }
 
   std::string DetectTestcasesPath() {
-    // 首先尝试相对路径（CI 环境）
-    if (fs::exists("RCompiler-Testcases/semantic-1/src")) {
-      return "RCompiler-Testcases";
-    }
-    // 然后尝试上级目录（本地调试环境）
-    else if (fs::exists("../RCompiler-Testcases/semantic-1/src")) {
+    // 先尝试上级目录（本地调试环境）
+    if (fs::exists("../RCompiler-Testcases/semantic-1/src")) {
       return "../RCompiler-Testcases";
     }
-    // 如果都找不到，抛出错误
-    else {
-      std::cerr << "Error: Cannot find RCompiler-Testcases directory" << std::endl;
-      std::cerr << "Current working directory: " << fs::current_path() << std::endl;
-      std::cerr << "Tried paths:" << std::endl;
-      std::cerr << "  - RCompiler-Testcases/semantic-1/src" << std::endl;
-      std::cerr << "  - ../RCompiler-Testcases/semantic-1/src" << std::endl;
-      return "../RCompiler-Testcases"; // 回退到默认值
+    // 再尝试github环境
+    if (fs::exists("/home/runner/work/Compiler/RCompiler-Testcases/semantic-1/src")) {
+      return "/home/runner/work/Compiler/RCompiler-Testcases";
     }
+    // 如果都找不到，抛出错误
+    std::cerr << "Error: Cannot find RCompiler-Testcases directory" << std::endl;
+    std::cerr << "Current working directory: " << fs::current_path() << std::endl;
+    std::cerr << "Tried paths:" << std::endl;
+    std::cerr << "  - RCompiler-Testcases/semantic-1/src" << std::endl;
+    std::cerr << "  - ../RCompiler-Testcases/semantic-1/src" << std::endl;
+    return "../RCompiler-Testcases"; // 回退到默认值
   }
 
   std::string testcases_base_path_;
