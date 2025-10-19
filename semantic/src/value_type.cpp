@@ -936,6 +936,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
       if (expression_ptr->children_[0]->integrated_type_->basic_type != array_type) {
         Throw("Cannot apply index operation to non-array expression.");
       }
+      expression_ptr->integrated_type_ = std::make_shared<IntegratedType>();
       *expression_ptr->integrated_type_ = *expression_ptr->children_[0]->integrated_type_->element_type;
       expression_ptr->integrated_type_->is_const = false;
       if (expression_ptr->children_[1]->integrated_type_->is_const) {
