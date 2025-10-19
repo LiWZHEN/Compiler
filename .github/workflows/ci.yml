@@ -12,6 +12,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          submodules: recursive  # 关键修改
 
       - name: Install dependencies
         run: |
@@ -34,3 +36,12 @@ jobs:
       - name: Run tests
         working-directory: ${{github.workspace}}/build
         run: ctest --output-on-failure
+
+      # 可选：如果 CMake 测试不包含你的语义测试
+      - name: Run semantic tests
+        run: |
+          # 编译语义测试
+          g++ -std=c++17 -I./src -I./include ./test/semantic_test.cpp \
+              -o semantic_test -lgtest -lgtest_main -lpthread
+          # 运行语义测试
+          ./semantic_test --gtest_output="xml:semantic_test_results.xml"
