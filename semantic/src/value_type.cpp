@@ -925,27 +925,27 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
     }
     case index_expr: {
       expression_ptr->children_[0]->Accept(this);
-      expression_ptr->children_[2]->Accept(this);
+      expression_ptr->children_[1]->Accept(this);
       auto target_type = std::make_shared<IntegratedType>(usize_type, false,
           false, false, true, 0);
       target_type->RemovePossibility(i32_type);
       target_type->RemovePossibility(isize_type);
       target_type->RemovePossibility(u32_type);
-      TryToMatch(target_type, expression_ptr->children_[2]->integrated_type_,
+      TryToMatch(target_type, expression_ptr->children_[1]->integrated_type_,
           false);
       if (expression_ptr->children_[0]->integrated_type_->basic_type != array_type) {
         Throw("Cannot apply index operation to non-array expression.");
       }
       *expression_ptr->integrated_type_ = *expression_ptr->children_[0]->integrated_type_->element_type;
       expression_ptr->integrated_type_->is_const = false;
-      if (expression_ptr->children_[2]->integrated_type_->is_const) {
-        if (expression_ptr->children_[2]->value_.int_value >=
+      if (expression_ptr->children_[1]->integrated_type_->is_const) {
+        if (expression_ptr->children_[1]->value_.int_value >=
             expression_ptr->children_[0]->integrated_type_->size) {
           Throw("Index out of bound.");
         }
         if (expression_ptr->children_[0]->integrated_type_->is_const) {
           expression_ptr->integrated_type_->is_const = true;
-          expression_ptr->value_ = expression_ptr->value_.array_values[expression_ptr->children_[2]->value_.int_value];
+          expression_ptr->value_ = expression_ptr->value_.array_values[expression_ptr->children_[1]->value_.int_value];
         }
       }
       break;
@@ -1196,6 +1196,9 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
         } else if (struct_info.node == nullptr) {
           Throw("Cannot find target struct in the scope.");
         }
+        if (struct_info.node_type != type_struct) {
+          Throw("Cannot find target struct.");
+        }
         std::string function_name = dynamic_cast<LeafNode *>(expression_ptr->children_[0]->children_[3])
             ->GetContent().GetStr();
         auto struct_ptr = dynamic_cast<Struct *>(struct_info.node);
@@ -1387,6 +1390,9 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           Throw("function without self parameter should be called with call expression.");
         }
         expression_ptr->integrated_type_ = function_ptr->integrated_type_;
+        if (call_expr_param_num == 0) {
+          break;
+        }
         for (int i = 0; i < expression_ptr->children_[2]->children_.size(); i += 2) {
           expression_ptr->children_[2]->children_[i]->Accept(this);
           TryToMatch(function_ptr->children_[function_parameters_node_ind]->children_[i + 2]->integrated_type_,
