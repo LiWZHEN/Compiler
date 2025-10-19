@@ -18,4 +18,7 @@ add_executable(tests test/test.cpp
     parser/src/trait.cpp parser/src/type.cpp
     semantic/src/scope.cpp semantic/src/value_type.cpp
     semantic/src/visitor_manager.cpp)
+
 target_link_libraries(tests GTest::GTest GTest::Main)
+
+add_test(NAME tests COMMAND tests)
