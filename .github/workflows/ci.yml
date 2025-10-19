@@ -43,7 +43,7 @@ jobs:
       - name: Run semantic tests
         run: |
           echo "Compiling semantic test program..."
-          g++ -std=c++17 -I./lexer/include -I./parser/include -I./semantic/include \
+          g++ -std=c++20 -I./lexer/include -I./parser/include -I./semantic/include \
               ./test/test.cpp -o semantic_test \
               -lgtest -lgtest_main -lpthread
           
