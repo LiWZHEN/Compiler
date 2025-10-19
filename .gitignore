@@ -7,3 +7,5 @@ RCompiler-Spec
 cmake-build-debug
 .idea
 RCompiler-Testcases/working_space
+RCompiler-Testcases/**/*.in
+RCompiler-Testcases/**/*.out
