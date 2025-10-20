@@ -126,7 +126,7 @@ bool SemanticCheck(const std::string &test_name, const std::string &code, const 
   return success;
 }
 
-void RunBatchTests(const std::vector<std::string> &test_cases, const std::string &batch_name, std::string testcases_base_path) {
+void RunBatchTests(const std::vector<std::string> &test_cases, const std::string &batch_name, const std::string &testcases_base_path) {
   std::cout << "=== Running Batch: " << batch_name << " ===" << std::endl;
 
   int passed_count = 0;
@@ -176,7 +176,8 @@ void RunBatchTests(const std::vector<std::string> &test_cases, const std::string
   }
 
   std::cout << "=== Finished Batch: " << batch_name << " ===" << std::endl;
-  std::cout << "Summary: " << passed_count << " passed, " << failed_count << " failed" << std::endl;
+  std::cout << "Summary: " << passed_count << " passed, " << failed_count << " failed" << std::endl << std::endl;
+  ASSERT_EQ(failed_count, 0);
 }
 
 // Type tests

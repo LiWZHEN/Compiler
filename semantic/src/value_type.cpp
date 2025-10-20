@@ -891,7 +891,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           Throw("The length operand must be a constant expression.");
         }
         auto target_type = std::make_shared<IntegratedType>(usize_type, false,
-            false, false, true, 0);
+            false, true, true, 0);
         target_type->RemovePossibility(i32_type);
         target_type->RemovePossibility(isize_type);
         target_type->RemovePossibility(u32_type);
@@ -927,7 +927,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
       expression_ptr->children_[0]->Accept(this);
       expression_ptr->children_[1]->Accept(this);
       auto target_type = std::make_shared<IntegratedType>(usize_type, false,
-          false, false, true, 0);
+          false, true, true, 0);
       target_type->RemovePossibility(i32_type);
       target_type->RemovePossibility(isize_type);
       target_type->RemovePossibility(u32_type);
@@ -1048,7 +1048,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           }
           expression_ptr->children_[1]->children_[0]->Accept(this);
           auto target_type = std::make_shared<IntegratedType>(i32_type,
-              false, false, false, true, 0);
+              false, false, true, true, 0);
           target_type->RemovePossibility(isize_type);
           target_type->RemovePossibility(u32_type);
           target_type->RemovePossibility(usize_type);
@@ -1062,7 +1062,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           }
           expression_ptr->children_[1]->children_[0]->Accept(this);
           auto target_type = std::make_shared<IntegratedType>(i32_type,
-              false, false, false, true, 0);
+              false, false, true, true, 0);
           target_type->RemovePossibility(isize_type);
           target_type->RemovePossibility(u32_type);
           target_type->RemovePossibility(usize_type);
@@ -1077,7 +1077,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
         } else if (function_name == "getInt") {
           // no call parameter
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(i32_type,
-              false, false, false, true, 0);
+              false, false, true, true, 0);
           expression_ptr->integrated_type_->RemovePossibility(isize_type);
           expression_ptr->integrated_type_->RemovePossibility(u32_type);
           expression_ptr->integrated_type_->RemovePossibility(usize_type);
@@ -1093,7 +1093,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           }
           expression_ptr->children_[1]->children_[0]->Accept(this);
           auto target_type = std::make_shared<IntegratedType>(i32_type,
-              false, false, false, true, 0);
+              false, false, true, true, 0);
           target_type->RemovePossibility(isize_type);
           target_type->RemovePossibility(u32_type);
           target_type->RemovePossibility(usize_type);
@@ -1306,7 +1306,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           Throw("len method should be called with no parameter.");
         }
         expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(u32_type,
-            false, false, false, true, 0);
+            false, false, true, true, 0);
         expression_ptr->integrated_type_->RemovePossibility(i32_type);
         expression_ptr->integrated_type_->RemovePossibility(isize_type);
         expression_ptr->integrated_type_->RemovePossibility(usize_type);
