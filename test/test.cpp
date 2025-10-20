@@ -151,7 +151,7 @@ void RunBatchTests(const std::vector<std::string> &test_cases, const std::string
       std::cerr << "Actual result: " << (actual_result ? "PASS" : "FAIL") << std::endl;
 
       // Convert expected verdict to boolean
-      bool expected_result = (test_info.expected_verdict == "Success");
+      bool expected_result = (test_info.expected_verdict == "Success" || test_info.expected_verdict == "Pass");
 
       // Check if result matches expectation
       if (actual_result == expected_result) {
@@ -343,7 +343,7 @@ TEST_F(SemanticTestBatch, SingleTest_Debug) {
   bool actual_result = SemanticCheck(test_case, test_info.code, true);
   std::cerr << "Actual result: " << (actual_result ? "PASS" : "FAIL") << std::endl;
 
-  bool expected_result = (test_info.expected_verdict == "Success");
+  bool expected_result = (test_info.expected_verdict == "Success" || test_info.expected_verdict == "Pass");
 
   if (actual_result == expected_result) {
     std::cerr << "✓ TEST PASSED: Expected " << test_info.expected_verdict
