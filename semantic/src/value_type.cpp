@@ -531,6 +531,12 @@ void ValueTypeVisitor::Visit(Statements *statements_ptr) {
   for (const auto it : statements_ptr->children_) {
     it->Accept(this);
   }
+  for (const auto it : statements_ptr->children_) {
+    if (it->integrated_type_->basic_type == never_type) {
+      statements_ptr->integrated_type_ = it->integrated_type_;
+      return;
+    }
+  }
   if (statements_ptr->type_.back() == type_expression) {
     statements_ptr->integrated_type_ = statements_ptr->children_.back()->integrated_type_;
     statements_ptr->value_ = statements_ptr->children_.back()->value_;
@@ -551,11 +557,11 @@ void ValueTypeVisitor::Visit(Statements *statements_ptr) {
 }
 void ValueTypeVisitor::Visit(Statement *statement_ptr) {
   statement_ptr->children_[0]->Accept(this);
-  if (statement_ptr->type_[0] != type_expression_statement) {
+  if (statement_ptr->type_[0] == type_expression_statement) {
+    statement_ptr->integrated_type_ = statement_ptr->children_[0]->integrated_type_;
+  } else {
     statement_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
         false, false, false, true, 0);
-  } else {
-    statement_ptr->integrated_type_ = statement_ptr->children_[0]->integrated_type_;
   }
 }
 void ValueTypeVisitor::Visit(LetStatement *let_statement_ptr) {
@@ -583,8 +589,12 @@ void ValueTypeVisitor::Visit(LetStatement *let_statement_ptr) {
 void ValueTypeVisitor::Visit(ExpressionStatement *expression_statement_ptr) {
   expression_statement_ptr->children_[0]->Accept(this);
   if (expression_statement_ptr->children_.size() > 1) {
-    expression_statement_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
-        false, false, false, true, 0);
+    if (expression_statement_ptr->children_[0]->integrated_type_->basic_type == never_type) {
+      expression_statement_ptr->integrated_type_ = expression_statement_ptr->children_[0]->integrated_type_;
+    } else {
+      expression_statement_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
+          false, false, false, true, 0);
+    }
   } else {
     expression_statement_ptr->integrated_type_ = expression_statement_ptr->children_[0]->integrated_type_;
   }
@@ -933,22 +943,41 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
       target_type->RemovePossibility(u32_type);
       TryToMatch(target_type, expression_ptr->children_[1]->integrated_type_,
           false);
-      if (expression_ptr->children_[0]->integrated_type_->basic_type != array_type) {
+      if (expression_ptr->children_[0]->integrated_type_->basic_type == array_type) {
+        expression_ptr->integrated_type_ = std::make_shared<IntegratedType>();
+        *expression_ptr->integrated_type_ = *expression_ptr->children_[0]->integrated_type_->element_type;
+        expression_ptr->integrated_type_->is_const = false;
+        expression_ptr->integrated_type_->is_mutable = expression_ptr->children_[0]->integrated_type_->is_mutable;
+        if (expression_ptr->children_[1]->integrated_type_->is_const) {
+          if (expression_ptr->children_[1]->value_.int_value >=
+              expression_ptr->children_[0]->integrated_type_->size) {
+            Throw("Index out of bound.");
+          }
+          if (expression_ptr->children_[0]->integrated_type_->is_const) {
+            expression_ptr->integrated_type_->is_const = true;
+            expression_ptr->value_ = expression_ptr->children_[0]->value_.
+                array_values[expression_ptr->children_[1]->value_.int_value];
+          }
+        }
+      } else if (expression_ptr->children_[0]->integrated_type_->basic_type == pointer_type
+          && expression_ptr->children_[0]->integrated_type_->element_type->basic_type == array_type) {
+        expression_ptr->integrated_type_ = std::make_shared<IntegratedType>();
+        *expression_ptr->integrated_type_ = *expression_ptr->children_[0]->integrated_type_->element_type->element_type;
+        expression_ptr->integrated_type_->is_const = false;
+        expression_ptr->integrated_type_->is_mutable = expression_ptr->children_[0]->integrated_type_->element_type->is_mutable;
+        if (expression_ptr->children_[1]->integrated_type_->is_const) {
+          if (expression_ptr->children_[1]->value_.int_value >=
+              expression_ptr->children_[0]->integrated_type_->element_type->size) {
+            Throw("Index out of bound.");
+          }
+          if (expression_ptr->children_[0]->integrated_type_->element_type->is_const) {
+            expression_ptr->integrated_type_->is_const = true;
+            expression_ptr->value_ = expression_ptr->children_[0]->value_.pointer_value
+                ->value_.array_values[expression_ptr->children_[1]->value_.int_value];
+          }
+        }
+      } else {
         Throw("Cannot apply index operation to non-array expression.");
-      }
-      expression_ptr->integrated_type_ = std::make_shared<IntegratedType>();
-      *expression_ptr->integrated_type_ = *expression_ptr->children_[0]->integrated_type_->element_type;
-      expression_ptr->integrated_type_->is_const = false;
-      expression_ptr->integrated_type_->is_mutable = expression_ptr->children_[0]->integrated_type_->is_mutable;
-      if (expression_ptr->children_[1]->integrated_type_->is_const) {
-        if (expression_ptr->children_[1]->value_.int_value >=
-            expression_ptr->children_[0]->integrated_type_->size) {
-          Throw("Index out of bound.");
-        }
-        if (expression_ptr->children_[0]->integrated_type_->is_const) {
-          expression_ptr->integrated_type_->is_const = true;
-          expression_ptr->value_ = expression_ptr->value_.array_values[expression_ptr->children_[1]->value_.int_value];
-        }
       }
       break;
     }
@@ -1479,6 +1508,8 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
               false, true, 0), loop_info.node->integrated_type_, false);
         }
       }
+      expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(never_type,
+          false, false, false, true, 0);
       break;
     }
     case return_expr: {
@@ -1491,12 +1522,16 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           Throw("The outermost main function should terminate with exit function.");
         }
       }
+      auto function_info = wrapping_function_.back();
       if (expression_ptr->children_.size() == 2) {
         expression_ptr->children_[1]->Accept(this);
+        TryToMatch(function_info.node->integrated_type_, expression_ptr->children_[1]->integrated_type_,
+            false);
+      } else if (function_info.node->integrated_type_->basic_type != unit_type) {
+        Throw("Type mismatch.");
       }
-      auto function_info = wrapping_function_.back();
-      TryToMatch(function_info.node->integrated_type_, expression_ptr->children_[1]->integrated_type_,
-          false);
+      expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(never_type,
+          false, false, false, true, 0);
       break;
     }
     case prefix_expr: {
