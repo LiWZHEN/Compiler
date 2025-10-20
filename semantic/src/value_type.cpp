@@ -939,6 +939,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
       expression_ptr->integrated_type_ = std::make_shared<IntegratedType>();
       *expression_ptr->integrated_type_ = *expression_ptr->children_[0]->integrated_type_->element_type;
       expression_ptr->integrated_type_->is_const = false;
+      expression_ptr->integrated_type_->is_mutable = expression_ptr->children_[0]->integrated_type_->is_mutable;
       if (expression_ptr->children_[1]->integrated_type_->is_const) {
         if (expression_ptr->children_[1]->value_.int_value >=
             expression_ptr->children_[0]->integrated_type_->size) {
@@ -1134,26 +1135,6 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           if (function_info.node == nullptr) {
             Throw("Cannot find target function in the scope.");
           }
-          int call_expr_param_num = 0;
-          if (expression_ptr->children_.size() == 2) {
-            call_expr_param_num = static_cast<int>(expression_ptr->children_[1]->children_.size() + 1) / 2;
-          }
-          int declared_param_num = 0;
-          int function_parameters_node_ind = -1;
-          for (int i = 0; i < function_info.node->children_.size(); ++i) {
-            if (function_info.node->type_[i] != type_function_parameters) {
-              continue;
-            }
-            function_parameters_node_ind = i;
-            declared_param_num = static_cast<int>(function_info.node->children_[i]->children_.size() + 1) / 2;
-            break;
-          }
-          if (call_expr_param_num != declared_param_num) {
-            Throw("Parameter number doesn't match.");
-          }
-          if (call_expr_param_num == 0) {
-            break;
-          }
           // if the target function has not been visited, visit its type and parameter type
           if (function_info.node->integrated_type_ == nullptr ||
               function_info.node->integrated_type_->basic_type == unknown_type) {
@@ -1176,9 +1157,29 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
               function_info.node->integrated_type_->basic_type = unit_type;
               function_info.node->integrated_type_->type_completed = true;
             }
-          }
+              }
           // now the function's type is ready
+          int call_expr_param_num = 0;
+          if (expression_ptr->children_.size() == 2) {
+            call_expr_param_num = static_cast<int>(expression_ptr->children_[1]->children_.size() + 1) / 2;
+          }
+          int declared_param_num = 0;
+          int function_parameters_node_ind = -1;
+          for (int i = 0; i < function_info.node->children_.size(); ++i) {
+            if (function_info.node->type_[i] != type_function_parameters) {
+              continue;
+            }
+            function_parameters_node_ind = i;
+            declared_param_num = static_cast<int>(function_info.node->children_[i]->children_.size() + 1) / 2;
+            break;
+          }
+          if (call_expr_param_num != declared_param_num) {
+            Throw("Parameter number doesn't match.");
+          }
           expression_ptr->integrated_type_ = function_info.node->integrated_type_;
+          if (call_expr_param_num == 0) {
+            break;
+          }
           for (int i = 0; i < expression_ptr->children_[1]->children_.size(); i += 2) {
             expression_ptr->children_[1]->children_[i]->Accept(this);
             TryToMatch(function_info.node->children_[function_parameters_node_ind]->children_[i]->integrated_type_,
@@ -1200,7 +1201,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
         if (struct_info.node_type != type_struct) {
           Throw("Cannot find target struct.");
         }
-        std::string function_name = dynamic_cast<LeafNode *>(expression_ptr->children_[0]->children_[3])
+        std::string function_name = dynamic_cast<LeafNode *>(expression_ptr->children_[0]->children_[2])
             ->GetContent().GetStr();
         auto struct_ptr = dynamic_cast<Struct *>(struct_info.node);
         if (!struct_ptr->associated_items_.contains(function_name)) {
@@ -1251,13 +1252,13 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
         if (call_expr_param_num != declared_param_num) {
           Throw("Parameter number doesn't match.");
         }
+        expression_ptr->integrated_type_ = function_info.node->integrated_type_;
         if (call_expr_param_num == 0) {
           break;
         }
         if (function_info.node->children_[function_parameters_node_ind]->type_[0] == type_self_param) {
           Throw("function with self parameter should be called with method call expression.");
         }
-        expression_ptr->integrated_type_ = function_info.node->integrated_type_;
         for (int i = 0; i < expression_ptr->children_[1]->children_.size(); i += 2) {
           expression_ptr->children_[1]->children_[i]->Accept(this);
           TryToMatch(function_info.node->children_[function_parameters_node_ind]->children_[i]->integrated_type_,
@@ -1314,11 +1315,11 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
         if (expression_ptr->children_[0]->integrated_type_->basic_type == struct_type) {
           struct_ptr = dynamic_cast<Struct *>(expression_ptr->children_[0]->integrated_type_->struct_node);
         } else if (expression_ptr->children_[0]->integrated_type_->basic_type == pointer_type) {
-          Node *pointer = expression_ptr->children_[0]->value_.pointer_value;
-          if (pointer->integrated_type_->basic_type != struct_type) {
+          auto pointer = expression_ptr->children_[0]->integrated_type_->element_type;
+          if (pointer->basic_type != struct_type) {
             Throw("Cannot apply method call operation to non-struct type.");
           }
-          struct_ptr = dynamic_cast<Struct *>(pointer->integrated_type_->struct_node);
+          struct_ptr = dynamic_cast<Struct *>(pointer->struct_node);
         } else {
           Throw("Invalid type.");
         }
@@ -1413,11 +1414,11 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
       if (expression_ptr->children_[0]->integrated_type_->basic_type == struct_type) {
         struct_ptr = dynamic_cast<Struct *>(expression_ptr->children_[0]->integrated_type_->struct_node);
       } else if (expression_ptr->children_[0]->integrated_type_->basic_type == pointer_type) {
-        Node *pointer = expression_ptr->children_[0]->value_.pointer_value;
-        if (pointer->integrated_type_->basic_type != struct_type) {
+        auto pointer = expression_ptr->children_[0]->integrated_type_->element_type;
+        if (pointer->basic_type != struct_type) {
           Throw("Cannot apply field operation to non-struct type.");
         }
-        struct_ptr = dynamic_cast<Struct *>(pointer->integrated_type_->struct_node);
+        struct_ptr = dynamic_cast<Struct *>(pointer->struct_node);
       } else {
         Throw("Invalid type.");
       }
@@ -1434,7 +1435,15 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
         wrapping_structs_.pop_back();
       }
       // now struct type is ready
-      expression_ptr->integrated_type_ = struct_ptr->field_items_[identifier_name].node->integrated_type_;
+      expression_ptr->integrated_type_ = std::make_shared<IntegratedType>();
+      *expression_ptr->integrated_type_ = *struct_ptr->field_items_[identifier_name].node->integrated_type_;
+      if (expression_ptr->children_[0]->integrated_type_->basic_type == struct_type) {
+        expression_ptr->integrated_type_->is_const = expression_ptr->children_[0]->integrated_type_->is_const;
+        expression_ptr->integrated_type_->is_mutable = expression_ptr->children_[0]->integrated_type_->is_mutable;
+      } else { // expression_ptr->children_[0]->integrated_type_->basic_type == pointer_type
+        expression_ptr->integrated_type_->is_const = expression_ptr->children_[0]->integrated_type_->element_type->is_const;
+        expression_ptr->integrated_type_->is_mutable = expression_ptr->children_[0]->integrated_type_->element_type->is_mutable;
+      }
       break;
     }
     case continue_expr: {
@@ -1491,10 +1500,10 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
       break;
     }
     case prefix_expr: {
-      expression_ptr->children_[1]->Accept(this);
       std::string prefix = dynamic_cast<LeafNode *>(expression_ptr->children_[0])
           ->GetContent().GetStr();
       if (prefix == "-") {
+        expression_ptr->children_[1]->Accept(this);
         if (!expression_ptr->children_[1]->integrated_type_->is_int) {
           Throw("Cannot apply prefix '-' to non-integer expression.");
         }
@@ -1505,6 +1514,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           expression_ptr->value_.int_value = val;
         }
       } else if (prefix == "*") {
+        expression_ptr->children_[1]->Accept(this);
         if(expression_ptr->children_[1]->integrated_type_->basic_type != pointer_type) {
           Throw("Cannot dereference a non-pointer type.");
         }
@@ -1513,6 +1523,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           expression_ptr->value_ = expression_ptr->children_[1]->value_.pointer_value->value_;
         }
       } else if (prefix == "!") {
+        expression_ptr->children_[1]->Accept(this);
         if (expression_ptr->children_[1]->integrated_type_->basic_type != bool_type) {
           Throw("Cannot apply prefix '!' to non-bool expression.");
         }
@@ -1521,23 +1532,58 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           expression_ptr->value_.int_value = 1 - expression_ptr->children_[1]->value_.int_value;
         }
       } else if (prefix == "&") {
-        expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(pointer_type,
-            expression_ptr->children_[1]->integrated_type_->is_const, expression_ptr->children_[1]->integrated_type_->is_mutable,
-            false, true, 0);
-        expression_ptr->integrated_type_->element_type = expression_ptr->children_[1]->integrated_type_;
-        if (expression_ptr->integrated_type_->is_const) {
-          expression_ptr->value_.pointer_value = expression_ptr->children_[1];
+        if (expression_ptr->children_.size() == 2) {
+          expression_ptr->children_[1]->Accept(this);
+          expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(pointer_type,
+              expression_ptr->children_[1]->integrated_type_->is_const, false,
+              false, true, 0);
+          expression_ptr->integrated_type_->element_type = std::make_shared<IntegratedType>();
+          *expression_ptr->integrated_type_->element_type = *expression_ptr->children_[1]->integrated_type_;
+          expression_ptr->integrated_type_->element_type->is_mutable = false;
+          if (expression_ptr->integrated_type_->is_const) {
+            expression_ptr->value_.pointer_value = expression_ptr->children_[1];
+          }
+        } else { // expression_ptr->children_.size() == 3
+          expression_ptr->children_[2]->Accept(this);
+          expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(pointer_type,
+              expression_ptr->children_[2]->integrated_type_->is_const, false,
+              false, true, 0);
+          expression_ptr->integrated_type_->element_type = std::make_shared<IntegratedType>();
+          *expression_ptr->integrated_type_->element_type = *expression_ptr->children_[2]->integrated_type_;
+          expression_ptr->integrated_type_->element_type->is_mutable = true;
+          if (expression_ptr->integrated_type_->is_const) {
+            Throw("A const value cannot have a mutable reference.");
+          }
         }
       } else if (prefix == "&&") {
-        expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(pointer_type,
-            expression_ptr->children_[1]->integrated_type_->is_const, expression_ptr->children_[1]->integrated_type_->is_mutable,
+        if (expression_ptr->children_.size() == 2) {
+          expression_ptr->children_[1]->Accept(this);
+          expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(pointer_type,
+            expression_ptr->children_[1]->integrated_type_->is_const, false,
             false, true, 0);
-        expression_ptr->integrated_type_->element_type = std::make_shared<IntegratedType>(pointer_type,
-            expression_ptr->children_[1]->integrated_type_->is_const, expression_ptr->children_[1]->integrated_type_->is_mutable,
+          expression_ptr->integrated_type_->element_type = std::make_shared<IntegratedType>(pointer_type,
+              expression_ptr->children_[1]->integrated_type_->is_const, false,
+              false, true, 0);
+          expression_ptr->integrated_type_->element_type->element_type = std::make_shared<IntegratedType>();
+          *expression_ptr->integrated_type_->element_type->element_type = *expression_ptr->children_[1]->integrated_type_;
+          expression_ptr->integrated_type_->element_type->element_type->is_mutable = false;
+          if (expression_ptr->integrated_type_->is_const) {
+            Throw("The value of '&&' type has not been completed yet.");
+          }
+        } else { // expression_ptr->children_.size() == 3
+          expression_ptr->children_[2]->Accept(this);
+          expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(pointer_type,
+            expression_ptr->children_[2]->integrated_type_->is_const, false,
             false, true, 0);
-        expression_ptr->integrated_type_->element_type->element_type = expression_ptr->children_[1]->integrated_type_;
-        if (expression_ptr->integrated_type_->is_const) {
-          Throw("The value of '&&' type has not been completed yet.");
+          expression_ptr->integrated_type_->element_type = std::make_shared<IntegratedType>(pointer_type,
+              expression_ptr->children_[2]->integrated_type_->is_const, false,
+              false, true, 0);
+          expression_ptr->integrated_type_->element_type->element_type = std::make_shared<IntegratedType>();
+          *expression_ptr->integrated_type_->element_type->element_type = *expression_ptr->children_[2]->integrated_type_;
+          expression_ptr->integrated_type_->element_type->element_type->is_mutable = true;
+          if (expression_ptr->integrated_type_->is_const) {
+            Throw("A const value cannot have a mutable double reference.");
+          }
         }
       }
       break;
