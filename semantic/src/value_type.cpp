@@ -1529,12 +1529,6 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
       if (wrapping_function_.empty()) {
         Throw("Invalid to call return outside a function.");
       }
-      if (wrapping_function_.size() == 1) {
-        auto function_info = wrapping_function_.back();
-        if (dynamic_cast<LeafNode *>(function_info.node->children_[1])->GetContent().GetStr() == "main") {
-          Throw("The outermost main function should terminate with exit function.");
-        }
-      }
       auto function_info = wrapping_function_.back();
       if (expression_ptr->children_.size() == 2) {
         expression_ptr->children_[1]->Accept(this);
