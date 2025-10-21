@@ -465,7 +465,7 @@ void ConstantItem::AddSymbol(ScopeNode *target_scope, const bool need_type_add, 
           std::cerr << "The name \"" << const_item_name << "\" is already in the associated item namespace.\n";
           throw "";
         }
-        target_struct_ptr->associated_items_[const_item_name] = node_info;
+        target_struct_ptr->associated_items_[const_item_name] = {this->children_[1], type_constant_item};
         break;
       }
       case type_trait: {
@@ -474,17 +474,17 @@ void ConstantItem::AddSymbol(ScopeNode *target_scope, const bool need_type_add, 
           std::cerr << "The name \"" << const_item_name << "\" is already in the associated item namespace.\n";
           throw "";
         }
-        target_trait_ptr->associated_items_[const_item_name] = node_info;
+        target_trait_ptr->associated_items_[const_item_name] = {this->children_[1], type_constant_item};
         break;
       }
       default:;
     }
   } else {
     if (need_type_add) {
-      target_scope->TypeAdd(const_item_name, node_info);
+      target_scope->TypeAdd(const_item_name, {this->children_[1], type_constant_item});
     }
     if (need_value_add) {
-      target_scope->ValueAdd(const_item_name, node_info);
+      target_scope->ValueAdd(const_item_name, {this->children_[1], type_constant_item});
     }
   }
 }
