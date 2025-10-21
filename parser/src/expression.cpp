@@ -728,7 +728,8 @@ Expression::Expression(const std::vector<Token> &tokens, int &ptr, ExprType expr
         lhs = new Expression(tokens_, ptr_, next_type, 0.0);
       } else {
         std::string next_token = tokens_[ptr_].GetStr();
-        if (next_token == "&" || next_token == "&&" || next_token == "*" || next_token == "-" || next_token == "!") {
+        if (next_token == "&" || next_token == "&&" || next_token == "*"
+            || next_token == "-" || next_token == "!") {
           lhs = new Expression(tokens_, ptr_, prefix_expr, 0.0);
         } else {
           try {
@@ -744,7 +745,9 @@ Expression::Expression(const std::vector<Token> &tokens, int &ptr, ExprType expr
       while (ptr_ < tokens_.size()) {
         // set op
         infix_ = GetInfix(tokens_[ptr_].GetStr());
-        if (infix_ == not_infix || infix_ == brackets_closure || infix_ == small_brackets_closure) {
+        if (infix_ == not_infix || infix_ == brackets_closure || infix_ == small_brackets_closure
+            || (infix_ == multiply && (lhs->expr_type_ == block_expr || lhs->expr_type_ == infinite_loop_expr
+            || lhs->expr_type_ == predicate_loop_expr || lhs->expr_type_ == if_expr))) {
           // no more infix, expression comes to the end
           break;
         }
