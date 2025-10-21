@@ -746,8 +746,8 @@ Expression::Expression(const std::vector<Token> &tokens, int &ptr, ExprType expr
         // set op
         infix_ = GetInfix(tokens_[ptr_].GetStr());
         if (infix_ == not_infix || infix_ == brackets_closure || infix_ == small_brackets_closure
-            || (infix_ == multiply && (lhs->expr_type_ == block_expr || lhs->expr_type_ == infinite_loop_expr
-            || lhs->expr_type_ == predicate_loop_expr || lhs->expr_type_ == if_expr))) {
+            || (lhs->expr_type_ == infinite_loop_expr || lhs->expr_type_ == predicate_loop_expr
+            || lhs->expr_type_ == if_expr)) {
           // no more infix, expression comes to the end
           break;
         }
