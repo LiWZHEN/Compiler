@@ -1354,15 +1354,15 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           || expression_ptr->children_[0]->integrated_type_->basic_type == array_type
           || (expression_ptr->children_[0]->integrated_type_->basic_type == pointer_type
           && expression_ptr->children_[0]->integrated_type_->element_type->basic_type == str_type))) {
-        // len() of u32 : [T; N], String, &str
+        // len() of usize : [T; N], String, &str
         if (expression_ptr->children_.size() != 2) {
           Throw("len method should be called with no parameter.");
         }
-        expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(u32_type,
+        expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(usize_type,
             false, false, true, true, 0);
         expression_ptr->integrated_type_->RemovePossibility(i32_type);
         expression_ptr->integrated_type_->RemovePossibility(isize_type);
-        expression_ptr->integrated_type_->RemovePossibility(usize_type);
+        expression_ptr->integrated_type_->RemovePossibility(u32_type);
       } else {
         Struct *struct_ptr = nullptr;
         if (expression_ptr->children_[0]->integrated_type_->basic_type == struct_type) {
