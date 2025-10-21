@@ -643,9 +643,11 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           false, false, false, true, 0);
         TryToMatch(target_type, expression_ptr->children_[2]->integrated_type_, false);
       }
-      if (expression_ptr->integrated_type_ == nullptr ||
-          expression_ptr->integrated_type_->basic_type == unknown_type) {
-        Throw("Infinite loop");
+      if (expression_ptr->integrated_type_ == nullptr) {
+        expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(never_type,
+            false, false, false, true, 0);
+      } else if (expression_ptr->integrated_type_->basic_type == unknown_type) {
+        expression_ptr->integrated_type_->basic_type = never_type;
       }
       break;
     }
