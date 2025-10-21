@@ -1582,6 +1582,10 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
         expression_ptr->integrated_type_ = expression_ptr->children_[1]->integrated_type_;
         if (expression_ptr->integrated_type_->is_const) {
           long long val = -expression_ptr->children_[1]->value_.int_value;
+          if (val == -2147483648 &&
+              dynamic_cast<Expression *>(expression_ptr->children_[1])->GetExprType() == literal_expr) {
+            expression_ptr->integrated_type_->possible_types.insert(i32_type);
+          }
           CheckOverflow(val, expression_ptr->integrated_type_);
           expression_ptr->value_.int_value = val;
         }
