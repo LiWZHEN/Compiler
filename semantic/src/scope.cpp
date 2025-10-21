@@ -111,8 +111,9 @@ void SymbolVisitor::Visit(Trait *trait_ptr) {
     if (trait_ptr->type_[i] != type_associated_item) {
       continue;
     }
-    trait_ptr->children_[i]->AddSymbol(nullptr, false, false, true,
-        false, {trait_ptr, type_trait}, {nullptr, type_crate});
+    trait_ptr->children_[i]->AddSymbol(nullptr, false,
+        false, true, false,
+        {trait_ptr, type_trait}, {nullptr, type_crate});
   }
   for (const auto it : trait_ptr->children_) {
     it->scope_node_ = current_scope_node_;
@@ -146,8 +147,9 @@ void SymbolVisitor::Visit(Implementation *implementation_ptr) {
       if (implementation_ptr->type_[i] != type_associated_item) {
         continue;
       }
-      implementation_ptr->children_[i]->AddSymbol(nullptr, false, false, true,
-        false, {struct_ptr, type_struct}, {nullptr, type_crate});
+      implementation_ptr->children_[i]->AddSymbol(nullptr, false,
+          false, true, false,
+          {struct_ptr, type_struct}, {nullptr, type_crate});
     }
     // visit
     for (int i = 0; i < implementation_ptr->children_.size(); ++i) {
@@ -165,8 +167,9 @@ void SymbolVisitor::Visit(Implementation *implementation_ptr) {
       if (implementation_ptr->type_[i] != type_associated_item) {
         continue;
       }
-      implementation_ptr->children_[i]->AddSymbol(nullptr, false, false, true,
-        false, {enum_ptr, type_struct}, {nullptr, type_crate});
+      implementation_ptr->children_[i]->AddSymbol(nullptr, false,
+          false, true, false,
+          {enum_ptr, type_struct}, {nullptr, type_crate});
     }
     // visit
     for (int i = 0; i < implementation_ptr->children_.size(); ++i) {
@@ -297,7 +300,9 @@ void SymbolVisitor::Visit(Expression *expression_ptr) {
           expression_ptr->children_[i]->AddSymbol(expression_ptr->children_[i]->scope_node_.get(),
               true, true, false, false,
               {nullptr, type_crate}, {nullptr, type_crate});
+          SetCurrentScope(expression_ptr->children_[i]->scope_node_);
           expression_ptr->children_[i]->Accept(this);
+          SetCurrentScope(expression_ptr->scope_node_);
         }
       }
       break;
@@ -318,7 +323,8 @@ void SymbolVisitor::Visit(Statements *statements_ptr) {
       statements_ptr->children_[i]->Accept(this);
     } else {
       // statement
-      if (statements_ptr->children_[i]->type_[0] == type_item && statements_ptr->children_[i]->children_[0]->type_[0] == type_implementation) {
+      if (statements_ptr->children_[i]->type_[0] == type_item &&
+          statements_ptr->children_[i]->children_[0]->type_[0] == type_implementation) {
         continue; // skip implement
       }
       statements_ptr->children_[i]->scope_node_ = statements_ptr->scope_node_;
@@ -330,7 +336,8 @@ void SymbolVisitor::Visit(Statements *statements_ptr) {
       continue;
     }
     // only access implement
-    if (statements_ptr->children_[i]->type_[0] == type_item && statements_ptr->children_[i]->children_[0]->type_[0] == type_implementation) {
+    if (statements_ptr->children_[i]->type_[0] == type_item &&
+        statements_ptr->children_[i]->children_[0]->type_[0] == type_implementation) {
       statements_ptr->children_[i]->scope_node_ = statements_ptr->scope_node_;
       statements_ptr->children_[i]->Accept(this);
     }
