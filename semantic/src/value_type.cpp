@@ -522,7 +522,13 @@ void ValueTypeVisitor::Visit(TypePath *type_path_ptr) {
     if (type_node.node == nullptr) {
       Throw("Undefined type name.");
     }
-    (*current_type_ptr)->basic_type = struct_type;
+    if (type_node.node_type == type_struct) {
+      (*current_type_ptr)->basic_type = struct_type;
+    } else if (type_node.node_type == type_enumeration) {
+      (*current_type_ptr)->basic_type = enumeration_type;
+    } else {
+      Throw("Invalid type.");
+    }
     (*current_type_ptr)->struct_node = type_node.node;
   }
   (*current_type_ptr)->type_completed = true;
@@ -871,7 +877,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           }
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(enumeration_type,
               true, false, false, true, 0);
-          expression_ptr->value_.pointer_value = enum_ptr;
+          expression_ptr->integrated_type_->struct_node = enum_ptr;
         }
       }
       break;
