@@ -582,12 +582,14 @@ void ValueTypeVisitor::Visit(LetStatement *let_statement_ptr) {
   std::string identifier_pattern_name;
   if (identifier_pattern_ptr->children_.size() > 1) {
     let_statement_ptr->children_[1]->integrated_type_->is_mutable = true;
-    identifier_pattern_name = dynamic_cast<LeafNode *>(identifier_pattern_ptr->children_[1])->GetContent().GetStr();
+    identifier_pattern_name = dynamic_cast<LeafNode *>(identifier_pattern_ptr->children_[1])
+        ->GetContent().GetStr();
   } else {
-    identifier_pattern_name = dynamic_cast<LeafNode *>(identifier_pattern_ptr->children_[0])->GetContent().GetStr();
+    identifier_pattern_name = dynamic_cast<LeafNode *>(identifier_pattern_ptr->children_[0])
+        ->GetContent().GetStr();
   }
-  let_statement_ptr->scope_node_->ValueAdd(identifier_pattern_name,
-      {let_statement_ptr->children_[1], type_pattern});
+  let_statement_ptr->scope_node_->value_namespace[identifier_pattern_name] =
+      {let_statement_ptr->children_[1], type_pattern};
 }
 void ValueTypeVisitor::Visit(ExpressionStatement *expression_statement_ptr) {
   expression_statement_ptr->children_[0]->Accept(this);
