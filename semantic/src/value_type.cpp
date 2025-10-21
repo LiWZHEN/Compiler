@@ -1628,7 +1628,18 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           *expression_ptr->integrated_type_->element_type = *expression_ptr->children_[2]->integrated_type_;
           expression_ptr->integrated_type_->element_type->is_mutable = true;
           if (expression_ptr->integrated_type_->is_const) {
-            Throw("A const value cannot have a mutable reference.");
+            switch (dynamic_cast<Expression *>(expression_ptr->children_[2])->GetExprType()) {
+              case literal_expr:
+              case array_expr:
+              case struct_expr: {
+                expression_ptr->integrated_type_->is_const = false;
+                expression_ptr->children_[2]->integrated_type_->is_const = false;
+                break;
+              }
+              default: {
+                Throw("A const value cannot have a mutable reference.");
+              }
+            }
           }
         }
       } else if (prefix == "&&") {
