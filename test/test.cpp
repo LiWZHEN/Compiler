@@ -333,7 +333,7 @@ TEST_F(SemanticTestBatch, ComprehensiveTest_1_10) {
   for (int i = 1; i <= 10; i++) {
     test_cases.push_back("comprehensive" + std::to_string(i));
   }
-  RunBatchTests(test_cases, "Comprehensive Tests 1-10", testcases_base_path_);
+  RunBatchTests(test_cases, "Comprehensive Tests 1-10", testcases_base_path_, true);
 }
 
 TEST_F(SemanticTestBatch, ComprehensiveTest_11_20) {
@@ -341,7 +341,7 @@ TEST_F(SemanticTestBatch, ComprehensiveTest_11_20) {
   for (int i = 11; i <= 20; i++) {
     test_cases.push_back("comprehensive" + std::to_string(i));
   }
-  RunBatchTests(test_cases, "Comprehensive Tests 11-20", testcases_base_path_);
+  RunBatchTests(test_cases, "Comprehensive Tests 11-20", testcases_base_path_, true);
 }
 
 TEST_F(SemanticTestBatch, ComprehensiveTest_21_30) {
@@ -349,7 +349,7 @@ TEST_F(SemanticTestBatch, ComprehensiveTest_21_30) {
   for (int i = 21; i <= 30; i++) {
     test_cases.push_back("comprehensive" + std::to_string(i));
   }
-  RunBatchTests(test_cases, "Comprehensive Tests 21-30", testcases_base_path_);
+  RunBatchTests(test_cases, "Comprehensive Tests 21-30", testcases_base_path_, true);
 }
 
 TEST_F(SemanticTestBatch, ComprehensiveTest_31_40) {
@@ -357,7 +357,7 @@ TEST_F(SemanticTestBatch, ComprehensiveTest_31_40) {
   for (int i = 31; i <= 40; i++) {
     test_cases.push_back("comprehensive" + std::to_string(i));
   }
-  RunBatchTests(test_cases, "Comprehensive Tests 31-40", testcases_base_path_);
+  RunBatchTests(test_cases, "Comprehensive Tests 31-40", testcases_base_path_, true);
 }
 
 TEST_F(SemanticTestBatch, ComprehensiveTest_41_50) {
@@ -365,7 +365,7 @@ TEST_F(SemanticTestBatch, ComprehensiveTest_41_50) {
   for (int i = 41; i <= 50; i++) {
     test_cases.push_back("comprehensive" + std::to_string(i));
   }
-  RunBatchTests(test_cases, "Comprehensive Tests 41-50", testcases_base_path_);
+  RunBatchTests(test_cases, "Comprehensive Tests 41-50", testcases_base_path_, true);
 }
 
 // Single test for debugging
