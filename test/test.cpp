@@ -126,15 +126,18 @@ bool SemanticCheck(const std::string &test_name, const std::string &code, const 
   return success;
 }
 
-void RunBatchTests(const std::vector<std::string> &test_cases, const std::string &batch_name, const std::string &testcases_base_path) {
+void RunBatchTests(const std::vector<std::string> &test_cases, const std::string &batch_name,
+    const std::string &testcases_base_path, const bool is_comprehensive = false) {
   std::cout << "=== Running Batch: " << batch_name << " ===" << std::endl;
 
   int passed_count = 0;
   int failed_count = 0;
 
+  std::string folder = is_comprehensive ? "/semantic-2/src/" : "/semantic-1/src/";
+
   for (const auto &test_case: test_cases) {
-    std::string test_path = testcases_base_path + "/semantic-1/src/" + test_case + "/" + test_case + ".rx";
-    std::string output_path = testcases_base_path + "/semantic-1/src/" + test_case + "/" + test_case + ".out";
+    std::string test_path = testcases_base_path + folder + test_case + "/" + test_case + ".rx";
+    std::string output_path = testcases_base_path + folder + test_case + "/" + test_case + ".out";
 
     TestCaseInfo test_info = ParseTestFile(test_path);
     if (test_info.code.empty()) {
@@ -323,6 +326,46 @@ TEST_F(SemanticTestBatch, BasicTests_31_40) {
     test_cases.push_back("basic" + std::to_string(i));
   }
   RunBatchTests(test_cases, "Basic Tests 31-40", testcases_base_path_);
+}
+
+TEST_F(SemanticTestBatch, ComprehensiveTest_1_10) {
+  std::vector<std::string> test_cases;
+  for (int i = 1; i <= 10; i++) {
+    test_cases.push_back("comprehensive" + std::to_string(i));
+  }
+  RunBatchTests(test_cases, "Comprehensive Tests 1-10", testcases_base_path_);
+}
+
+TEST_F(SemanticTestBatch, ComprehensiveTest_11_20) {
+  std::vector<std::string> test_cases;
+  for (int i = 11; i <= 20; i++) {
+    test_cases.push_back("comprehensive" + std::to_string(i));
+  }
+  RunBatchTests(test_cases, "Comprehensive Tests 11-20", testcases_base_path_);
+}
+
+TEST_F(SemanticTestBatch, ComprehensiveTest_21_30) {
+  std::vector<std::string> test_cases;
+  for (int i = 21; i <= 30; i++) {
+    test_cases.push_back("comprehensive" + std::to_string(i));
+  }
+  RunBatchTests(test_cases, "Comprehensive Tests 21-30", testcases_base_path_);
+}
+
+TEST_F(SemanticTestBatch, ComprehensiveTest_31_40) {
+  std::vector<std::string> test_cases;
+  for (int i = 31; i <= 40; i++) {
+    test_cases.push_back("comprehensive" + std::to_string(i));
+  }
+  RunBatchTests(test_cases, "Comprehensive Tests 31-40", testcases_base_path_);
+}
+
+TEST_F(SemanticTestBatch, ComprehensiveTest_41_50) {
+  std::vector<std::string> test_cases;
+  for (int i = 41; i <= 50; i++) {
+    test_cases.push_back("comprehensive" + std::to_string(i));
+  }
+  RunBatchTests(test_cases, "Comprehensive Tests 41-50", testcases_base_path_);
 }
 
 // Single test for debugging
