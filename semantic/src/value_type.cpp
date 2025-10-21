@@ -225,9 +225,6 @@ void ValueTypeVisitor::Visit(ConstantItem *constant_item_ptr) {
   TryToMatch(constant_item_ptr->children_[1]->integrated_type_,
       constant_item_ptr->children_[5]->integrated_type_, true);
   constant_item_ptr->children_[1]->value_ = constant_item_ptr->children_[5]->value_;
-  const std::string constant_item_name = dynamic_cast<LeafNode *>(constant_item_ptr->children_[1])->GetContent().GetStr();
-  constant_item_ptr->scope_node_->ValueAdd(constant_item_name,
-      {constant_item_ptr->children_[1], type_identifier});
 }
 void ValueTypeVisitor::Visit(BlockExpression *block_expression_ptr) {
   if (block_expression_ptr->children_.size() == 2) {
@@ -1871,12 +1868,10 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
               !expression_ptr->children_[1]->integrated_type_->is_int) {
             Throw("Left-shift operation is only available between integer values.");
           }
-          const auto target_type = std::make_shared<IntegratedType>(u32_type,
-              false, false, true, true, 0);
-          target_type->RemovePossibility(i32_type);
-          target_type->RemovePossibility(isize_type);
-          TryToMatch(target_type, expression_ptr->children_[1]->integrated_type_,
-              false);
+          if (expression_ptr->children_[1]->integrated_type_->is_const &&
+              expression_ptr->children_[1]->value_.int_value < 0) {
+            Throw("Left shift overflow.");
+          }
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>();
           *expression_ptr->integrated_type_ = *expression_ptr->children_[0]->integrated_type_;
           if (!expression_ptr->children_[1]->integrated_type_->is_const) {
@@ -1898,12 +1893,10 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
               !expression_ptr->children_[1]->integrated_type_->is_int) {
             Throw("Right-shift operation is only available between integer values.");
           }
-          const auto target_type = std::make_shared<IntegratedType>(u32_type,
-              false, false, true, true, 0);
-          target_type->RemovePossibility(i32_type);
-          target_type->RemovePossibility(isize_type);
-          TryToMatch(target_type, expression_ptr->children_[1]->integrated_type_,
-              false);
+          if (expression_ptr->children_[1]->integrated_type_->is_const &&
+              expression_ptr->children_[1]->value_.int_value < 0) {
+            Throw("Right shift overflow.");
+          }
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>();
           *expression_ptr->integrated_type_ = *expression_ptr->children_[0]->integrated_type_;
           if (!expression_ptr->children_[1]->integrated_type_->is_const) {
