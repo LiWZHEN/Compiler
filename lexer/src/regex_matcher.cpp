@@ -66,9 +66,6 @@ MatchResult RegexMatcher::MatchRawStringLiteral() {
         return {str_.substr(start_, ptr - start_), RAW_STRING_LITERAL};
       }
     }
-    if (str_[ptr] == '\r') {
-      return {};
-    }
     ++ptr;
   }
   return {};
