@@ -802,16 +802,16 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
         switch (first_path_node_info.node_type) {
           case type_struct: {
             auto struct_ptr = dynamic_cast<Struct *>(first_path_node_info.node);
-            if (!struct_ptr->associated_items_.empty()) {
-              if (struct_ptr->associated_items_.begin()->second.node->integrated_type_ == nullptr ||
-                  struct_ptr->associated_items_.begin()->second.node->integrated_type_->basic_type == unknown_type) {
+            for (const auto &item : struct_ptr->associated_items_) {
+              if (item.second.node->integrated_type_ == nullptr ||
+                  item.second.node->integrated_type_->basic_type == unknown_type) {
                 // target struct has not been visited yet
                 wrapping_structs_.push_back(first_path_node_info);
                 for (const auto &it : struct_ptr->associated_items_) {
                   if (it.second.node_type == type_function) {
                     auto function_ptr = it.second.node;
                     for (int i = 0; i < function_ptr->children_.size(); ++i) {
-                      if (function_ptr->type_[i] == type_type) {
+                      if (function_ptr->type_[i] == type_function_return_type) {
                         is_reading_type_ = true;
                         type_owner_ = function_ptr;
                         function_ptr->children_[i]->Accept(this);
@@ -842,8 +842,6 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
                 wrapping_structs_.pop_back();
                 break;
               }
-            } else {
-              Throw("Struct with no associated-items!");
             }
             break;
           }
@@ -996,10 +994,13 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
       const auto struct_ptr = dynamic_cast<Struct *>(struct_info.node);
       // if target struct has not been visited, visit its field items
       wrapping_structs_.push_back(struct_info);
-      if (!struct_ptr->field_items_.empty() && (struct_ptr->field_items_.begin()->second.node->integrated_type_ == nullptr
-          || struct_ptr->field_items_.begin()->second.node->integrated_type_->basic_type == unknown_type)) {
-        for (const auto &it : struct_ptr->field_items_) {
-          it.second.node->Accept(this);
+      for (const auto &item : struct_ptr->field_items_) {
+        if (item.second.node->integrated_type_ == nullptr
+            || item.second.node->integrated_type_->basic_type == unknown_type) {
+          for (const auto &it : struct_ptr->field_items_) {
+            it.second.node->Accept(this);
+          }
+          break;
         }
       }
       wrapping_structs_.pop_back();
@@ -1168,7 +1169,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           if (function_info.node->integrated_type_ == nullptr ||
               function_info.node->integrated_type_->basic_type == unknown_type) {
             for (int i = 0; i < function_info.node->children_.size(); ++i) {
-              if (function_info.node->type_[i] == type_type) {
+              if (function_info.node->type_[i] == type_function_return_type) {
                 is_reading_type_ = true;
                 type_owner_ = function_info.node;
                 function_info.node->children_[i]->Accept(this);
@@ -1243,25 +1244,40 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
         // make sure the function type is ready
         if (function_info.node->integrated_type_ == nullptr ||
             function_info.node->integrated_type_->basic_type == unknown_type) {
-          for (int i = 0; i < function_info.node->children_.size(); ++i) {
-            if (function_info.node->type_[i] == type_type) {
+          wrapping_structs_.push_back({struct_ptr, type_struct});
+          for (const auto &it : struct_ptr->associated_items_) {
+            if (it.second.node_type == type_function) {
+              auto function_ptr = it.second.node;
+              for (int i = 0; i < function_ptr->children_.size(); ++i) {
+                if (function_ptr->type_[i] == type_function_return_type) {
+                  is_reading_type_ = true;
+                  type_owner_ = function_ptr;
+                  function_ptr->children_[i]->Accept(this);
+                  function_ptr->integrated_type_->type_completed = true;
+                  is_reading_type_ = false;
+                  type_owner_ = nullptr;
+                } else if (function_ptr->type_[i] == type_function_parameters) {
+                  function_ptr->children_[i]->Accept(this);
+                }
+              }
+              if (function_ptr->integrated_type_ == nullptr) {
+                function_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
+                    false, false, false, true, 0);
+              } else if (function_ptr->integrated_type_->basic_type == unknown_type) {
+                function_ptr->integrated_type_->basic_type = unit_type;
+                function_ptr->integrated_type_->type_completed = true;
+              }
+            } else { // it.second.node_type == type_constant_item
+              auto const_item_ptr = it.second.node;
               is_reading_type_ = true;
-              type_owner_ = function_info.node;
-              function_info.node->children_[i]->Accept(this);
-              function_info.node->integrated_type_->type_completed = true;
+              type_owner_ = const_item_ptr;
+              const_item_ptr->children_[3]->Accept(this);
+              const_item_ptr->integrated_type_->type_completed = true;
               is_reading_type_ = false;
               type_owner_ = nullptr;
-            } else if (function_info.node->type_[i] == type_function_parameters) {
-              function_info.node->children_[i]->Accept(this);
             }
           }
-          if (function_info.node->integrated_type_ == nullptr) {
-            function_info.node->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
-                false, false, false, true, 0);
-          } else if (function_info.node->integrated_type_->basic_type == unknown_type) {
-            function_info.node->integrated_type_->basic_type = unit_type;
-            function_info.node->integrated_type_->type_completed = true;
-          }
+          wrapping_structs_.pop_back();
         }
         // now the function type is ready
         int call_expr_param_num = 0;
@@ -1356,43 +1372,46 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           Throw("Cannot find target function in the associated-item-field of the struct.");
         }
         // make sure the struct type is ready
-        if (struct_ptr->associated_items_.begin()->second.node->integrated_type_ == nullptr ||
-            struct_ptr->associated_items_.begin()->second.node->integrated_type_->basic_type == unknown_type) {
-          // target struct has not been visited yet
-          wrapping_structs_.push_back({struct_ptr, type_struct});
-          for (const auto &it : struct_ptr->associated_items_) {
-            if (it.second.node_type == type_function) {
-              auto function_ptr = it.second.node;
-              for (int i = 0; i < function_ptr->children_.size(); ++i) {
-                if (function_ptr->type_[i] == type_type) {
-                  is_reading_type_ = true;
-                  type_owner_ = function_ptr;
-                  function_ptr->children_[i]->Accept(this);
-                  function_ptr->integrated_type_->type_completed = true;
-                  is_reading_type_ = false;
-                  type_owner_ = nullptr;
-                } else if (function_ptr->type_[i] == type_function_parameters) {
-                  function_ptr->children_[i]->Accept(this);
+        for (const auto &item : struct_ptr->associated_items_) {
+          if (item.second.node->integrated_type_ == nullptr ||
+             item.second.node->integrated_type_->basic_type == unknown_type) {
+            // target struct has not been visited yet
+            wrapping_structs_.push_back({struct_ptr, type_struct});
+            for (const auto &it : struct_ptr->associated_items_) {
+              if (it.second.node_type == type_function) {
+                auto function_ptr = it.second.node;
+                for (int i = 0; i < function_ptr->children_.size(); ++i) {
+                  if (function_ptr->type_[i] == type_function_return_type) {
+                    is_reading_type_ = true;
+                    type_owner_ = function_ptr;
+                    function_ptr->children_[i]->Accept(this);
+                    function_ptr->integrated_type_->type_completed = true;
+                    is_reading_type_ = false;
+                    type_owner_ = nullptr;
+                  } else if (function_ptr->type_[i] == type_function_parameters) {
+                    function_ptr->children_[i]->Accept(this);
+                  }
                 }
+                if (function_ptr->integrated_type_ == nullptr) {
+                  function_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
+                      false, false, false, true, 0);
+                } else if (function_ptr->integrated_type_->basic_type == unknown_type) {
+                  function_ptr->integrated_type_->basic_type = unit_type;
+                  function_ptr->integrated_type_->type_completed = true;
+                }
+              } else { // it.second.node_type == type_constant_item
+                auto const_item_ptr = it.second.node;
+                is_reading_type_ = true;
+                type_owner_ = const_item_ptr;
+                const_item_ptr->children_[3]->Accept(this);
+                const_item_ptr->integrated_type_->type_completed = true;
+                is_reading_type_ = false;
+                type_owner_ = nullptr;
               }
-              if (function_ptr->integrated_type_ == nullptr) {
-                function_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
-                    false, false, false, true, 0);
-              } else if (function_ptr->integrated_type_->basic_type == unknown_type) {
-                function_ptr->integrated_type_->basic_type = unit_type;
-                function_ptr->integrated_type_->type_completed = true;
-              }
-            } else { // it.second.node_type == type_constant_item
-              auto const_item_ptr = it.second.node;
-              is_reading_type_ = true;
-              type_owner_ = const_item_ptr;
-              const_item_ptr->children_[3]->Accept(this);
-              const_item_ptr->integrated_type_->type_completed = true;
-              is_reading_type_ = false;
-              type_owner_ = nullptr;
             }
+            wrapping_structs_.pop_back();
+            break;
           }
-          wrapping_structs_.pop_back();
         }
         // now the struct type is ready
         if (struct_ptr->associated_items_[function_name].node_type != type_function) {
@@ -1467,13 +1486,16 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
         Throw("Cannot find target element in the field of the struct.");
       }
       // make sure struct type is ready
-      if (struct_ptr->field_items_.begin()->second.node->integrated_type_ == nullptr ||
-          struct_ptr->field_items_.begin()->second.node->integrated_type_->basic_type == unknown_type) {
-        wrapping_structs_.push_back({struct_ptr, type_struct});
-        for (const auto &it : struct_ptr->field_items_) {
-          it.second.node->Accept(this);
+      for (const auto &item : struct_ptr->field_items_) {
+        if (item.second.node->integrated_type_ == nullptr ||
+           item.second.node->integrated_type_->basic_type == unknown_type) {
+          wrapping_structs_.push_back({struct_ptr, type_struct});
+          for (const auto &it : struct_ptr->field_items_) {
+            it.second.node->Accept(this);
+          }
+          wrapping_structs_.pop_back();
+          break;
         }
-        wrapping_structs_.pop_back();
       }
       // now struct type is ready
       expression_ptr->integrated_type_ = std::make_shared<IntegratedType>();
