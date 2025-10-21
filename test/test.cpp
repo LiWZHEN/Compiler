@@ -369,7 +369,7 @@ TEST_F(SemanticTestBatch, ComprehensiveTest_41_50) {
 }
 
 // Single test for debugging
-TEST_F(SemanticTestBatch, SingleTest_Debug) {
+/*TEST_F(SemanticTestBatch, SingleTest_Debug) {
   std::string test_case = "debugging"; // Change this to any test case you want to debug
   std::string test_path = testcases_base_path_ + "/working_space/" + test_case + ".rx";
   std::string output_path = testcases_base_path_ + "/working_space/" + test_case + ".out";
@@ -400,7 +400,7 @@ TEST_F(SemanticTestBatch, SingleTest_Debug) {
 
   // Also assert in the test framework
   EXPECT_EQ(actual_result, expected_result);
-}
+}*/
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);

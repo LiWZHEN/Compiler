@@ -1599,12 +1599,17 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
         }
       } else if (prefix == "!") {
         expression_ptr->children_[1]->Accept(this);
-        if (expression_ptr->children_[1]->integrated_type_->basic_type != bool_type) {
-          Throw("Cannot apply prefix '!' to non-bool expression.");
-        }
         expression_ptr->integrated_type_ = expression_ptr->children_[1]->integrated_type_;
-        if (expression_ptr->integrated_type_->is_const) {
-          expression_ptr->value_.int_value = 1 - expression_ptr->children_[1]->value_.int_value;
+        if (expression_ptr->integrated_type_->basic_type == bool_type) {
+          if (expression_ptr->integrated_type_->is_const) {
+            expression_ptr->value_.int_value = 1 - expression_ptr->children_[1]->value_.int_value;
+          }
+        } else if (expression_ptr->integrated_type_->is_int) {
+          if (expression_ptr->integrated_type_->is_const) {
+            expression_ptr->value_.int_value = ~expression_ptr->children_[1]->value_.int_value;
+          }
+        } else {
+          Throw("Cannot apply prefix '!' to neither-bool-nor-int type.");
         }
       } else if (prefix == "&") {
         if (expression_ptr->children_.size() == 2) {
