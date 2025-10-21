@@ -1136,7 +1136,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           target_type->RemovePossibility(u32_type);
           target_type->RemovePossibility(usize_type);
           TryToMatch(target_type, expression_ptr->children_[1]->children_[0]->integrated_type_, false);
-          if (wrapping_function_.size() != 1) { // not outermost
+          if (wrapping_function_.size() != 1 || !wrapping_structs_.empty()) { // not outermost
             Throw("exit() should be used in the end of the outermost main function");
           }
           auto exiting_function_info = wrapping_function_.back();
