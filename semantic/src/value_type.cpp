@@ -1502,7 +1502,8 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
       auto loop_info = wrapping_loop_.back();
       if (expression_ptr->children_.size() == 2) {
         expression_ptr->children_[1]->Accept(this);
-        if (loop_info.node->integrated_type_->basic_type == unknown_type) {
+        if (loop_info.node->integrated_type_ == nullptr ||
+            loop_info.node->integrated_type_->basic_type == unknown_type) {
           loop_info.node->integrated_type_ = expression_ptr->children_[1]->integrated_type_;
         } else {
           TryToMatch(expression_ptr->children_[1]->integrated_type_,
@@ -1655,10 +1656,12 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
             expression_ptr->integrated_type_->is_const = false;
           }
           expression_ptr->integrated_type_->is_mutable = false;
-          const long long ans = expression_ptr->children_[0]->value_.int_value
-              + expression_ptr->children_[1]->value_.int_value;
-          CheckOverflow(ans, expression_ptr->integrated_type_);
-          expression_ptr->value_.int_value = ans;
+          if (expression_ptr->integrated_type_->is_const) {
+            const long long ans = expression_ptr->children_[0]->value_.int_value
+                + expression_ptr->children_[1]->value_.int_value;
+            CheckOverflow(ans, expression_ptr->integrated_type_);
+            expression_ptr->value_.int_value = ans;
+          }
           break;
         }
         case minus: {
@@ -1676,10 +1679,12 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
             expression_ptr->integrated_type_->is_const = false;
           }
           expression_ptr->integrated_type_->is_mutable = false;
-          const long long ans = expression_ptr->children_[0]->value_.int_value
-              - expression_ptr->children_[1]->value_.int_value;
-          CheckOverflow(ans, expression_ptr->integrated_type_);
-          expression_ptr->value_.int_value = ans;
+          if (expression_ptr->integrated_type_->is_const) {
+            const long long ans = expression_ptr->children_[0]->value_.int_value
+                - expression_ptr->children_[1]->value_.int_value;
+            CheckOverflow(ans, expression_ptr->integrated_type_);
+            expression_ptr->value_.int_value = ans;
+          }
           break;
         }
         case multiply: {
@@ -1697,10 +1702,12 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
             expression_ptr->integrated_type_->is_const = false;
           }
           expression_ptr->integrated_type_->is_mutable = false;
-          const long long ans = expression_ptr->children_[0]->value_.int_value
-              * expression_ptr->children_[1]->value_.int_value;
-          CheckOverflow(ans, expression_ptr->integrated_type_);
-          expression_ptr->value_.int_value = ans;
+          if (expression_ptr->integrated_type_->is_const) {
+            const long long ans = expression_ptr->children_[0]->value_.int_value
+                * expression_ptr->children_[1]->value_.int_value;
+            CheckOverflow(ans, expression_ptr->integrated_type_);
+            expression_ptr->value_.int_value = ans;
+          }
           break;
         }
         case divide: {
@@ -1718,10 +1725,12 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
             expression_ptr->integrated_type_->is_const = false;
           }
           expression_ptr->integrated_type_->is_mutable = false;
-          const long long ans = expression_ptr->children_[0]->value_.int_value
-              / expression_ptr->children_[1]->value_.int_value;
-          CheckOverflow(ans, expression_ptr->integrated_type_);
-          expression_ptr->value_.int_value = ans;
+          if (expression_ptr->integrated_type_->is_const) {
+            const long long ans = expression_ptr->children_[0]->value_.int_value
+                / expression_ptr->children_[1]->value_.int_value;
+            CheckOverflow(ans, expression_ptr->integrated_type_);
+            expression_ptr->value_.int_value = ans;
+          }
           break;
         }
         case mod: {
@@ -1739,10 +1748,12 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
             expression_ptr->integrated_type_->is_const = false;
           }
           expression_ptr->integrated_type_->is_mutable = false;
-          const long long ans = expression_ptr->children_[0]->value_.int_value
-              % expression_ptr->children_[1]->value_.int_value;
-          CheckOverflow(ans, expression_ptr->integrated_type_);
-          expression_ptr->value_.int_value = ans;
+          if (expression_ptr->integrated_type_->is_const) {
+            const long long ans = expression_ptr->children_[0]->value_.int_value
+                % expression_ptr->children_[1]->value_.int_value;
+            CheckOverflow(ans, expression_ptr->integrated_type_);
+            expression_ptr->value_.int_value = ans;
+          }
           break;
         }
         case bitwise_and: {
@@ -1760,10 +1771,12 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
             expression_ptr->integrated_type_->is_const = false;
           }
           expression_ptr->integrated_type_->is_mutable = false;
-          const long long ans = expression_ptr->children_[0]->value_.int_value
-              & expression_ptr->children_[1]->value_.int_value;
-          CheckOverflow(ans, expression_ptr->integrated_type_);
-          expression_ptr->value_.int_value = ans;
+          if (expression_ptr->integrated_type_->is_const) {
+            const long long ans = expression_ptr->children_[0]->value_.int_value
+                & expression_ptr->children_[1]->value_.int_value;
+            CheckOverflow(ans, expression_ptr->integrated_type_);
+            expression_ptr->value_.int_value = ans;
+          }
           break;
         }
         case bitwise_or: {
@@ -1781,10 +1794,12 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
             expression_ptr->integrated_type_->is_const = false;
           }
           expression_ptr->integrated_type_->is_mutable = false;
-          const long long ans = expression_ptr->children_[0]->value_.int_value
-              | expression_ptr->children_[1]->value_.int_value;
-          CheckOverflow(ans, expression_ptr->integrated_type_);
-          expression_ptr->value_.int_value = ans;
+          if (expression_ptr->integrated_type_->is_const) {
+            const long long ans = expression_ptr->children_[0]->value_.int_value
+                | expression_ptr->children_[1]->value_.int_value;
+            CheckOverflow(ans, expression_ptr->integrated_type_);
+            expression_ptr->value_.int_value = ans;
+          }
           break;
         }
         case bitwise_xor: {
@@ -1802,10 +1817,12 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
             expression_ptr->integrated_type_->is_const = false;
           }
           expression_ptr->integrated_type_->is_mutable = false;
-          const long long ans = expression_ptr->children_[0]->value_.int_value
-              ^ expression_ptr->children_[1]->value_.int_value;
-          CheckOverflow(ans, expression_ptr->integrated_type_);
-          expression_ptr->value_.int_value = ans;
+          if (expression_ptr->integrated_type_->is_const) {
+            const long long ans = expression_ptr->children_[0]->value_.int_value
+                ^ expression_ptr->children_[1]->value_.int_value;
+            CheckOverflow(ans, expression_ptr->integrated_type_);
+            expression_ptr->value_.int_value = ans;
+          }
           break;
         }
         case left_shift: {
@@ -1827,10 +1844,12 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
             expression_ptr->integrated_type_->is_const = false;
           }
           expression_ptr->integrated_type_->is_mutable = false;
-          const long long ans = expression_ptr->children_[0]->value_.int_value
-              << expression_ptr->children_[1]->value_.int_value;
-          CheckOverflow(ans, expression_ptr->integrated_type_);
-          expression_ptr->value_.int_value = ans;
+          if (expression_ptr->integrated_type_->is_const) {
+            const long long ans = expression_ptr->children_[0]->value_.int_value
+                << expression_ptr->children_[1]->value_.int_value;
+            CheckOverflow(ans, expression_ptr->integrated_type_);
+            expression_ptr->value_.int_value = ans;
+          }
           break;
         }
         case right_shift: {
@@ -1852,10 +1871,12 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
             expression_ptr->integrated_type_->is_const = false;
           }
           expression_ptr->integrated_type_->is_mutable = false;
-          const long long ans = expression_ptr->children_[0]->value_.int_value
-              >> expression_ptr->children_[1]->value_.int_value;
-          CheckOverflow(ans, expression_ptr->integrated_type_);
-          expression_ptr->value_.int_value = ans;
+          if (expression_ptr->integrated_type_->is_const) {
+            const long long ans = expression_ptr->children_[0]->value_.int_value
+                >> expression_ptr->children_[1]->value_.int_value;
+            CheckOverflow(ans, expression_ptr->integrated_type_);
+            expression_ptr->value_.int_value = ans;
+          }
           break;
         }
         case is_equal: {
@@ -1874,73 +1895,73 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           if (expression_ptr->children_[0]->integrated_type_->is_const &&
               expression_ptr->children_[1]->integrated_type_->is_const) {
             expression_ptr->integrated_type_->is_const = true;
-          }
-          switch (expression_ptr->children_[1]->integrated_type_->basic_type) {
-            case bool_type:
-            case i32_type:
-            case isize_type:
-            case u32_type:
-            case usize_type: {
-              if (expression_ptr->children_[0]->value_.int_value ==
-                  expression_ptr->children_[1]->value_.int_value) {
-                expression_ptr->value_.int_value = 1;
-              } else {
-                expression_ptr->value_.int_value = 0;
+            switch (expression_ptr->children_[1]->integrated_type_->basic_type) {
+              case bool_type:
+              case i32_type:
+              case isize_type:
+              case u32_type:
+              case usize_type: {
+                if (expression_ptr->children_[0]->value_.int_value ==
+                    expression_ptr->children_[1]->value_.int_value) {
+                  expression_ptr->value_.int_value = 1;
+                } else {
+                  expression_ptr->value_.int_value = 0;
+                }
+                break;
               }
-              break;
-            }
-            case char_type:
-            case str_type:
-            case string_type: {
-              if (expression_ptr->children_[0]->value_.str_value ==
-                  expression_ptr->children_[1]->value_.str_value) {
-                expression_ptr->value_.int_value = 1;
-              } else {
-                expression_ptr->value_.int_value = 0;
+              case char_type:
+              case str_type:
+              case string_type: {
+                if (expression_ptr->children_[0]->value_.str_value ==
+                    expression_ptr->children_[1]->value_.str_value) {
+                  expression_ptr->value_.int_value = 1;
+                } else {
+                  expression_ptr->value_.int_value = 0;
+                }
+                break;
               }
-              break;
-            }
-            case array_type: {
-              if (expression_ptr->children_[0]->value_.array_values ==
-                  expression_ptr->children_[1]->value_.array_values) {
-                expression_ptr->value_.int_value = 1;
-              } else {
-                expression_ptr->value_.int_value = 0;
+              case array_type: {
+                if (expression_ptr->children_[0]->value_.array_values ==
+                    expression_ptr->children_[1]->value_.array_values) {
+                  expression_ptr->value_.int_value = 1;
+                } else {
+                  expression_ptr->value_.int_value = 0;
+                }
+                break;
               }
-              break;
-            }
-            case struct_type: {
-              if (expression_ptr->children_[0]->value_.struct_values ==
-                  expression_ptr->children_[1]->value_.struct_values) {
-                expression_ptr->value_.int_value = 1;
-              } else {
-                expression_ptr->value_.int_value = 0;
+              case struct_type: {
+                if (expression_ptr->children_[0]->value_.struct_values ==
+                    expression_ptr->children_[1]->value_.struct_values) {
+                  expression_ptr->value_.int_value = 1;
+                } else {
+                  expression_ptr->value_.int_value = 0;
+                }
+                break;
               }
-              break;
-            }
-            case enumeration_type: {
-              if (expression_ptr->children_[0]->value_.enum_value ==
-                  expression_ptr->children_[1]->value_.enum_value) {
-                expression_ptr->value_.int_value = 1;
-              } else {
-                expression_ptr->value_.int_value = 0;
+              case enumeration_type: {
+                if (expression_ptr->children_[0]->value_.enum_value ==
+                    expression_ptr->children_[1]->value_.enum_value) {
+                  expression_ptr->value_.int_value = 1;
+                } else {
+                  expression_ptr->value_.int_value = 0;
+                }
+                break;
               }
-              break;
-            }
-            case pointer_type: {
-              if (expression_ptr->children_[0]->value_.pointer_value->value_ ==
-                  expression_ptr->children_[1]->value_.pointer_value->value_) {
-                expression_ptr->value_.int_value = 1;
-              } else {
-                expression_ptr->value_.int_value = 0;
+              case pointer_type: {
+                if (expression_ptr->children_[0]->value_.pointer_value->value_ ==
+                    expression_ptr->children_[1]->value_.pointer_value->value_) {
+                  expression_ptr->value_.int_value = 1;
+                } else {
+                  expression_ptr->value_.int_value = 0;
+                }
+                break;
               }
-              break;
+              case never_type: {
+                expression_ptr->value_.int_value = 1;
+                break;
+              }
+              default:;
             }
-            case never_type: {
-              expression_ptr->value_.int_value = 1;
-              break;
-            }
-            default:;
           }
           break;
         }
@@ -1960,73 +1981,73 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           if (expression_ptr->children_[0]->integrated_type_->is_const &&
               expression_ptr->children_[1]->integrated_type_->is_const) {
             expression_ptr->integrated_type_->is_const = true;
-          }
-          switch (expression_ptr->children_[1]->integrated_type_->basic_type) {
-            case bool_type:
-            case i32_type:
-            case isize_type:
-            case u32_type:
-            case usize_type: {
-              if (expression_ptr->children_[0]->value_.int_value ==
-                  expression_ptr->children_[1]->value_.int_value) {
-                expression_ptr->value_.int_value = 0;
-              } else {
-                expression_ptr->value_.int_value = 1;
+            switch (expression_ptr->children_[1]->integrated_type_->basic_type) {
+              case bool_type:
+              case i32_type:
+              case isize_type:
+              case u32_type:
+              case usize_type: {
+                if (expression_ptr->children_[0]->value_.int_value ==
+                    expression_ptr->children_[1]->value_.int_value) {
+                  expression_ptr->value_.int_value = 0;
+                } else {
+                  expression_ptr->value_.int_value = 1;
+                }
+                break;
               }
-              break;
-            }
-            case char_type:
-            case str_type:
-            case string_type: {
-              if (expression_ptr->children_[0]->value_.str_value ==
-                  expression_ptr->children_[1]->value_.str_value) {
-                expression_ptr->value_.int_value = 0;
-              } else {
-                expression_ptr->value_.int_value = 1;
+              case char_type:
+              case str_type:
+              case string_type: {
+                if (expression_ptr->children_[0]->value_.str_value ==
+                    expression_ptr->children_[1]->value_.str_value) {
+                  expression_ptr->value_.int_value = 0;
+                } else {
+                  expression_ptr->value_.int_value = 1;
+                }
+                break;
               }
-              break;
-            }
-            case array_type: {
-              if (expression_ptr->children_[0]->value_.array_values ==
-                  expression_ptr->children_[1]->value_.array_values) {
-                expression_ptr->value_.int_value = 0;
-              } else {
-                expression_ptr->value_.int_value = 1;
+              case array_type: {
+                if (expression_ptr->children_[0]->value_.array_values ==
+                    expression_ptr->children_[1]->value_.array_values) {
+                  expression_ptr->value_.int_value = 0;
+                } else {
+                  expression_ptr->value_.int_value = 1;
+                }
+                break;
               }
-              break;
-            }
-            case struct_type: {
-              if (expression_ptr->children_[0]->value_.struct_values ==
-                  expression_ptr->children_[1]->value_.struct_values) {
-                expression_ptr->value_.int_value = 0;
-              } else {
-                expression_ptr->value_.int_value = 1;
+              case struct_type: {
+                if (expression_ptr->children_[0]->value_.struct_values ==
+                    expression_ptr->children_[1]->value_.struct_values) {
+                  expression_ptr->value_.int_value = 0;
+                } else {
+                  expression_ptr->value_.int_value = 1;
+                }
+                break;
               }
-              break;
-            }
-            case enumeration_type: {
-              if (expression_ptr->children_[0]->value_.enum_value ==
-                  expression_ptr->children_[1]->value_.enum_value) {
-                expression_ptr->value_.int_value = 0;
-              } else {
-                expression_ptr->value_.int_value = 1;
+              case enumeration_type: {
+                if (expression_ptr->children_[0]->value_.enum_value ==
+                    expression_ptr->children_[1]->value_.enum_value) {
+                  expression_ptr->value_.int_value = 0;
+                } else {
+                  expression_ptr->value_.int_value = 1;
+                }
+                break;
               }
-              break;
-            }
-            case pointer_type: {
-              if (expression_ptr->children_[0]->value_.pointer_value->value_ ==
-                  expression_ptr->children_[1]->value_.pointer_value->value_) {
-                expression_ptr->value_.int_value = 0;
-              } else {
-                expression_ptr->value_.int_value = 1;
+              case pointer_type: {
+                if (expression_ptr->children_[0]->value_.pointer_value->value_ ==
+                    expression_ptr->children_[1]->value_.pointer_value->value_) {
+                  expression_ptr->value_.int_value = 0;
+                } else {
+                  expression_ptr->value_.int_value = 1;
+                }
+                break;
               }
-              break;
+              case never_type: {
+                expression_ptr->value_.int_value = 0;
+                break;
+              }
+              default:;
             }
-            case never_type: {
-              expression_ptr->value_.int_value = 0;
-              break;
-            }
-            default:;
           }
           break;
         }
@@ -2044,11 +2065,11 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           if (expression_ptr->children_[0]->integrated_type_->is_const &&
               expression_ptr->children_[1]->integrated_type_->is_const) {
             expression_ptr->integrated_type_->is_const = true;
-          }
-          if (expression_ptr->children_[0]->value_.int_value > expression_ptr->children_[1]->value_.int_value) {
-            expression_ptr->value_.int_value = 1;
-          } else {
-            expression_ptr->value_.int_value = 0;
+            if (expression_ptr->children_[0]->value_.int_value > expression_ptr->children_[1]->value_.int_value) {
+              expression_ptr->value_.int_value = 1;
+            } else {
+              expression_ptr->value_.int_value = 0;
+            }
           }
           break;
         }
@@ -2066,11 +2087,11 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           if (expression_ptr->children_[0]->integrated_type_->is_const &&
               expression_ptr->children_[1]->integrated_type_->is_const) {
             expression_ptr->integrated_type_->is_const = true;
-          }
-          if (expression_ptr->children_[0]->value_.int_value < expression_ptr->children_[1]->value_.int_value) {
-            expression_ptr->value_.int_value = 1;
-          } else {
-            expression_ptr->value_.int_value = 0;
+            if (expression_ptr->children_[0]->value_.int_value < expression_ptr->children_[1]->value_.int_value) {
+              expression_ptr->value_.int_value = 1;
+            } else {
+              expression_ptr->value_.int_value = 0;
+            }
           }
           break;
         }
@@ -2088,11 +2109,11 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           if (expression_ptr->children_[0]->integrated_type_->is_const &&
               expression_ptr->children_[1]->integrated_type_->is_const) {
             expression_ptr->integrated_type_->is_const = true;
-          }
-          if (expression_ptr->children_[0]->value_.int_value >= expression_ptr->children_[1]->value_.int_value) {
-            expression_ptr->value_.int_value = 1;
-          } else {
-            expression_ptr->value_.int_value = 0;
+            if (expression_ptr->children_[0]->value_.int_value >= expression_ptr->children_[1]->value_.int_value) {
+              expression_ptr->value_.int_value = 1;
+            } else {
+              expression_ptr->value_.int_value = 0;
+            }
           }
           break;
         }
@@ -2110,11 +2131,11 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           if (expression_ptr->children_[0]->integrated_type_->is_const &&
               expression_ptr->children_[1]->integrated_type_->is_const) {
             expression_ptr->integrated_type_->is_const = true;
-          }
-          if (expression_ptr->children_[0]->value_.int_value <= expression_ptr->children_[1]->value_.int_value) {
-            expression_ptr->value_.int_value = 1;
-          } else {
-            expression_ptr->value_.int_value = 0;
+            if (expression_ptr->children_[0]->value_.int_value <= expression_ptr->children_[1]->value_.int_value) {
+              expression_ptr->value_.int_value = 1;
+            } else {
+              expression_ptr->value_.int_value = 0;
+            }
           }
           break;
         }
@@ -2130,11 +2151,11 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           if (expression_ptr->children_[0]->integrated_type_->is_const &&
               expression_ptr->children_[1]->integrated_type_->is_const) {
             expression_ptr->integrated_type_->is_const = true;
-          }
-          if (expression_ptr->children_[0]->value_.int_value || expression_ptr->children_[1]->value_.int_value) {
-            expression_ptr->value_.int_value = 1;
-          } else {
-            expression_ptr->value_.int_value = 0;
+            if (expression_ptr->children_[0]->value_.int_value || expression_ptr->children_[1]->value_.int_value) {
+              expression_ptr->value_.int_value = 1;
+            } else {
+              expression_ptr->value_.int_value = 0;
+            }
           }
           break;
         }
@@ -2150,11 +2171,11 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           if (expression_ptr->children_[0]->integrated_type_->is_const &&
               expression_ptr->children_[1]->integrated_type_->is_const) {
             expression_ptr->integrated_type_->is_const = true;
-          }
-          if (expression_ptr->children_[0]->value_.int_value && expression_ptr->children_[1]->value_.int_value) {
-            expression_ptr->value_.int_value = 1;
-          } else {
-            expression_ptr->value_.int_value = 0;
+            if (expression_ptr->children_[0]->value_.int_value && expression_ptr->children_[1]->value_.int_value) {
+              expression_ptr->value_.int_value = 1;
+            } else {
+              expression_ptr->value_.int_value = 0;
+            }
           }
           break;
         }
@@ -2217,10 +2238,6 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
               expression_ptr->children_[1]->integrated_type_, false);
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
               false, false, false, true, 0);
-          const long long ans = expression_ptr->children_[0]->value_.int_value
-              + expression_ptr->children_[1]->value_.int_value;
-          CheckOverflow(ans, expression_ptr->children_[0]->integrated_type_);
-          expression_ptr->children_[0]->value_.int_value = ans;
           break;
         }
         case minus_assign: {
@@ -2237,10 +2254,6 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
               expression_ptr->children_[1]->integrated_type_, false);
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
               false, false, false, true, 0);
-          const long long ans = expression_ptr->children_[0]->value_.int_value
-              - expression_ptr->children_[1]->value_.int_value;
-          CheckOverflow(ans, expression_ptr->children_[0]->integrated_type_);
-          expression_ptr->children_[0]->value_.int_value = ans;
           break;
         }
         case multiply_assign: {
@@ -2257,10 +2270,6 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
               expression_ptr->children_[1]->integrated_type_, false);
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
               false, false, false, true, 0);
-          const long long ans = expression_ptr->children_[0]->value_.int_value
-              * expression_ptr->children_[1]->value_.int_value;
-          CheckOverflow(ans, expression_ptr->children_[0]->integrated_type_);
-          expression_ptr->children_[0]->value_.int_value = ans;
           break;
         }
         case divide_assign: {
@@ -2277,10 +2286,6 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
               expression_ptr->children_[1]->integrated_type_, false);
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
               false, false, false, true, 0);
-          const long long ans = expression_ptr->children_[0]->value_.int_value
-              / expression_ptr->children_[1]->value_.int_value;
-          CheckOverflow(ans, expression_ptr->children_[0]->integrated_type_);
-          expression_ptr->children_[0]->value_.int_value = ans;
           break;
         }
         case mod_assign: {
@@ -2297,10 +2302,6 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
               expression_ptr->children_[1]->integrated_type_, false);
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
               false, false, false, true, 0);
-          const long long ans = expression_ptr->children_[0]->value_.int_value
-              % expression_ptr->children_[1]->value_.int_value;
-          CheckOverflow(ans, expression_ptr->children_[0]->integrated_type_);
-          expression_ptr->children_[0]->value_.int_value = ans;
           break;
         }
         case bitwise_and_assign: {
@@ -2317,10 +2318,6 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
               expression_ptr->children_[1]->integrated_type_, false);
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
               false, false, false, true, 0);
-          const long long ans = expression_ptr->children_[0]->value_.int_value
-              & expression_ptr->children_[1]->value_.int_value;
-          CheckOverflow(ans, expression_ptr->children_[0]->integrated_type_);
-          expression_ptr->children_[0]->value_.int_value = ans;
           break;
         }
         case bitwise_or_assign: {
@@ -2337,10 +2334,6 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
               expression_ptr->children_[1]->integrated_type_, false);
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
               false, false, false, true, 0);
-          const long long ans = expression_ptr->children_[0]->value_.int_value
-              | expression_ptr->children_[1]->value_.int_value;
-          CheckOverflow(ans, expression_ptr->children_[0]->integrated_type_);
-          expression_ptr->children_[0]->value_.int_value = ans;
           break;
         }
         case bitwise_xor_assign: {
@@ -2357,10 +2350,6 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
               expression_ptr->children_[1]->integrated_type_, false);
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
               false, false, false, true, 0);
-          const long long ans = expression_ptr->children_[0]->value_.int_value
-              ^ expression_ptr->children_[1]->value_.int_value;
-          CheckOverflow(ans, expression_ptr->children_[0]->integrated_type_);
-          expression_ptr->children_[0]->value_.int_value = ans;
           break;
         }
         case left_shift_assign: {
@@ -2381,10 +2370,6 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
               false);
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
               false, false, false, true, 0);
-          const long long ans = expression_ptr->children_[0]->value_.int_value
-              << expression_ptr->children_[1]->value_.int_value;
-          CheckOverflow(ans, expression_ptr->children_[0]->integrated_type_);
-          expression_ptr->children_[0]->value_.int_value = ans;
           break;
         }
         case right_shift_assign: {
@@ -2405,10 +2390,6 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
               false);
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
               false, false, false, true, 0);
-          const long long ans = expression_ptr->children_[0]->value_.int_value
-              >> expression_ptr->children_[1]->value_.int_value;
-          CheckOverflow(ans, expression_ptr->children_[0]->integrated_type_);
-          expression_ptr->children_[0]->value_.int_value = ans;
           break;
         }
         case type_cast: {
