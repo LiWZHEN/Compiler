@@ -207,39 +207,6 @@ TEST_F(SemanticTestBatch, AutorefTests) {
   RunBatchTests(test_cases, "Autoref Tests", testcases_base_path_);
 }
 
-// Basic tests - divided into smaller batches
-TEST_F(SemanticTestBatch, BasicTests_1_10) {
-  std::vector<std::string> test_cases;
-  for (int i = 1; i <= 10; i++) {
-    test_cases.push_back("basic" + std::to_string(i));
-  }
-  RunBatchTests(test_cases, "Basic Tests 1-10", testcases_base_path_);
-}
-
-TEST_F(SemanticTestBatch, BasicTests_11_20) {
-  std::vector<std::string> test_cases;
-  for (int i = 11; i <= 20; i++) {
-    test_cases.push_back("basic" + std::to_string(i));
-  }
-  RunBatchTests(test_cases, "Basic Tests 11-20", testcases_base_path_);
-}
-
-TEST_F(SemanticTestBatch, BasicTests_21_30) {
-  std::vector<std::string> test_cases;
-  for (int i = 21; i <= 30; i++) {
-    test_cases.push_back("basic" + std::to_string(i));
-  }
-  RunBatchTests(test_cases, "Basic Tests 21-30", testcases_base_path_);
-}
-
-TEST_F(SemanticTestBatch, BasicTests_31_40) {
-  std::vector<std::string> test_cases;
-  for (int i = 31; i <= 40; i++) {
-    test_cases.push_back("basic" + std::to_string(i));
-  }
-  RunBatchTests(test_cases, "Basic Tests 31-40", testcases_base_path_);
-}
-
 // Expression tests - divided into smaller batches
 TEST_F(SemanticTestBatch, ExpressionTests_1_10) {
   std::vector<std::string> test_cases;
@@ -323,6 +290,39 @@ TEST_F(SemanticTestBatch, ReturnTests) {
     test_cases.push_back("return" + std::to_string(i));
   }
   RunBatchTests(test_cases, "Return Tests", testcases_base_path_);
+}
+
+// Basic tests - divided into smaller batches
+TEST_F(SemanticTestBatch, BasicTests_1_10) {
+  std::vector<std::string> test_cases;
+  for (int i = 1; i <= 10; i++) {
+    test_cases.push_back("basic" + std::to_string(i));
+  }
+  RunBatchTests(test_cases, "Basic Tests 1-10", testcases_base_path_);
+}
+
+TEST_F(SemanticTestBatch, BasicTests_11_20) {
+  std::vector<std::string> test_cases;
+  for (int i = 11; i <= 20; i++) {
+    test_cases.push_back("basic" + std::to_string(i));
+  }
+  RunBatchTests(test_cases, "Basic Tests 11-20", testcases_base_path_);
+}
+
+TEST_F(SemanticTestBatch, BasicTests_21_30) {
+  std::vector<std::string> test_cases;
+  for (int i = 21; i <= 30; i++) {
+    test_cases.push_back("basic" + std::to_string(i));
+  }
+  RunBatchTests(test_cases, "Basic Tests 21-30", testcases_base_path_);
+}
+
+TEST_F(SemanticTestBatch, BasicTests_31_40) {
+  std::vector<std::string> test_cases;
+  for (int i = 31; i <= 40; i++) {
+    test_cases.push_back("basic" + std::to_string(i));
+  }
+  RunBatchTests(test_cases, "Basic Tests 31-40", testcases_base_path_);
 }
 
 // Single test for debugging
