@@ -1421,6 +1421,18 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           Throw("function without self parameter should be called with call expression.");
         }
         expression_ptr->integrated_type_ = function_ptr->integrated_type_;
+        if (function_ptr->children_[function_parameters_node_ind]->children_[0]
+            ->children_[0]->children_.size() == 3) { // the one who call the method should be mutable
+          if (expression_ptr->children_[0]->integrated_type_->basic_type == pointer_type) {
+            if (!expression_ptr->children_[0]->integrated_type_->element_type->is_mutable) {
+              Throw("Cannot call a method function with self parameter '&mut self' "
+                  "with the reference of immutable variable.");
+            }
+          } else if (!expression_ptr->children_[0]->integrated_type_->is_mutable) {
+            Throw("Cannot call a method function with self parameter '&mut self' "
+                "with the reference of immutable variable.");
+          }
+        }
         if (call_expr_param_num == 0) {
           break;
         }
