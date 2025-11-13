@@ -3,7 +3,7 @@ project(Compiler)
 
 set(CMAKE_CXX_STANDARD 20)
 
-include_directories(lexer/include parser/include semantic/include)
+include_directories(lexer/include parser/include semantic/include IR/include)
 
 find_package(GTest REQUIRED)
 add_executable(tests test/test.cpp
@@ -17,7 +17,7 @@ add_executable(tests test/test.cpp
     parser/src/statements.cpp parser/src/structs.cpp
     parser/src/trait.cpp parser/src/type.cpp
     semantic/src/scope.cpp semantic/src/value_type.cpp
-    semantic/src/visitor_manager.cpp)
+    semantic/src/visitor_manager.cpp IR/src/IR_generator.cpp)
 
 target_link_libraries(tests GTest::GTest GTest::Main)
 
