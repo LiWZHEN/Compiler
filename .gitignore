@@ -1,6 +1,5 @@
 slides
 personal_testcases
-testcases
 RCompiler-FAQ
 RCompiler-Spec
 .vscode
@@ -10,3 +9,5 @@ RCompiler-Testcases/working_space
 RCompiler-Testcases/**/*.in
 RCompiler-Testcases/**/*.out
 RCompiler-Testcases/**/*.json
+RCompiler-Testcases/extract.py
+RCompiler-Testcases/testcases.sql
