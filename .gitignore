@@ -5,9 +5,14 @@ RCompiler-Spec
 .vscode
 cmake-build-debug
 .idea
-RCompiler-Testcases/working_space
-RCompiler-Testcases/**/*.in
-RCompiler-Testcases/**/*.out
 RCompiler-Testcases/**/*.json
+RCompiler-Testcases/IR-1/builtin
+RCompiler-Testcases/IR-1/Makefile
+RCompiler-Testcases/IR-1/test_llvm.bash
+RCompiler-Testcases/semantic-1/**/*.in
+RCompiler-Testcases/semantic-1/**/*.out
+RCompiler-Testcases/semantic-2/**/*.in
+RCompiler-Testcases/semantic-2/**/*.out
+RCompiler-Testcases/working_space
 RCompiler-Testcases/extract.py
 RCompiler-Testcases/testcases.sql
