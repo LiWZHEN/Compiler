@@ -15,4 +15,5 @@ RCompiler-Testcases/semantic-2/**/*.in
 RCompiler-Testcases/semantic-2/**/*.out
 RCompiler-Testcases/working_space
 RCompiler-Testcases/extract.py
+RCompiler-Testcases/README.md
 RCompiler-Testcases/testcases.sql
