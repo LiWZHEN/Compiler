@@ -40,7 +40,7 @@ public:
   [[nodiscard]] std::string GetIdentifier() const;
   void AddSymbol(ScopeNode *target_scope, bool need_type_add, bool need_value_add, bool associated_item_add,
       bool field_item_add, ScopeNodeContent target_node, ScopeNodeContent node_info) override;
-  std::unordered_set<std::string> enum_variants_;
+  std::unordered_map<std::string, int> enum_variants_;
 private:
   void Accept(Visitor *visitor) override;
 };

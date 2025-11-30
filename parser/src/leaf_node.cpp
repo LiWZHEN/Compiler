@@ -120,7 +120,8 @@ void Identifier::AddSymbol(ScopeNode *target_scope, const bool need_type_add, co
       std::cerr << "Error: The name '" << identifier_name << "' is defined multiple times.\n";
       throw "";
     }
-    enum_ptr->enum_variants_.insert(identifier_name);
+    const int new_element_index = static_cast<int>(enum_ptr->enum_variants_.size());
+    enum_ptr->enum_variants_[identifier_name] = new_element_index;
   } else if (target_node.node_type == type_struct) {
     const auto struct_ptr = dynamic_cast<Struct *>(target_node.node);
     if (struct_ptr->field_items_.contains(identifier_name)) {
