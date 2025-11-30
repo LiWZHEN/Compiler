@@ -124,6 +124,7 @@ protected:
   std::shared_ptr<ScopeNode> scope_node_ = nullptr;
   std::shared_ptr<IntegratedType> integrated_type_ = nullptr;
   Value value_;
+  int IR_ID_;
 };
 
 class LeafNode : public Node {
