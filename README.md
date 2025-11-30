@@ -33,6 +33,18 @@ symbol name in std::string type.
 
 Figure out the type that a node should have.
 
+## IR
+
+### Idea
+
+- Create a bunch of IR nodes.
+- Print the IR nodes to get LLVM code.
+
+### When entering a new scope
+
+- Collect and declare all the functions and structs and variables.
+- Handle the instructions.
+
 ---
 
 #### AI usage and references
