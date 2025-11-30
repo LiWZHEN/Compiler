@@ -115,6 +115,7 @@ protected:
   virtual void Accept(Visitor *visitor) = 0;
   friend class SymbolVisitor;
   friend class ValueTypeVisitor;
+  friend class IRVisitor;
   friend struct Value;
   std::vector<Node *> children_;
   std::vector<NodeType> type_;

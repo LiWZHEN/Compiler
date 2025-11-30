@@ -50,5 +50,6 @@ class AssociatedItem;
 class Visitor;
 class SymbolVisitor;
 class ValueTypeVisitor;
+class IRVisitor;
 
 #endif
