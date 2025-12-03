@@ -29,6 +29,7 @@ public:
       bool field_item_add, ScopeNodeContent target_node, ScopeNodeContent node_info) override;
   std::unordered_map<std::string, ScopeNodeContent> associated_items_;
   std::unordered_map<std::string, ScopeNodeContent> field_items_;
+  std::unordered_map<std::string, int> field_item_index_;
 private:
   void Accept(Visitor *visitor) override;
 };
