@@ -783,6 +783,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
         const std::string path_name = dynamic_cast<LeafNode *>(path_in_expression_ptr->children_[0])
             ->GetContent().GetStr();
         const auto path_node_info = expression_ptr->scope_node_->FindInValue(path_name);
+        expression_ptr->info_of_path_in_expr_ = path_node_info;
         if (path_node_info.node == nullptr) {
           Throw("Cannot find the path name '" + path_name + "' in value namespace.");
         }

@@ -52,6 +52,7 @@ private:
   ExprType expr_type_;
   Infix infix_ = not_infix;
   ScopeNodeContent info_of_path_in_expr_;
+  friend class ValueTypeVisitor;
 };
 
 class StructExprField final : public Node {
