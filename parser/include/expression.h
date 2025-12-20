@@ -2,7 +2,8 @@
 #define EXPRESSION_H
 
 #include "classes.h"
-#include"node.h"
+#include "node.h"
+#include "visitor_frame.h"
 
 enum ExprType {
   unknown, block_expr, infinite_loop_expr, predicate_loop_expr, if_expr, literal_expr,
@@ -44,11 +45,13 @@ public:
   [[nodiscard]] std::string GetNodeLabel() const override;
   void AddSymbol(ScopeNode *target_scope, bool need_type_add, bool need_value_add, bool associated_item_add,
       bool field_item_add, ScopeNodeContent target_node, ScopeNodeContent node_info) override;
+  [[nodiscard]] ScopeNodeContent GetDefInfo() const;
 private:
   Expression(const std::vector<Token> &tokens, int &ptr, Expression *lhs, Expression *rhs, Infix infix);
   void Accept(Visitor *visitor) override;
   ExprType expr_type_;
   Infix infix_ = not_infix;
+  ScopeNodeContent info_of_path_in_expr_;
 };
 
 class StructExprField final : public Node {

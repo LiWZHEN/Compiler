@@ -841,6 +841,10 @@ Infix Expression::GetExprInfix() const {
   return infix_;
 }
 
+ScopeNodeContent Expression::GetDefInfo() const {
+  return info_of_path_in_expr_;
+}
+
 StructExprField::StructExprField(const std::vector<Token> &tokens, int &ptr) : Node(tokens, ptr) {
   const int ptr_before_try = ptr_;
   try {
