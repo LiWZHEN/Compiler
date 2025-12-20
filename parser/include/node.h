@@ -88,7 +88,7 @@ struct Value {
   // struct
   std::map<std::string, Value> struct_values;
   // enumeration
-  Node *enum_value = nullptr;
+  int enum_value = 0;
   // pointer
   Node *pointer_value = nullptr;
   bool operator==(const Value &other) const;

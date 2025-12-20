@@ -879,6 +879,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(enumeration_type,
               true, false, false, true, 0);
           expression_ptr->integrated_type_->struct_node = enum_ptr;
+          expression_ptr->value_.enum_value = enum_ptr->enum_variants_[second_path_name];
         }
       }
       break;
