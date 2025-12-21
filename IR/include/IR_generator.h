@@ -45,7 +45,7 @@ struct IRInstruction {
   int if_true_ = 0, if_false_ = 0; // conditional branch
   int destination_ = 0; // unconditional branch
   int pointer_ = 0; // load & store & get element ptr
-  std::vector<int> indexes_; // get element ptr
+  int index_; // get element ptr
   IcmpCond icmp_condition_ = equal_; // icmp
   int function_name_ = 0; // non-void call & void call
   std::vector<FunctionCallArgument> function_call_arguments_; // non-void call & void call
@@ -118,11 +118,11 @@ struct IRBlock {
         0));
   }
   void AddGetElementPtr(const int result_id, const std::shared_ptr<IntegratedType> &type, const int ptr_id,
-      const std::vector<int> &indexes = std::vector<int>()) {
+      const int index) {
     instructions_.push_back(IRInstruction(getelementptr_, result_id, add_, type, 0,
         0, 0, 0, 0, 0, 0, equal_,
         0));
-    instructions_.back().indexes_ = indexes;
+    instructions_.back().index_ = index;
   }
   void AddTwoVarIcmp(const int result_id, const IcmpCond condition, const std::shared_ptr<IntegratedType> &operand_type,
       const int operand_1_id, const int operand_2_id) {
@@ -274,6 +274,7 @@ public:
   void Visit(AssociatedItem *associated_item_ptr) override;
   void AddFunction();
   void AddStruct();
+  void RecursiveInitialize(const Expression *expression_ptr, int ptr_id);
   void Output();
 private:
   std::vector<IRFunctionNode> functions_;
