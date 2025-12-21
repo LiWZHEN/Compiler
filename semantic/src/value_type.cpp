@@ -2524,6 +2524,8 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           }
           CheckOverflow(int_value, expression_ptr->integrated_type_);
           expression_ptr->value_.int_value = int_value;
+          expression_ptr->integrated_type_->is_const =
+              expression_ptr->children_[0]->integrated_type_->is_const;
           break;
         }
         default:;
