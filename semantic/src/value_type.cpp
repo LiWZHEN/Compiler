@@ -541,8 +541,9 @@ void ValueTypeVisitor::Visit(Statements *statements_ptr) {
     }
   }
   if (statements_ptr->type_.back() == type_expression) {
-    statements_ptr->integrated_type_ = statements_ptr->children_.back()->integrated_type_;
-    statements_ptr->value_ = statements_ptr->children_.back()->value_;
+    statements_ptr->integrated_type_ = std::make_shared<IntegratedType>();
+    *statements_ptr->integrated_type_ = *statements_ptr->children_.back()->integrated_type_;
+    statements_ptr->integrated_type_->is_const = false;
   } else {
     auto statement_ptr = statements_ptr->children_.back();
     if (statement_ptr->type_[0] == type_expression_statement) {
