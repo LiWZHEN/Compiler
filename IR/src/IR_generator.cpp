@@ -25,11 +25,12 @@ void IRVisitor::RecursiveInitialize(const Expression *expression_ptr, const int 
       target_block.AddGetElementPtr(element_ptr_id, integrated_type->element_type,
           ptr_id, i);
       const auto element_expr_ptr = dynamic_cast<Expression *>(expression_ptr->children_[2 * i + 1]);
-      // element_ptr_id <- *element_expr_ptr
+      // %element_ptr_id <- *element_expr_ptr
       if (integrated_type->element_type->basic_type == array_type ||
-          integrated_type->element_type->basic_type == struct_type ||
-          integrated_type->element_type->basic_type == pointer_type) {
+          integrated_type->element_type->basic_type == struct_type) {
         RecursiveInitialize(element_expr_ptr, element_ptr_id);
+      } else if (integrated_type->element_type->basic_type == pointer_type) {
+        // todo
       } else if (element_expr_ptr->integrated_type_->is_const) {
         target_block.AddValueStore(integrated_type->element_type,
             static_cast<int>(element_expr_ptr->value_.array_values[i].int_value),
@@ -41,11 +42,37 @@ void IRVisitor::RecursiveInitialize(const Expression *expression_ptr, const int 
       }
     }
   } else if (integrated_type->basic_type == struct_type) {
-
-  } else if (integrated_type->basic_type == pointer_type) {
-
+    if (expression_ptr->children_.size() == 3) {
+      Throw("Empty struct expression!");
+    }
+    const auto struct_expr_fields = expression_ptr->children_[2];
+    const auto struct_def_ptr = dynamic_cast<Struct *>(integrated_type->struct_node);
+    for (int i = 0; i < struct_def_ptr->field_item_index_.size(); ++i) {
+      // i-th struct_expr_field: struct_expr_fields->children_[2 * i]
+      const std::string &item_name = dynamic_cast<LeafNode *>(struct_expr_fields->children_[2 * i]
+          ->children_[0])->GetContent().GetStr();
+      const int item_index = struct_def_ptr->field_item_index_[item_name];
+      const int target_item_id = function.var_id_++;
+      const auto item_expr_ptr = dynamic_cast<Expression *>(struct_expr_fields->children_[2 * i]->children_[2]);
+      target_block.AddGetElementPtr(target_item_id, item_expr_ptr->integrated_type_, ptr_id, item_index);
+      // %target_item_id <- *item_expr_ptr
+      if (item_expr_ptr->integrated_type_->basic_type == array_type ||
+          item_expr_ptr->integrated_type_->basic_type == struct_type) {
+        RecursiveInitialize(item_expr_ptr, target_item_id);
+      } else if (integrated_type->element_type->basic_type == pointer_type) {
+        // todo
+      } else if (item_expr_ptr->integrated_type_->is_const) {
+        target_block.AddValueStore(item_expr_ptr->integrated_type_,
+            static_cast<int>(item_expr_ptr->value_.array_values[i].int_value),
+            target_item_id);
+      } else {
+        struct_expr_fields->children_[2 * i]->children_[2]->Accept(this);
+        target_block.AddVariableStore(item_expr_ptr->integrated_type_,
+            struct_expr_fields->children_[2 * i]->children_[2]->IR_ID_, target_item_id);
+      }
+    }
   } else {
-    Throw("Recursive initializing shouldn't be used except when initalizing array or struct or pointer.");
+    Throw("Recursive initializing shouldn't be used except when initalizing array or struct.");
   }
 }
 
@@ -212,9 +239,10 @@ void IRVisitor::Visit(LetStatement *let_statement_ptr) {
           let_statement_ptr->children_[5]->IR_ID_, new_alloca_id);
     }
   } else if (let_statement_ptr->children_[1]->integrated_type_->basic_type == array_type ||
-      let_statement_ptr->children_[1]->integrated_type_->basic_type == struct_type ||
-      let_statement_ptr->children_[1]->integrated_type_->basic_type == pointer_type) {
+      let_statement_ptr->children_[1]->integrated_type_->basic_type == struct_type) {
     RecursiveInitialize(dynamic_cast<Expression *>(let_statement_ptr->children_[5]), new_alloca_id);
+  } else if (let_statement_ptr->children_[1]->integrated_type_->basic_type == pointer_type) {
+    // todo
   } else {
     Throw("There is a basic type that not implemented in LetStatement!");
   }
