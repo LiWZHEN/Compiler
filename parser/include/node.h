@@ -80,7 +80,7 @@ struct IntegratedType {
 
 struct Value {
   // integer / bool
-  long long int_value = 0; // bool: 0->false, 1->true
+  long long int_value = 0; // bool: 0->false, 1->true; enum: id
   // array
   std::vector<Value> array_values;
   // string / char / str
@@ -88,7 +88,7 @@ struct Value {
   // struct
   std::map<std::string, Value> struct_values;
   // enumeration
-  int enum_value = 0;
+  // int enum_value = 0;
   // pointer
   Node *pointer_value = nullptr;
   bool operator==(const Value &other) const;

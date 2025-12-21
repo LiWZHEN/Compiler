@@ -878,7 +878,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(enumeration_type,
               true, false, false, true, 0);
           expression_ptr->integrated_type_->struct_node = enum_ptr;
-          expression_ptr->value_.enum_value = enum_ptr->enum_variants_[second_path_name];
+          expression_ptr->value_.int_value = enum_ptr->enum_variants_[second_path_name];
         }
       }
       break;
@@ -1943,7 +1943,8 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
               case i32_type:
               case isize_type:
               case u32_type:
-              case usize_type: {
+              case usize_type:
+              case enumeration_type: {
                 if (expression_ptr->children_[0]->value_.int_value ==
                     expression_ptr->children_[1]->value_.int_value) {
                   expression_ptr->value_.int_value = 1;
@@ -1975,15 +1976,6 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
               case struct_type: {
                 if (expression_ptr->children_[0]->value_.struct_values ==
                     expression_ptr->children_[1]->value_.struct_values) {
-                  expression_ptr->value_.int_value = 1;
-                } else {
-                  expression_ptr->value_.int_value = 0;
-                }
-                break;
-              }
-              case enumeration_type: {
-                if (expression_ptr->children_[0]->value_.enum_value ==
-                    expression_ptr->children_[1]->value_.enum_value) {
                   expression_ptr->value_.int_value = 1;
                 } else {
                   expression_ptr->value_.int_value = 0;
@@ -2029,7 +2021,8 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
               case i32_type:
               case isize_type:
               case u32_type:
-              case usize_type: {
+              case usize_type:
+              case enumeration_type: {
                 if (expression_ptr->children_[0]->value_.int_value ==
                     expression_ptr->children_[1]->value_.int_value) {
                   expression_ptr->value_.int_value = 0;
@@ -2061,15 +2054,6 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
               case struct_type: {
                 if (expression_ptr->children_[0]->value_.struct_values ==
                     expression_ptr->children_[1]->value_.struct_values) {
-                  expression_ptr->value_.int_value = 0;
-                } else {
-                  expression_ptr->value_.int_value = 1;
-                }
-                break;
-              }
-              case enumeration_type: {
-                if (expression_ptr->children_[0]->value_.enum_value ==
-                    expression_ptr->children_[1]->value_.enum_value) {
                   expression_ptr->value_.int_value = 0;
                 } else {
                   expression_ptr->value_.int_value = 1;
@@ -2237,7 +2221,8 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
             case i32_type:
             case isize_type:
             case u32_type:
-            case usize_type: {
+            case usize_type:
+            case enumeration_type: {
               expression_ptr->children_[0]->value_.int_value = expression_ptr->children_[1]->value_.int_value;
               break;
             }
@@ -2253,10 +2238,6 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
             }
             case struct_type: {
               expression_ptr->children_[0]->value_.struct_values = expression_ptr->children_[1]->value_.struct_values;
-              break;
-            }
-            case enumeration_type: {
-              expression_ptr->children_[0]->value_.enum_value = expression_ptr->children_[1]->value_.enum_value;
               break;
             }
             case pointer_type: {
