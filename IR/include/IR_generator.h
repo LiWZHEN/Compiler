@@ -5,13 +5,18 @@
 #include "node.h"
 
 enum IRInstructionType {
-  unknown_, binary_operations_, conditional_br_, unconditional_br_,
-  non_void_ret_, void_ret_, alloca_, load_, store_, getelementptr_,
-  icmp_, non_void_call_, void_call_, phi_, select_
+  unknown_, two_var_binary_operation_, var_const_binary_operation_,
+  const_var_binary_operation_, conditional_br_, unconditional_br_,
+  non_void_ret_, void_ret_, alloca_, load_, variable_store_,
+  value_store_, getelementptr_, icmp_, non_void_call_, void_call_,
+  phi_, value_select_ii_, value_select_iv_, value_select_vi_,
+  value_select_vv_, variable_select_ii_, variable_select_iv_,
+  variable_select_vi_, variable_select_vv_
 };
 
 enum BinaryOperator {
-  add_, sub_, mul_, sdiv_, srem_, shl_, ashr_, and_, or_, xor_
+  add_, sub_, mul_, udiv_, sdiv_, urem_, srem_, shl_, ashr_,
+  and_, or_, xor_
 };
 
 enum IcmpCond {
@@ -56,11 +61,26 @@ struct IRInstruction {
 
 struct IRBlock {
   std::vector<IRInstruction> instructions_;
-  void AddBinaryOperation(const std::shared_ptr<IntegratedType> &result_type, const BinaryOperator binary_operator,
-      const int result_id, const int operand_1_id, const int operand_2_id) {
-    instructions_.push_back(IRInstruction(binary_operations_, result_id, binary_operator,
+  void AddTwoVarBinaryOperation(const std::shared_ptr<IntegratedType> &result_type,
+      const BinaryOperator binary_operator, const int result_id, const int operand_1_id,
+      const int operand_2_id) {
+    instructions_.push_back(IRInstruction(two_var_binary_operation_, result_id, binary_operator,
         result_type, operand_1_id, operand_2_id, 0, 0, 0, 0,
         0, equal_, 0));
+  }
+  void AddVarConstBinaryOperation(const std::shared_ptr<IntegratedType> &result_type,
+      const BinaryOperator binary_operator, const int result_id, const int var_operand_id,
+      const int const_operand_value) {
+    instructions_.push_back(IRInstruction(var_const_binary_operation_, result_id, binary_operator,
+        result_type, var_operand_id, const_operand_value, 0, 0,
+        0, 0, 0, equal_, 0));
+  }
+  void AddConstVarBinaryOperation(const std::shared_ptr<IntegratedType> &result_type,
+      const BinaryOperator binary_operator, const int result_id, const int const_operand_value,
+      const int var_operand_id) {
+    instructions_.push_back(IRInstruction(const_var_binary_operation_, result_id, binary_operator,
+        result_type, const_operand_value, var_operand_id, 0, 0,
+        0, 0, 0, equal_, 0));
   }
   void AddConditionalBranch(const int condition_id, const int if_true_label, const int if_false_label) {
     instructions_.push_back(IRInstruction(conditional_br_, 0, add_, nullptr,
@@ -82,19 +102,19 @@ struct IRBlock {
         0, 0, 0, 0, 0, 0, 0, equal_,
         0));
   }
-  void AddAlloca(const int result_id, const std::shared_ptr<IntegratedType> &type) {
-    instructions_.push_back(IRInstruction(alloca_, result_id, add_, type, 0,
-        0, 0, 0, 0, 0, 0, equal_,
-        0));
-  }
   void AddLoad(const int result_id, const std::shared_ptr<IntegratedType> &type, const int pointer_id) {
     instructions_.push_back(IRInstruction(load_, result_id, add_, type, 0,
         0, 0, 0, 0, 0, pointer_id, equal_,
         0));
   }
-  void AddStore(const std::shared_ptr<IntegratedType> &type, const int value_id, const int pointer_id) {
-    instructions_.push_back(IRInstruction(store_, value_id, add_, type, 0,
-        0, 0, 0, 0, 0, pointer_id, equal_,
+  void AddVariableStore(const std::shared_ptr<IntegratedType> &type, const int value_id, const int pointer_id) {
+    instructions_.push_back(IRInstruction(variable_store_, value_id, add_, type,
+        0, 0, 0, 0, 0, 0, pointer_id, equal_,
+        0));
+  }
+  void AddValueStore(const std::shared_ptr<IntegratedType> &type, const int value, const int pointer_id) {
+    instructions_.push_back(IRInstruction(value_store_, value, add_, type,
+        0, 0, 0, 0, 0, 0, pointer_id, equal_,
         0));
   }
   void AddGetElementPtr(const int result_id, const std::shared_ptr<IntegratedType> &type, const int ptr_id,
@@ -104,9 +124,19 @@ struct IRBlock {
         0));
     instructions_.back().indexes_ = indexes;
   }
-  void AddIcmp(const int result_id, const IcmpCond condition, const std::shared_ptr<IntegratedType> &operand_type,
+  void AddTwoVarIcmp(const int result_id, const IcmpCond condition, const std::shared_ptr<IntegratedType> &operand_type,
       const int operand_1_id, const int operand_2_id) {
     instructions_.push_back(IRInstruction(icmp_, result_id, add_, operand_type, operand_1_id,
+        operand_2_id, 0, 0, 0, 0, 0, condition, 0));
+  }
+  void AddVarConstIcmp(const int result_id, const IcmpCond condition, const std::shared_ptr<IntegratedType> &operand_type,
+      const int operand_1_id, const int operand_2_value) {
+    instructions_.push_back(IRInstruction(icmp_, result_id, add_, operand_type, operand_1_id,
+        operand_2_value, 0, 0, 0, 0, 0, condition, 0));
+  }
+  void AddConstVarIcmp(const int result_id, const IcmpCond condition, const std::shared_ptr<IntegratedType> &operand_type,
+      const int operand_1_value, const int operand_2_id) {
+    instructions_.push_back(IRInstruction(icmp_, result_id, add_, operand_type, operand_1_value,
         operand_2_id, 0, 0, 0, 0, 0, condition, 0));
   }
   void AddNonVoidCall(const int result_id, const std::shared_ptr<IntegratedType> &result_type, const int function_id,
@@ -123,17 +153,73 @@ struct IRBlock {
         function_id));
     instructions_.back().function_call_arguments_ = function_call_arguments;
   }
-  void AddSelect(const int result_id, const int condition_id, const std::shared_ptr<IntegratedType> &first_type,
-      const int first_value_id, const std::shared_ptr<IntegratedType> &second_type, const int second_value_id) {
-    instructions_.push_back(IRInstruction(select_, result_id, add_, first_type,
-        first_value_id, second_value_id, condition_id, 0, 0,
-        0, 0, equal_, 0, second_type));
-  }
+  void AddSelect(const int is_value, const int result_id, const int condition, const std::shared_ptr<IntegratedType> &first_type,
+      const int first_value, const std::shared_ptr<IntegratedType> &second_type, const int second_value) {
+    switch (is_value) {
+      case 0: {
+        instructions_.push_back(IRInstruction(variable_select_ii_, result_id, add_, first_type,
+            first_value, second_value, condition, 0, 0,
+            0, 0, equal_, 0, second_type));
+        break;
+      }
+      case 1: {
+        instructions_.push_back(IRInstruction(variable_select_iv_, result_id, add_, first_type,
+            first_value, second_value, condition, 0, 0,
+            0, 0, equal_, 0, second_type));
+        break;
+      }
+      case 2: {
+        instructions_.push_back(IRInstruction(variable_select_vi_, result_id, add_, first_type,
+            first_value, second_value, condition, 0, 0,
+            0, 0, equal_, 0, second_type));
+        break;
+      }
+      case 3: {
+        instructions_.push_back(IRInstruction(variable_select_vv_, result_id, add_, first_type,
+            first_value, second_value, condition, 0, 0,
+            0, 0, equal_, 0, second_type));
+        break;
+      }
+      case 4: {
+        instructions_.push_back(IRInstruction(value_select_ii_, result_id, add_, first_type,
+            first_value, second_value, condition, 0, 0,
+            0, 0, equal_, 0, second_type));
+        break;
+      }
+      case 5: {
+        instructions_.push_back(IRInstruction(value_select_iv_, result_id, add_, first_type,
+            first_value, second_value, condition, 0, 0,
+            0, 0, equal_, 0, second_type));
+        break;
+      }
+      case 6: {
+        instructions_.push_back(IRInstruction(value_select_vi_, result_id, add_, first_type,
+            first_value, second_value, condition, 0, 0,
+            0, 0, equal_, 0, second_type));
+        break;
+      }
+      case 7: {
+        instructions_.push_back(IRInstruction(value_select_vv_, result_id, add_, first_type,
+            first_value, second_value, condition, 0, 0,
+            0, 0, equal_, 0, second_type));
+        break;
+      }
+      default:;
+    }
+  } /* is_value varies from 0b000 to 0b111,
+  the three bits represent the condition / first value / second value is literal value */
 };
 
 struct IRFunctionNode {
-  std::vector<IRBlock> blocks_;
+  std::map<int, IRBlock> blocks_;
+  std::vector<IRInstruction> alloca_instructions_;
   std::vector<std::shared_ptr<IntegratedType>> parameter_types_;
+  int var_id_ = 0;
+  void AddAlloca(const int result_id, const std::shared_ptr<IntegratedType> &type) {
+    alloca_instructions_.push_back(IRInstruction(alloca_, result_id, add_, type, 0,
+        0, 0, 0, 0, 0, 0, equal_,
+        0));
+  }
 };
 
 struct IRStructNode {
@@ -188,10 +274,12 @@ public:
   void Visit(AssociatedItem *associated_item_ptr) override;
   void AddFunction();
   void AddStruct();
+  void Output();
 private:
   std::vector<IRFunctionNode> functions_;
   std::vector<IRStructNode> structs_;
   std::vector<int> wrapping_functions_;
+  std::vector<int> block_stack_;
 };
 
 #endif
