@@ -629,7 +629,9 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
             false, false, false, true, 0);
       } else {
         expression_ptr->children_[1]->Accept(this);
-        expression_ptr->integrated_type_ = expression_ptr->children_[1]->integrated_type_;
+        expression_ptr->integrated_type_ = std::make_shared<IntegratedType>();
+        *expression_ptr->integrated_type_ = *expression_ptr->children_[1]->integrated_type_;
+        expression_ptr->integrated_type_->is_const = false;
       }
       break;
     }
@@ -692,13 +694,13 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
             expression_ptr->children_[else_block_ind]->integrated_type_, false);
         if (expression_ptr->children_[else_block_ind]->integrated_type_->basic_type != never_type) {
           expression_ptr->integrated_type_ = expression_ptr->children_[else_block_ind]->integrated_type_;
-          if (expression_ptr->children_[if_statements_ind]->integrated_type_->basic_type != never_type) {
-            if (!expression_ptr->children_[if_statements_ind]->integrated_type_->is_const) {
-              expression_ptr->integrated_type_->is_const = false;
-            }
-          }
+        } else if (expression_ptr->integrated_type_ == nullptr) {
+          expression_ptr->integrated_type_ = std::make_shared<IntegratedType>();
+          *expression_ptr->integrated_type_ = *expression_ptr->children_[if_statements_ind]->integrated_type_;
+          expression_ptr->integrated_type_->is_const = false;
         } else {
-          expression_ptr->integrated_type_ = expression_ptr->children_[if_statements_ind]->integrated_type_;
+          *expression_ptr->integrated_type_ = *expression_ptr->children_[if_statements_ind]->integrated_type_;
+          expression_ptr->integrated_type_->is_const = false;
         }
       } else { // either no 'if' or no 'else', expression has unit type
         expression_ptr->integrated_type_ = std::make_shared<IntegratedType>(unit_type,
@@ -1533,9 +1535,13 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
       auto loop_info = wrapping_loop_.back();
       if (expression_ptr->children_.size() == 2) {
         expression_ptr->children_[1]->Accept(this);
-        if (loop_info.node->integrated_type_ == nullptr ||
-            loop_info.node->integrated_type_->basic_type == unknown_type) {
-          loop_info.node->integrated_type_ = expression_ptr->children_[1]->integrated_type_;
+        if (loop_info.node->integrated_type_ == nullptr) {
+          loop_info.node->integrated_type_ = std::make_shared<IntegratedType>();
+          *loop_info.node->integrated_type_ = *expression_ptr->children_[1]->integrated_type_;
+          loop_info.node->integrated_type_->is_const = false;
+        } else if (loop_info.node->integrated_type_->basic_type == unknown_type) {
+          *loop_info.node->integrated_type_ = *expression_ptr->children_[1]->integrated_type_;
+          loop_info.node->integrated_type_->is_const = false;
         } else {
           TryToMatch(expression_ptr->children_[1]->integrated_type_,
               loop_info.node->integrated_type_, false);
