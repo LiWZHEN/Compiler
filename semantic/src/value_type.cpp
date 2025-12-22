@@ -781,7 +781,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
         const std::string path_name = dynamic_cast<LeafNode *>(path_in_expression_ptr->children_[0])
             ->GetContent().GetStr();
         const auto path_node_info = expression_ptr->scope_node_->FindInValue(path_name);
-        expression_ptr->info_of_path_in_expr_ = path_node_info;
+        expression_ptr->info_in_namespace_ = path_node_info;
         if (path_node_info.node == nullptr) {
           Throw("Cannot find the path name '" + path_name + "' in value namespace.");
         }
@@ -1172,6 +1172,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           if (function_info.node == nullptr) {
             Throw("Cannot find target function in the scope.");
           }
+          expression_ptr->info_in_namespace_ = function_info;
           // if the target function has not been visited, visit its type and parameter type
           if (function_info.node->integrated_type_ == nullptr ||
               function_info.node->integrated_type_->basic_type == unknown_type) {
@@ -1245,6 +1246,7 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
           Throw("There is no target function in the associated-item field of the struct.");
         }
         const auto function_info = struct_ptr->associated_items_[function_name];
+        expression_ptr->info_in_namespace_ = function_info;
         if (function_info.node_type != type_function) {
           Throw("Cannot call a non-function.");
         }
@@ -1424,7 +1426,8 @@ void ValueTypeVisitor::Visit(Expression *expression_ptr) {
         if (struct_ptr->associated_items_[function_name].node_type != type_function) {
           Throw("Cannot apply method call operation to non-function.");
         }
-        auto function_ptr = struct_ptr->associated_items_[function_name].node;
+        expression_ptr->info_in_namespace_ = struct_ptr->associated_items_[function_name];
+        auto function_ptr = expression_ptr->info_in_namespace_.node;
         // has got function_ptr
         int call_expr_param_num = 0;
         if (expression_ptr->children_.size() == 3) {

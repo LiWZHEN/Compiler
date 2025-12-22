@@ -22,23 +22,24 @@ void IRVisitor::RecursiveInitialize(const Expression *expression_ptr, const int 
   if (integrated_type->basic_type == array_type) {
     for (int i = 0; i < integrated_type->size; ++i) {
       const int element_ptr_id = function.var_id_++;
-      target_block.AddGetElementPtr(element_ptr_id, integrated_type->element_type,
+      target_block.AddGetElementPtrByValue(element_ptr_id, integrated_type->element_type,
           ptr_id, i);
       const auto element_expr_ptr = dynamic_cast<Expression *>(expression_ptr->children_[2 * i + 1]);
+      const auto basic_type = integrated_type->element_type->basic_type;
       // %element_ptr_id <- *element_expr_ptr
-      if (integrated_type->element_type->basic_type == array_type ||
-          integrated_type->element_type->basic_type == struct_type) {
+      if (basic_type == char_type || basic_type == str_type || basic_type == string_type) {
+        Throw("Invalid type in IR.");
+      }
+      if (basic_type == array_type || basic_type == struct_type) {
         RecursiveInitialize(element_expr_ptr, element_ptr_id);
-      } else if (integrated_type->element_type->basic_type == pointer_type) {
-        // todo
-      } else if (element_expr_ptr->integrated_type_->is_const) {
-        target_block.AddValueStore(integrated_type->element_type,
-            static_cast<int>(element_expr_ptr->value_.array_values[i].int_value),
-            element_ptr_id);
-      } else {
+      } else if (basic_type == pointer_type || !element_expr_ptr->integrated_type_->is_const) {
         expression_ptr->children_[2 * i + 1]->Accept(this);
         target_block.AddVariableStore(integrated_type->element_type,
             expression_ptr->children_[2 * i + 1]->IR_ID_, element_ptr_id);
+      } else {
+        target_block.AddValueStore(integrated_type->element_type,
+            static_cast<int>(element_expr_ptr->value_.array_values[i].int_value),
+            element_ptr_id);
       }
     }
   } else if (integrated_type->basic_type == struct_type) {
@@ -54,21 +55,25 @@ void IRVisitor::RecursiveInitialize(const Expression *expression_ptr, const int 
       const int item_index = struct_def_ptr->field_item_index_[item_name];
       const int target_item_id = function.var_id_++;
       const auto item_expr_ptr = dynamic_cast<Expression *>(struct_expr_fields->children_[2 * i]->children_[2]);
-      target_block.AddGetElementPtr(target_item_id, item_expr_ptr->integrated_type_, ptr_id, item_index);
+      target_block.AddGetElementPtrByValue(target_item_id, item_expr_ptr->integrated_type_, ptr_id, item_index);
       // %target_item_id <- *item_expr_ptr
+      if (integrated_type->element_type->basic_type == char_type ||
+          integrated_type->element_type->basic_type == str_type ||
+          integrated_type->element_type->basic_type == string_type) {
+        Throw("Invalid type in IR.");
+      }
       if (item_expr_ptr->integrated_type_->basic_type == array_type ||
           item_expr_ptr->integrated_type_->basic_type == struct_type) {
         RecursiveInitialize(item_expr_ptr, target_item_id);
-      } else if (integrated_type->element_type->basic_type == pointer_type) {
-        // todo
-      } else if (item_expr_ptr->integrated_type_->is_const) {
-        target_block.AddValueStore(item_expr_ptr->integrated_type_,
-            static_cast<int>(item_expr_ptr->value_.array_values[i].int_value),
-            target_item_id);
-      } else {
+      } else if (integrated_type->element_type->basic_type == pointer_type ||
+          !item_expr_ptr->integrated_type_->is_const) {
         struct_expr_fields->children_[2 * i]->children_[2]->Accept(this);
         target_block.AddVariableStore(item_expr_ptr->integrated_type_,
             struct_expr_fields->children_[2 * i]->children_[2]->IR_ID_, target_item_id);
+      } else {
+        target_block.AddValueStore(item_expr_ptr->integrated_type_,
+            static_cast<int>(item_expr_ptr->value_.array_values[i].int_value),
+            target_item_id);
       }
     }
   } else {
@@ -223,26 +228,37 @@ void IRVisitor::Visit(LetStatement *let_statement_ptr) {
     function.blocks_[0] = IRBlock();
     ++function.var_id_;
   }
-  const int new_alloca_id = function.var_id_;
-  let_statement_ptr->children_[1]->IR_ID_ = new_alloca_id;
-  function.AddAlloca(new_alloca_id, let_statement_ptr->children_[1]->integrated_type_);
-  ++function.var_id_;
+  let_statement_ptr->children_[1]->IR_var_ID_ = function.var_id_++;
+  function.AddAlloca(let_statement_ptr->children_[1]->IR_var_ID_, let_statement_ptr->children_[1]->integrated_type_);
   if (let_statement_ptr->children_[1]->integrated_type_->is_int ||
       let_statement_ptr->children_[1]->integrated_type_->basic_type == bool_type ||
       let_statement_ptr->children_[1]->integrated_type_->basic_type == enumeration_type) {
     if (let_statement_ptr->children_[5]->integrated_type_->is_const) {
       function.blocks_[block_stack_.back()].AddValueStore(let_statement_ptr->children_[1]->integrated_type_,
-          static_cast<int>(let_statement_ptr->children_[5]->value_.int_value), new_alloca_id);
+          static_cast<int>(let_statement_ptr->children_[5]->value_.int_value), let_statement_ptr->children_[1]->IR_var_ID_);
     } else {
       let_statement_ptr->children_[5]->Accept(this);
       function.blocks_[block_stack_.back()].AddVariableStore(let_statement_ptr->children_[1]->integrated_type_,
-          let_statement_ptr->children_[5]->IR_ID_, new_alloca_id);
+          let_statement_ptr->children_[5]->IR_ID_, let_statement_ptr->children_[1]->IR_var_ID_);
     }
   } else if (let_statement_ptr->children_[1]->integrated_type_->basic_type == array_type ||
       let_statement_ptr->children_[1]->integrated_type_->basic_type == struct_type) {
-    RecursiveInitialize(dynamic_cast<Expression *>(let_statement_ptr->children_[5]), new_alloca_id);
+    RecursiveInitialize(dynamic_cast<Expression *>(let_statement_ptr->children_[5]),
+        let_statement_ptr->children_[1]->IR_var_ID_);
   } else if (let_statement_ptr->children_[1]->integrated_type_->basic_type == pointer_type) {
-    // todo
+    let_statement_ptr->children_[5]->Accept(this);
+    if (let_statement_ptr->children_[5]->IR_ID_ != -1) {
+      function.blocks_[block_stack_.back()].AddVariableStore(let_statement_ptr->children_[1]->integrated_type_,
+        let_statement_ptr->children_[5]->IR_ID_, let_statement_ptr->children_[1]->IR_var_ID_);
+    } else if (let_statement_ptr->children_[5]->IR_var_ID_ != -1) {
+      const int loaded_var_id = function.var_id_++;
+      function.blocks_[block_stack_.back()].AddLoad(loaded_var_id,
+          let_statement_ptr->children_[5]->integrated_type_, let_statement_ptr->children_[5]->IR_var_ID_);
+      function.blocks_[block_stack_.back()].AddVariableStore(let_statement_ptr->children_[1]->integrated_type_,
+          loaded_var_id, let_statement_ptr->children_[1]->IR_var_ID_);
+    } else {
+      Throw("Invalid let statement of pointer type value.");
+    }
   } else {
     Throw("There is a basic type that not implemented in LetStatement!");
   }
@@ -316,42 +332,238 @@ void IRVisitor::Visit(Expression *expression_ptr) {
       break;
     }
     case literal_expr: {
-      Throw("Const expression shouldn't be visited in IR generator.");
+      switch (expression_ptr->type_[0]) {
+        case type_keyword:
+        case type_integer_literal: {
+          expression_ptr->IR_var_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+          functions_[wrapping_functions_.back()].AddAlloca(expression_ptr->IR_var_ID_, expression_ptr->integrated_type_);
+          functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddValueStore(expression_ptr->integrated_type_,
+              static_cast<int>(expression_ptr->value_.int_value), expression_ptr->IR_var_ID_);
+          break;
+        }
+        case type_char_literal:
+        case type_string_literal:
+        case type_raw_string_literal:
+        case type_c_string_literal:
+        case type_raw_c_string_literal: {
+          Throw("Invalid literal type in IR.");
+          break;
+        }
+        default:;
+      }
       break;
     }
     case path_in_expr: {
       expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
-      const int def_ptr_id = expression_ptr->GetDefInfo().node->IR_ID_;
+      expression_ptr->IR_var_ID_ = expression_ptr->GetDefInfo().node->IR_ID_;
       functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(expression_ptr->IR_ID_,
-          expression_ptr->integrated_type_, def_ptr_id);
+          expression_ptr->integrated_type_, expression_ptr->IR_var_ID_);
       break;
     }
     case grouped_expr: {
-      // todo
+      expression_ptr->children_[1]->Accept(this);
+      expression_ptr->IR_ID_ = expression_ptr->children_[1]->IR_ID_;
+      expression_ptr->IR_var_ID_ = expression_ptr->children_[1]->IR_var_ID_;
       break;
     }
-    case array_expr: {
-      // todo
+    case array_expr:
+    case struct_expr: {
+      expression_ptr->IR_var_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+      functions_[wrapping_functions_.back()].AddAlloca(expression_ptr->IR_var_ID_, expression_ptr->integrated_type_);
+      RecursiveInitialize(expression_ptr, expression_ptr->IR_var_ID_);
+      expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+      functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(expression_ptr->IR_ID_,
+          expression_ptr->integrated_type_, expression_ptr->IR_var_ID_);
       break;
     }
     case index_expr: {
-      // todo
-      break;
-    }
-    case struct_expr: {
-      // todo
+      expression_ptr->children_[0]->Accept(this);
+      if (expression_ptr->children_[0]->IR_var_ID_ == -1) {
+        Throw("Cannot get the element of a value.");
+      }
+      expression_ptr->IR_var_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+      if (expression_ptr->children_[1]->integrated_type_->is_const) {
+        functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddGetElementPtrByValue(
+            expression_ptr->IR_var_ID_, expression_ptr->integrated_type_,
+            expression_ptr->children_[0]->IR_var_ID_, static_cast<int>(expression_ptr->children_[1]->value_.int_value));
+      } else {
+        expression_ptr->children_[1]->Accept(this);
+        functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddGetElementPtrByVariable(
+            expression_ptr->IR_var_ID_, expression_ptr->integrated_type_,
+            expression_ptr->children_[0]->IR_var_ID_, expression_ptr->children_[1]->IR_ID_);
+      }
       break;
     }
     case call_expr: {
-      // todo
+      if (expression_ptr->GetDefInfo().node == nullptr) { // builtin
+        std::string function_name = dynamic_cast<LeafNode *>(expression_ptr->children_[0]->children_[0])
+            ->GetContent().GetStr();
+        if (function_name == "printInt") {
+          std::vector<FunctionCallArgument> argument_list(1);
+          if (expression_ptr->children_[1]->children_[0]->integrated_type_->is_const) {
+            argument_list[0].type_ = expression_ptr->children_[1]->children_[0]->integrated_type_;
+            argument_list[0].is_variable = false;
+            argument_list[0].value_ = static_cast<int>(expression_ptr->children_[1]->children_[0]->value_.int_value);
+            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddBuiltinCall(-1,
+                nullptr, 0, argument_list);
+          } else {
+            expression_ptr->children_[1]->children_[0]->Accept(this);
+            argument_list[0].type_ = expression_ptr->children_[1]->children_[0]->integrated_type_;
+            argument_list[0].is_variable = true;
+            argument_list[0].value_ = expression_ptr->children_[1]->children_[0]->IR_ID_;
+            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddBuiltinCall(-1,
+                nullptr, 0, argument_list);
+          }
+        } else if (function_name == "printlnInt") {
+          std::vector<FunctionCallArgument> argument_list(1);
+          if (expression_ptr->children_[1]->children_[0]->integrated_type_->is_const) {
+            argument_list[0].type_ = expression_ptr->children_[1]->children_[0]->integrated_type_;
+            argument_list[0].is_variable = false;
+            argument_list[0].value_ = static_cast<int>(expression_ptr->children_[1]->children_[0]->value_.int_value);
+            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddBuiltinCall(-1,
+                nullptr, 1, argument_list);
+          } else {
+            expression_ptr->children_[1]->children_[0]->Accept(this);
+            argument_list[0].type_ = expression_ptr->children_[1]->children_[0]->integrated_type_;
+            argument_list[0].is_variable = true;
+            argument_list[0].value_ = expression_ptr->children_[1]->children_[0]->IR_ID_;
+            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddBuiltinCall(-1,
+                nullptr, 1, argument_list);
+          }
+        } else if (function_name == "getInt") {
+          expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+          functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddBuiltinCall(
+              expression_ptr->IR_ID_, expression_ptr->integrated_type_, 2);
+        } else if (function_name == "exit") {
+          if (expression_ptr->children_[1]->children_[0]->integrated_type_->is_const) {
+            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddValueReturn(
+                expression_ptr->children_[1]->children_[0]->integrated_type_,
+                static_cast<int>(expression_ptr->children_[1]->children_[0]->value_.int_value));
+          } else {
+            expression_ptr->children_[1]->children_[0]->Accept(this);
+            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddVariableReturn(
+                expression_ptr->children_[1]->children_[0]->integrated_type_,
+                expression_ptr->children_[1]->children_[0]->IR_ID_);
+          }
+        } else {
+          Throw("Invalid builtin (including print, println and getString).");
+        }
+      } else { // not builtin
+        std::vector<FunctionCallArgument> argument_list;
+        for (int i = 0; i < expression_ptr->children_[1]->children_.size(); i += 2) {
+          if (expression_ptr->children_[1]->children_[i]->integrated_type_->is_const) {
+            argument_list.push_back(FunctionCallArgument(expression_ptr->children_[1]
+                ->children_[i]->integrated_type_, false,
+                static_cast<int>(expression_ptr->children_[1]->children_[i]->value_.int_value)));
+          } else {
+            expression_ptr->children_[1]->children_[i]->Accept(this);
+            argument_list.push_back(FunctionCallArgument(expression_ptr->children_[1]
+                ->children_[i]->integrated_type_, true,
+                expression_ptr->children_[1]->children_[i]->IR_ID_));
+          }
+        }
+        if (expression_ptr->integrated_type_->basic_type == unit_type) { // void call
+          functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddVoidCall(
+              expression_ptr->GetDefInfo().node->IR_ID_, argument_list);
+        } else { // non-void call
+          expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+          functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddNonVoidCall(
+              expression_ptr->IR_ID_, expression_ptr->integrated_type_,
+              expression_ptr->GetDefInfo().node->IR_ID_, argument_list);
+        }
+      }
       break;
     }
     case method_call_expr: {
-      // todo
+      if (expression_ptr->GetDefInfo().node == nullptr) { // builtin
+
+      } else { // not builtin
+        std::vector<FunctionCallArgument> argument_list;
+        const auto function_def_node = expression_ptr->GetDefInfo().node;
+        switch (function_def_node->children_[3]->children_[0]->children_[0]->children_.size()) {
+          case 1: { // self
+            expression_ptr->children_[0]->Accept(this);
+            argument_list.push_back(FunctionCallArgument(expression_ptr->children_[0]->integrated_type_,
+                true, expression_ptr->children_[0]->IR_ID_));
+            break;
+          }
+          case 2:
+          case 3: { // &self or &mut self
+            expression_ptr->children_[0]->Accept(this);
+            if (expression_ptr->children_[0]->IR_var_ID_ == -1) {
+              Throw("The 'self' is not a left value and cannot be borrowed.");
+            }
+            const int borrowed_self_id = functions_[wrapping_functions_.back()].var_id_++;
+            auto target_type = functions_[function_def_node->IR_ID_].parameter_types_[0];
+            functions_[wrapping_functions_.back()].AddAlloca(borrowed_self_id,
+                target_type);
+            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddPtrStore(
+                expression_ptr->children_[0]->IR_var_ID_, borrowed_self_id);
+            const int loaded_borrowed_self_id = functions_[wrapping_functions_.back()].var_id_++;
+            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                loaded_borrowed_self_id, target_type, borrowed_self_id);
+            argument_list.push_back(FunctionCallArgument(target_type, true, loaded_borrowed_self_id));
+            break;
+          }
+          default:;
+        }
+        if (expression_ptr->children_.size() == 3) {
+          for (int i = 0; i < expression_ptr->children_[2]->children_.size(); i += 2) {
+            if (expression_ptr->children_[2]->children_[i]->integrated_type_->is_const) {
+              argument_list.push_back(FunctionCallArgument(expression_ptr->children_[2]
+                  ->children_[i]->integrated_type_, false,
+                  static_cast<int>(expression_ptr->children_[2]->children_[i]->value_.int_value)));
+            } else {
+              expression_ptr->children_[2]->children_[i]->Accept(this);
+              argument_list.push_back(FunctionCallArgument(expression_ptr->children_[2]
+                  ->children_[i]->integrated_type_, true,
+                  expression_ptr->children_[2]->children_[i]->IR_ID_));
+            }
+          }
+        }
+        if (expression_ptr->integrated_type_->basic_type == unit_type) { // void call
+          functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddVoidCall(
+              function_def_node->IR_ID_, argument_list);
+        } else { // non-void call
+          expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+          functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddNonVoidCall(
+              expression_ptr->IR_ID_, expression_ptr->integrated_type_,
+              function_def_node->IR_ID_, argument_list);
+        }
+      }
       break;
     }
     case field_expr: {
-      // todo
+      expression_ptr->children_[0]->Accept(this);
+      if (expression_ptr->children_[0]->integrated_type_->basic_type == struct_type) {
+        const auto struct_ptr = dynamic_cast<Struct *>(expression_ptr->children_[0]->integrated_type_->struct_node);
+        const std::string identifier_name = dynamic_cast<LeafNode *>(expression_ptr->children_[1]->
+            children_[0]->children_[0])->GetContent().GetStr();
+        expression_ptr->IR_var_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+        const int item_index = struct_ptr->field_item_index_[identifier_name];
+        functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddGetElementPtrByValue(
+            expression_ptr->IR_var_ID_, expression_ptr->integrated_type_,
+            expression_ptr->children_[0]->IR_var_ID_, item_index);
+        expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+        functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(expression_ptr->IR_ID_,
+            expression_ptr->integrated_type_, expression_ptr->IR_var_ID_);
+      } else { // expression_ptr->children_[0]->integrated_type_->basic_type == pointer_type
+        expression_ptr->children_[0]->Accept(this);
+        const int dereferenced_id = functions_[wrapping_functions_.back()].var_id_++;
+        functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddPtrLoad(dereferenced_id,
+            expression_ptr->children_[0]->IR_var_ID_);
+        const auto struct_ptr = dynamic_cast<Struct *>(expression_ptr->children_[0]->integrated_type_->element_type->struct_node);
+        const std::string identifier_name = dynamic_cast<LeafNode *>(expression_ptr->children_[1]->
+            children_[0]->children_[0])->GetContent().GetStr();
+        expression_ptr->IR_var_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+        const int item_index = struct_ptr->field_item_index_[identifier_name];
+        functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddGetElementPtrByValue(
+            expression_ptr->IR_var_ID_, expression_ptr->integrated_type_,
+            dereferenced_id, item_index);
+        expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+        functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(expression_ptr->IR_ID_,
+            expression_ptr->integrated_type_, expression_ptr->IR_var_ID_);
+      }
       break;
     }
     case continue_expr: {
@@ -377,9 +589,12 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             expression_ptr->children_[0]->IR_ID_);
       } else if (prefix == "*") {
         expression_ptr->children_[0]->Accept(this);
+        expression_ptr->IR_var_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+        functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddPtrLoad(
+            expression_ptr->IR_var_ID_, expression_ptr->children_[0]->IR_ID_);
         expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
         functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(expression_ptr->IR_ID_,
-            expression_ptr->integrated_type_, expression_ptr->children_[0]->IR_ID_);
+            expression_ptr->integrated_type_, expression_ptr->IR_var_ID_);
       } else if (prefix == "!") {
         expression_ptr->children_[0]->Accept(this);
         expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
@@ -389,25 +604,29 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               1, expression_ptr->children_[0]->IR_ID_);
         }
       } else if (prefix == "&") {
-        // todo
-        /*if (expression_ptr->children_[0]->integrated_type_->is_const) {
-          expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
-          functions_[wrapping_functions_.back()].AddAlloca(expression_ptr->IR_ID_,
-              expression_ptr->children_[0]->integrated_type_);
-          if (expression_ptr->children_[0]->integrated_type_->is_int ||
-              expression_ptr->children_[0]->integrated_type_->basic_type == bool_type) {
-            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddValueStore(
-                expression_ptr->children_[0]->integrated_type_,
-                static_cast<int>(expression_ptr->children_[0]->value_.int_value),
-                expression_ptr->IR_ID_);
-          } else {
-            Throw("&array hasn't been implemented.");
+        auto content_expr_ptr = expression_ptr->children_[0];
+        if (content_expr_ptr->integrated_type_->is_int ||
+            content_expr_ptr->integrated_type_->basic_type == bool_type ||
+            content_expr_ptr->integrated_type_->basic_type == enumeration_type ||
+            content_expr_ptr->integrated_type_->basic_type == struct_type ||
+            content_expr_ptr->integrated_type_->basic_type == array_type) {
+          content_expr_ptr->Accept(this);
+          if (content_expr_ptr->IR_var_ID_ == -1) {
+            Throw("The struct/array in borrow expression is not a left value!");
           }
-        } else {
-          expression_ptr->children_[0]->Accept(this);
+          // the struct/array value has an allocated ptr %content_expr->IR_var_ID_
+          expression_ptr->IR_var_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+          functions_[wrapping_functions_.back()].AddAlloca(expression_ptr->IR_var_ID_, expression_ptr->integrated_type_);
+          // store the ptr %content_expr->IR_var_ID_ into %expression_ptr->IR_var_ID_
+          functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddPtrStore(content_expr_ptr->IR_var_ID_,
+              expression_ptr->IR_var_ID_);
+          // load the value from ptr %expression_ptr->IR_var_ID_ to variable %expression_ptr->IR_ID_
           expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
-          functions_[wrapping_functions_.back()].AddAlloca(expression_ptr->IR_ID_, expression_ptr->integrated_type_)
-        }*/
+          functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(expression_ptr->IR_ID_,
+              expression_ptr->integrated_type_, expression_ptr->IR_var_ID_);
+        } else {
+          Throw("Invalid type for borrow expression in IR.");
+        }
       } else if (prefix == "&&") {
         Throw("There is no && in IR testcases.");
       }
@@ -1210,9 +1429,9 @@ void IRVisitor::Visit(Expression *expression_ptr) {
         }
         case assign: {
           const int variable_id = expression_ptr->GetDefInfo().node->IR_ID_;
+          const auto basic_type = expression_ptr->children_[1]->integrated_type_->basic_type;
           if (expression_ptr->children_[1]->integrated_type_->is_int ||
-              expression_ptr->children_[1]->integrated_type_->basic_type == bool_type ||
-              expression_ptr->children_[1]->integrated_type_->basic_type == enumeration_type) {
+              basic_type == bool_type || basic_type == enumeration_type) {
             if (expression_ptr->children_[1]->integrated_type_->is_const) {
               target_block.AddValueStore(expression_ptr->children_[0]->integrated_type_,
                   static_cast<int>(expression_ptr->children_[1]->value_.int_value), variable_id);
@@ -1221,8 +1440,13 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               target_block.AddVariableStore(expression_ptr->children_[0]->integrated_type_,
                   expression_ptr->children_[1]->IR_ID_, variable_id);
             }
-          } else {
-            // todo: implement array / struct / pointer assignment
+          } else if (basic_type == array_type || basic_type == struct_type) {
+            RecursiveInitialize(dynamic_cast<Expression *>(expression_ptr->children_[1]), variable_id);
+          } else if (expression_ptr->children_[1]->integrated_type_->basic_type == pointer_type) {
+            expression_ptr->children_[1]->Accept(this);
+            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddVariableStore(
+                expression_ptr->children_[1]->integrated_type_, expression_ptr->children_[1]->IR_ID_,
+                variable_id);
           }
           break;
         }

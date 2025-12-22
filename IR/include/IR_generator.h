@@ -7,11 +7,12 @@
 enum IRInstructionType {
   unknown_, two_var_binary_operation_, var_const_binary_operation_,
   const_var_binary_operation_, conditional_br_, unconditional_br_,
-  non_void_ret_, void_ret_, alloca_, load_, variable_store_,
-  value_store_, getelementptr_, icmp_, non_void_call_, void_call_,
-  phi_, value_select_ii_, value_select_iv_, value_select_vi_,
-  value_select_vv_, variable_select_ii_, variable_select_iv_,
-  variable_select_vi_, variable_select_vv_
+  value_ret_, variable_ret_, void_ret_, alloca_, load_, ptr_load_,
+  variable_store_, value_store_, ptr_store_, get_element_ptr_by_value_,
+  get_element_ptr_by_variable_, icmp_, non_void_call_,
+  void_call_, builtin_call_, phi_, value_select_ii_, value_select_iv_,
+  value_select_vi_, value_select_vv_, variable_select_ii_,
+  variable_select_iv_, variable_select_vi_, variable_select_vv_
 };
 
 enum BinaryOperator {
@@ -27,7 +28,8 @@ enum IcmpCond {
 
 struct FunctionCallArgument {
   std::shared_ptr<IntegratedType> type_;
-  int value_id_ = 0;
+  bool is_variable = true;
+  int value_ = 0;
 };
 
 struct IRInstruction {
@@ -92,8 +94,13 @@ struct IRBlock {
         0, 0, 0, 0, 0, destination_label, 0, equal_,
         0));
   }
-  void AddNonVoidReturn(const std::shared_ptr<IntegratedType> &return_type, const int value_id) {
-    instructions_.push_back(IRInstruction(non_void_ret_, value_id, add_, return_type,
+  void AddValueReturn(const std::shared_ptr<IntegratedType> &return_type, const int value) {
+    instructions_.push_back(IRInstruction(value_ret_, value, add_, return_type,
+        0, 0, 0, 0, 0, 0, 0, equal_,
+        0));
+  }
+  void AddVariableReturn(const std::shared_ptr<IntegratedType> &return_type, const int value_id) {
+    instructions_.push_back(IRInstruction(value_ret_, value_id, add_, return_type,
         0, 0, 0, 0, 0, 0, 0, equal_,
         0));
   }
@@ -107,6 +114,11 @@ struct IRBlock {
         0, 0, 0, 0, 0, pointer_id, equal_,
         0));
   }
+  void AddPtrLoad(const int result_id, const int pointer_id) {
+    instructions_.push_back(IRInstruction(ptr_load_, result_id, add_, nullptr,
+        0, 0, 0, 0, 0, 0, pointer_id, equal_,
+        0));
+  }
   void AddVariableStore(const std::shared_ptr<IntegratedType> &type, const int value_id, const int pointer_id) {
     instructions_.push_back(IRInstruction(variable_store_, value_id, add_, type,
         0, 0, 0, 0, 0, 0, pointer_id, equal_,
@@ -117,12 +129,24 @@ struct IRBlock {
         0, 0, 0, 0, 0, 0, pointer_id, equal_,
         0));
   }
-  void AddGetElementPtr(const int result_id, const std::shared_ptr<IntegratedType> &type, const int ptr_id,
-      const int index) {
-    instructions_.push_back(IRInstruction(getelementptr_, result_id, add_, type, 0,
-        0, 0, 0, 0, 0, 0, equal_,
+  void AddPtrStore(const int value_ptr, const int pointer_id) {
+    instructions_.push_back(IRInstruction(ptr_store_, value_ptr, add_, nullptr,
+        0, 0, 0, 0, 0, 0, pointer_id, equal_,
         0));
-    instructions_.back().index_ = index;
+  }
+  void AddGetElementPtrByValue(const int result_id, const std::shared_ptr<IntegratedType> &type, const int ptr_id,
+      const int index_in_value) {
+    instructions_.push_back(IRInstruction(get_element_ptr_by_value_, result_id, add_,
+        type, 0, 0, 0, 0, 0, 0, 0,
+        equal_, 0));
+    instructions_.back().index_ = index_in_value;
+  }
+  void AddGetElementPtrByVariable(const int result_id, const std::shared_ptr<IntegratedType> &type, const int ptr_id,
+      const int index_in_variable) {
+    instructions_.push_back(IRInstruction(get_element_ptr_by_variable_, result_id, add_,
+        type, 0, 0, 0, 0, 0, 0, 0,
+        equal_, 0));
+    instructions_.back().index_ = index_in_variable;
   }
   void AddTwoVarIcmp(const int result_id, const IcmpCond condition, const std::shared_ptr<IntegratedType> &operand_type,
       const int operand_1_id, const int operand_2_id) {
@@ -153,6 +177,15 @@ struct IRBlock {
         function_id));
     instructions_.back().function_call_arguments_ = function_call_arguments;
   }
+  void AddBuiltinCall(const int result_id, const std::shared_ptr<IntegratedType> &result_type, const int builtin_id,
+      const std::vector<FunctionCallArgument> &function_call_arguments = std::vector<FunctionCallArgument>()) {
+    instructions_.push_back(IRInstruction(builtin_call_, result_id, add_, result_type,
+        0, 0, 0, 0, 0, 0, 0, equal_,
+        builtin_id));
+    instructions_.back().function_call_arguments_ = function_call_arguments;
+  } /* 0 - printInt
+  1 - printlnInt
+  2 - getInt */
   void AddSelect(const int is_value, const int result_id, const int condition, const std::shared_ptr<IntegratedType> &first_type,
       const int first_value, const std::shared_ptr<IntegratedType> &second_type, const int second_value) {
     switch (is_value) {
