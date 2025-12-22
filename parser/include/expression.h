@@ -51,7 +51,7 @@ private:
   void Accept(Visitor *visitor) override;
   ExprType expr_type_;
   Infix infix_ = not_infix;
-  ScopeNodeContent info_of_path_in_expr_;
+  ScopeNodeContent info_in_namespace_;
   friend class ValueTypeVisitor;
 };
 
