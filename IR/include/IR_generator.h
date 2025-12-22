@@ -308,6 +308,8 @@ public:
   void AddFunction();
   void AddStruct();
   void RecursiveInitialize(const Expression *expression_ptr, int ptr_id);
+  void DeclareItems(const std::shared_ptr<ScopeNode> &new_scope);
+  int GetBlockValue(Node *visited_statements_ptr, const std::shared_ptr<IntegratedType> &expected_type);
   void Output();
 private:
   std::vector<IRFunctionNode> functions_;
