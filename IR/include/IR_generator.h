@@ -259,6 +259,13 @@ struct IRStructNode {
   std::vector<std::shared_ptr<IntegratedType>> element_type_;
 };
 
+struct LoopInfo {
+  int begin;
+  int end;
+  int var_id;
+  int outer_function_id;
+};
+
 class IRVisitor final : public Visitor {
 public:
   void Visit(Crate *crate_ptr) override;
@@ -315,6 +322,7 @@ private:
   std::vector<IRFunctionNode> functions_;
   std::vector<IRStructNode> structs_;
   std::vector<int> wrapping_functions_;
+  std::vector<LoopInfo> wrapping_loops_;
   std::vector<int> block_stack_;
 };
 

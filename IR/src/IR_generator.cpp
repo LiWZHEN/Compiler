@@ -294,11 +294,79 @@ void IRVisitor::Visit(Expression *expression_ptr) {
       break;
     }
     case infinite_loop_expr: {
-      // todo
+      const int loop_begin = functions_[wrapping_functions_.back()].var_id_++;
+      functions_[wrapping_functions_.back()].blocks_[loop_begin] = IRBlock();
+      const int loop_end = functions_[wrapping_functions_.back()].var_id_++;
+      functions_[wrapping_functions_.back()].blocks_[loop_end] = IRBlock();
+      if (expression_ptr->integrated_type_->basic_type != unit_type &&
+          expression_ptr->integrated_type_->basic_type != never_type) {
+        expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+      }
+      functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].
+          AddUnconditionalBranch(loop_begin);
+      // complete loop_begin
+      block_stack_.back() = loop_begin;
+      wrapping_loops_.push_back({loop_begin, loop_end, expression_ptr->IR_ID_,
+          wrapping_functions_.back()});
+      if (expression_ptr->children_.size() == 3) {
+        Throw("Empty loop!");
+      }
+      DeclareItems(expression_ptr->children_[2]->scope_node_);
+      expression_ptr->children_[2]->Accept(this);
+      functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].
+          AddUnconditionalBranch(loop_begin);
       break;
     }
     case predicate_loop_expr: {
-      // todo
+      if (expression_ptr->children_[2]->integrated_type_->is_const) {
+        if (expression_ptr->children_[2]->value_.int_value == 1) { // infinite loop
+          const int loop_begin = functions_[wrapping_functions_.back()].var_id_++;
+          functions_[wrapping_functions_.back()].blocks_[loop_begin] = IRBlock();
+          const int loop_end = functions_[wrapping_functions_.back()].var_id_++;
+          functions_[wrapping_functions_.back()].blocks_[loop_end] = IRBlock();
+          if (expression_ptr->integrated_type_->basic_type != unit_type &&
+              expression_ptr->integrated_type_->basic_type != never_type) {
+            expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+          }
+          wrapping_loops_.push_back({loop_begin, loop_end, expression_ptr->IR_ID_,
+              wrapping_functions_.back()});
+          functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].
+              AddUnconditionalBranch(loop_begin);
+          // loop_begin
+          if (expression_ptr->children_.size() == 7) {
+            DeclareItems(expression_ptr->children_[5]->scope_node_);
+            expression_ptr->children_[5]->Accept(this);
+          }
+          functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].
+              AddUnconditionalBranch(loop_begin);
+        } else { // skip
+          break;
+        }
+      } else {
+        const int condition_check = functions_[wrapping_functions_.back()].var_id_++;
+        functions_[wrapping_functions_.back()].blocks_[condition_check] = IRBlock();
+        const int loop_begin = functions_[wrapping_functions_.back()].var_id_++;
+        functions_[wrapping_functions_.back()].blocks_[loop_begin] = IRBlock();
+        const int loop_end = functions_[wrapping_functions_.back()].var_id_++;
+        functions_[wrapping_functions_.back()].blocks_[loop_end] = IRBlock();
+        wrapping_loops_.push_back({condition_check, loop_end});
+        functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].
+            AddUnconditionalBranch(condition_check);
+        // complete condition_check
+        block_stack_.back() = condition_check;
+        expression_ptr->children_[2]->Accept(this);
+        functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].
+            AddConditionalBranch(expression_ptr->children_[2]->IR_ID_, loop_begin,
+                loop_end);
+        // complete loop_begin
+        block_stack_.back() = loop_begin;
+        if (expression_ptr->children_.size() == 7) {
+          DeclareItems(expression_ptr->children_[5]->scope_node_);
+          expression_ptr->children_[5]->Accept(this);
+        }
+        functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].
+            AddUnconditionalBranch(condition_check);
+      }
       break;
     }
     case if_expr: {
@@ -611,11 +679,35 @@ void IRVisitor::Visit(Expression *expression_ptr) {
       break;
     }
     case continue_expr: {
-      // todo
+      functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].
+          AddUnconditionalBranch(wrapping_loops_.back().begin);
       break;
     }
     case break_expr: {
-      // todo
+      if (expression_ptr->children_.size() == 1) {
+        functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].
+            AddUnconditionalBranch(wrapping_loops_.back().end);
+        wrapping_loops_.pop_back();
+      } else {
+        const auto basic_type = expression_ptr->children_[1]->integrated_type_->basic_type;
+        if (expression_ptr->children_[1]->integrated_type_->is_const &&
+            (expression_ptr->children_[1]->integrated_type_->is_int || basic_type == bool_type
+            || basic_type == enumeration_type)) {
+          functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].
+              AddSelect(0b111, wrapping_loops_.back().var_id, 1,
+              expression_ptr->children_[1]->integrated_type_, expression_ptr->children_[1]->value_.int_value,
+              nullptr, 0);
+        } else {
+          expression_ptr->children_[1]->Accept(this);
+          functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].
+              AddSelect(0b100, wrapping_loops_.back().var_id, 1,
+              expression_ptr->children_[1]->integrated_type_, expression_ptr->children_[1]->IR_ID_,
+              nullptr, -1);
+        }
+        functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].
+            AddUnconditionalBranch(wrapping_loops_.back().end);
+        wrapping_loops_.pop_back();
+      }
       break;
     }
     case return_expr: {
@@ -629,6 +721,11 @@ void IRVisitor::Visit(Expression *expression_ptr) {
         expression_ptr->children_[1]->Accept(this);
         functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddVariableReturn(
             expression_ptr->children_[1]->integrated_type_, expression_ptr->children_[1]->IR_ID_);
+      }
+      const int popped_function_id = wrapping_functions_.back();
+      wrapping_functions_.pop_back();
+      while (wrapping_loops_.back().outer_function_id == popped_function_id) {
+        wrapping_loops_.pop_back();
       }
       break;
     }
