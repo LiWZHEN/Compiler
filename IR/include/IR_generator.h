@@ -9,10 +9,11 @@ enum IRInstructionType {
   const_var_binary_operation_, conditional_br_, unconditional_br_,
   value_ret_, variable_ret_, void_ret_, alloca_, load_, ptr_load_,
   variable_store_, value_store_, ptr_store_, get_element_ptr_by_value_,
-  get_element_ptr_by_variable_, icmp_, non_void_call_,
-  void_call_, builtin_call_, phi_, value_select_ii_, value_select_iv_,
-  value_select_vi_, value_select_vv_, variable_select_ii_,
-  variable_select_iv_, variable_select_vi_, variable_select_vv_
+  get_element_ptr_by_variable_, two_var_icmp_, var_const_icmp_,
+  const_var_icmp_, non_void_call_, void_call_, builtin_call_,
+  phi_, value_select_ii_, value_select_iv_, value_select_vi_,
+  value_select_vv_, variable_select_ii_, variable_select_iv_,
+  variable_select_vi_, variable_select_vv_
 };
 
 enum BinaryOperator {
@@ -137,30 +138,30 @@ struct IRBlock {
   void AddGetElementPtrByValue(const int result_id, const std::shared_ptr<IntegratedType> &type, const int ptr_id,
       const int index_in_value) {
     instructions_.push_back(IRInstruction(get_element_ptr_by_value_, result_id, add_,
-        type, 0, 0, 0, 0, 0, 0, 0,
+        type, 0, 0, 0, 0, 0, 0, ptr_id,
         equal_, 0));
     instructions_.back().index_ = index_in_value;
   }
   void AddGetElementPtrByVariable(const int result_id, const std::shared_ptr<IntegratedType> &type, const int ptr_id,
       const int index_in_variable) {
     instructions_.push_back(IRInstruction(get_element_ptr_by_variable_, result_id, add_,
-        type, 0, 0, 0, 0, 0, 0, 0,
+        type, 0, 0, 0, 0, 0, 0, ptr_id,
         equal_, 0));
     instructions_.back().index_ = index_in_variable;
   }
   void AddTwoVarIcmp(const int result_id, const IcmpCond condition, const std::shared_ptr<IntegratedType> &operand_type,
       const int operand_1_id, const int operand_2_id) {
-    instructions_.push_back(IRInstruction(icmp_, result_id, add_, operand_type, operand_1_id,
+    instructions_.push_back(IRInstruction(two_var_icmp_, result_id, add_, operand_type, operand_1_id,
         operand_2_id, 0, 0, 0, 0, 0, condition, 0));
   }
   void AddVarConstIcmp(const int result_id, const IcmpCond condition, const std::shared_ptr<IntegratedType> &operand_type,
       const int operand_1_id, const int operand_2_value) {
-    instructions_.push_back(IRInstruction(icmp_, result_id, add_, operand_type, operand_1_id,
+    instructions_.push_back(IRInstruction(var_const_icmp_, result_id, add_, operand_type, operand_1_id,
         operand_2_value, 0, 0, 0, 0, 0, condition, 0));
   }
   void AddConstVarIcmp(const int result_id, const IcmpCond condition, const std::shared_ptr<IntegratedType> &operand_type,
       const int operand_1_value, const int operand_2_id) {
-    instructions_.push_back(IRInstruction(icmp_, result_id, add_, operand_type, operand_1_value,
+    instructions_.push_back(IRInstruction(const_var_icmp_, result_id, add_, operand_type, operand_1_value,
         operand_2_id, 0, 0, 0, 0, 0, condition, 0));
   }
   void AddNonVoidCall(const int result_id, const std::shared_ptr<IntegratedType> &result_type, const int function_id,
@@ -246,8 +247,10 @@ struct IRBlock {
 struct IRFunctionNode {
   std::map<int, IRBlock> blocks_;
   std::vector<IRInstruction> alloca_instructions_;
+  std::shared_ptr<IntegratedType> return_type_;
   std::vector<std::shared_ptr<IntegratedType>> parameter_types_;
   int var_id_ = 0;
+  explicit IRFunctionNode(const std::shared_ptr<IntegratedType> &return_type) : return_type_(return_type) {}
   void AddAlloca(const int result_id, const std::shared_ptr<IntegratedType> &type) {
     alloca_instructions_.push_back(IRInstruction(alloca_, result_id, add_, type, 0,
         0, 0, 0, 0, 0, 0, equal_,
@@ -312,13 +315,15 @@ public:
   void Visit(StructField *struct_field_ptr) override;
   void Visit(EnumVariants *enum_variants_ptr) override;
   void Visit(AssociatedItem *associated_item_ptr) override;
-  void AddFunction();
+  void Output() const;
+private:
+  void AddFunction(const std::shared_ptr<IntegratedType> &return_type);
   void AddStruct();
   void RecursiveInitialize(const Expression *expression_ptr, int ptr_id);
   void DeclareItems(const std::shared_ptr<ScopeNode> &new_scope);
   int GetBlockValue(Node *visited_statements_ptr, const std::shared_ptr<IntegratedType> &expected_type);
-  void Output();
-private:
+  void OutputType(const std::shared_ptr<IntegratedType> &integrated_type) const;
+  void Print(const IRInstruction &instruction) const;
   std::vector<IRFunctionNode> functions_;
   std::vector<IRStructNode> structs_;
   std::vector<int> wrapping_functions_;

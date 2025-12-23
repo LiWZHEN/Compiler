@@ -2,14 +2,15 @@
 #include "item.h"
 #include "expression.h"
 #include "statements.h"
+#include "fstream"
 
 void Throw(const std::string &err_info) {
   std::cerr << "[IR Error] " << err_info << '\n';
   throw "";
 }
 
-void IRVisitor::AddFunction() {
-  functions_.push_back(IRFunctionNode());
+void IRVisitor::AddFunction(const std::shared_ptr<IntegratedType> &return_type) {
+  functions_.push_back(IRFunctionNode(return_type));
 }
 void IRVisitor::AddStruct() {
   structs_.push_back(IRStructNode());
@@ -89,12 +90,12 @@ void IRVisitor::DeclareItems(const std::shared_ptr<ScopeNode> &new_scope) {
           dynamic_cast<Struct *>(it.second.node)->associated_items_) {
         if (associated_item.second.node_type == type_function) {
           associated_item.second.node->IR_ID_ = static_cast<int>(functions_.size());
-          AddFunction();
+          AddFunction(associated_item.second.node->integrated_type_);
         }
       }
     } else if (it.second.node_type == type_function) {
       it.second.node->IR_ID_ = static_cast<int>(functions_.size());
-      AddFunction();
+      AddFunction(it.second.node->integrated_type_);
     }
   }
 }
@@ -194,12 +195,16 @@ void IRVisitor::Visit(Function *function_ptr) {
   const int function_id = function_ptr->IR_ID_;
   wrapping_functions_.push_back(function_id);
   block_stack_.push_back(0);
+  functions_[wrapping_functions_.back()].blocks_[0] = IRBlock();
   for (int i = 0; i < function_ptr->children_.size(); ++i) {
     if (function_ptr->type_[i] == type_function_parameters) {
       auto &function_parameter_types = functions_[function_id].parameter_types_;
       for (int j = 0; j < function_ptr->children_[i]->children_.size(); ++j) {
         if (function_ptr->children_[i]->type_[j] == type_self_param
             || function_ptr->children_[i]->type_[j] == type_function_param) {
+          function_ptr->children_[i]->children_[j]->IR_var_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+          functions_[wrapping_functions_.back()].AddAlloca(function_ptr->children_[i]->children_[j]->IR_var_ID_,
+              function_ptr->children_[i]->children_[j]->integrated_type_);
           function_ptr->children_[i]->children_[j]->IR_ID_ = static_cast<int>(function_parameter_types.size());
           function_parameter_types.push_back(function_ptr->children_[i]->children_[j]->integrated_type_);
         }
@@ -588,7 +593,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
     }
     case method_call_expr: {
       if (expression_ptr->GetDefInfo().node == nullptr) { // builtin
-
+        Throw("There is no builtin method in IR testcases.");
       } else { // not builtin
         std::vector<FunctionCallArgument> argument_list;
         const auto function_def_node = expression_ptr->GetDefInfo().node;
@@ -695,7 +700,8 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             || basic_type == enumeration_type)) {
           functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].
               AddSelect(0b111, wrapping_loops_.back().var_id, 1,
-              expression_ptr->children_[1]->integrated_type_, expression_ptr->children_[1]->value_.int_value,
+              expression_ptr->children_[1]->integrated_type_,
+              static_cast<int>(expression_ptr->children_[1]->value_.int_value),
               nullptr, 0);
         } else {
           expression_ptr->children_[1]->Accept(this);
@@ -1852,6 +1858,688 @@ void IRVisitor::Visit(Expression *expression_ptr) {
   }
 }
 
-void IRVisitor::Output() {
+void IRVisitor::OutputType(const std::shared_ptr<IntegratedType> &integrated_type) const {
+  switch (integrated_type->basic_type) {
+    case bool_type: {
+      std::cout << "i1";
+      break;
+    }
+    case i32_type:
+    case u32_type:
+    case isize_type:
+    case usize_type:
+    case enumeration_type: {
+      std::cout << "i32";
+      break;
+    }
+    case array_type: {
+      std::cout << '[' << integrated_type->size << " x ";
+      OutputType(integrated_type->element_type);
+      std::cout << ']';
+      break;
+    }
+    case struct_type: {
+      std::cout << "%struct." << integrated_type->struct_node->IR_ID_;
+      break;
+    }
+    case pointer_type: {
+      std::cout << "ptr";
+      break;
+    }
+    default:;
+  }
+}
 
+void IRVisitor::Print(const IRInstruction &instruction) const {
+  std::cout << '\t';
+  switch (instruction.instruction_type_) {
+    case two_var_binary_operation_: {
+      std::cout << "%var." << instruction.result_id_ << " = ";
+      switch (instruction.operator_) {
+        case add_: {
+          std::cout << "add";
+          break;
+        }
+        case sub_: {
+          std::cout << "sub";
+          break;
+        }
+        case mul_: {
+          std::cout << "mul";
+          break;
+        }
+        case udiv_: {
+          std::cout << "udiv";
+          break;
+        }
+        case sdiv_: {
+          std::cout << "sdiv";
+          break;
+        }
+        case urem_: {
+          std::cout << "urem";
+          break;
+        }
+        case srem_: {
+          std::cout << "srem";
+          break;
+        }
+        case shl_: {
+          std::cout << "shl";
+          break;
+        }
+        case ashr_: {
+          std::cout << "ashr";
+          break;
+        }
+        case and_: {
+          std::cout << "and";
+          break;
+        }
+        case or_: {
+          std::cout << "or";
+          break;
+        }
+        case xor_: {
+          std::cout << "xor";
+          break;
+        }
+        default:;
+      }
+      std::cout << " ";
+      OutputType(instruction.result_type_);
+      std::cout << " %var." << instruction.operand_1_id_ << ", %var." << instruction.operand_2_id_;
+      break;
+    }
+    case var_const_binary_operation_: {
+      std::cout << "%var." << instruction.result_id_ << " = ";
+      switch (instruction.operator_) {
+        case add_: {
+          std::cout << "add";
+          break;
+        }
+        case sub_: {
+          std::cout << "sub";
+          break;
+        }
+        case mul_: {
+          std::cout << "mul";
+          break;
+        }
+        case udiv_: {
+          std::cout << "udiv";
+          break;
+        }
+        case sdiv_: {
+          std::cout << "sdiv";
+          break;
+        }
+        case urem_: {
+          std::cout << "urem";
+          break;
+        }
+        case srem_: {
+          std::cout << "srem";
+          break;
+        }
+        case shl_: {
+          std::cout << "shl";
+          break;
+        }
+        case ashr_: {
+          std::cout << "ashr";
+          break;
+        }
+        case and_: {
+          std::cout << "and";
+          break;
+        }
+        case or_: {
+          std::cout << "or";
+          break;
+        }
+        case xor_: {
+          std::cout << "xor";
+          break;
+        }
+        default:;
+      }
+      std::cout << " ";
+      OutputType(instruction.result_type_);
+      std::cout << " %var." << instruction.operand_1_id_ << ", " << instruction.operand_2_id_;
+      break;
+    }
+    case const_var_binary_operation_: {
+      std::cout << "%var." << instruction.result_id_ << " = ";
+      switch (instruction.operator_) {
+        case add_: {
+          std::cout << "add";
+          break;
+        }
+        case sub_: {
+          std::cout << "sub";
+          break;
+        }
+        case mul_: {
+          std::cout << "mul";
+          break;
+        }
+        case udiv_: {
+          std::cout << "udiv";
+          break;
+        }
+        case sdiv_: {
+          std::cout << "sdiv";
+          break;
+        }
+        case urem_: {
+          std::cout << "urem";
+          break;
+        }
+        case srem_: {
+          std::cout << "srem";
+          break;
+        }
+        case shl_: {
+          std::cout << "shl";
+          break;
+        }
+        case ashr_: {
+          std::cout << "ashr";
+          break;
+        }
+        case and_: {
+          std::cout << "and";
+          break;
+        }
+        case or_: {
+          std::cout << "or";
+          break;
+        }
+        case xor_: {
+          std::cout << "xor";
+          break;
+        }
+        default:;
+      }
+      std::cout << " ";
+      OutputType(instruction.result_type_);
+      std::cout << " " << instruction.operand_1_id_ << ", %var." << instruction.operand_2_id_;
+      break;
+    }
+    case conditional_br_: {
+      std::cout << "br i1 %var." << instruction.condition_id_ << ", label " <<
+          instruction.if_true_ << ", label " << instruction.if_false_;
+      break;
+    }
+    case unconditional_br_: {
+      std::cout << "br label " << instruction.destination_;
+      break;
+    }
+    case value_ret_: {
+      std::cout << "ret ";
+      OutputType(instruction.result_type_);
+      std::cout << " " << instruction.result_id_;
+      break;
+    }
+    case variable_ret_: {
+      std::cout << "ret ";
+      OutputType(instruction.result_type_);
+      std::cout << " %var." << instruction.result_id_;
+      break;
+    }
+    case void_ret_: {
+      std::cout << "ret void";
+      break;
+    }
+    case alloca_: {
+      std::cout << "%ptr." << instruction.result_id_ << " = alloca ";
+      OutputType(instruction.result_type_);
+      break;
+    }
+    case load_: {
+      std::cout << "%var." << instruction.result_id_ << " = load ";
+      OutputType(instruction.result_type_);
+      std::cout << ", ptr %ptr." << instruction.pointer_;
+      break;
+    }
+    case ptr_load_: {
+      std::cout << "%var." << instruction.result_id_ <<
+          " = load ptr, ptr " << instruction.pointer_;
+      break;
+    }
+    case variable_store_: {
+      std::cout << "store ";
+      OutputType(instruction.result_type_);
+      std::cout << " %var." << instruction.result_id_ << ", ptr %ptr." << instruction.pointer_;
+      break;
+    }
+    case value_store_: {
+      std::cout << "store ";
+      OutputType(instruction.result_type_);
+      std::cout << " " << instruction.result_id_ << ", ptr %ptr." << instruction.pointer_;
+      break;
+    }
+    case ptr_store_: {
+      std::cout << "store ptr %ptr." << instruction.result_id_
+          << ", ptr %ptr." << instruction.pointer_;
+      break;
+    }
+    case get_element_ptr_by_value_: {
+      std::cout << "%ptr." << instruction.result_id_ << " = getelementptr ";
+      OutputType(instruction.result_type_);
+      std::cout << ", ptr %ptr." << instruction.pointer_ << ", i32 " << instruction.index_;
+      break;
+    }
+    case get_element_ptr_by_variable_: {
+      std::cout << "%ptr." << instruction.result_id_ << " = getelementptr ";
+      OutputType(instruction.result_type_);
+      std::cout << ", ptr %ptr." << instruction.pointer_ << ", i32 %var." << instruction.index_;
+      break;
+    }
+    case two_var_icmp_: {
+      std::cout << "%var." << instruction.result_id_ << " = icmp ";
+      switch (instruction.icmp_condition_) {
+        case equal_: {
+          std::cout << "eq";
+          break;
+        }
+        case not_equal_: {
+          std::cout << "ne";
+          break;
+        }
+        case unsigned_greater_than_: {
+          std::cout << "ugt";
+          break;
+        }
+        case unsigned_greater_equal_: {
+          std::cout << "uge";
+          break;
+        }
+        case unsigned_less_than_: {
+          std::cout << "ult";
+          break;
+        }
+        case unsigned_less_equal_: {
+          std::cout << "ule";
+          break;
+        }
+        case signed_greater_than_: {
+          std::cout << "sgt";
+          break;
+        }
+        case signed_greater_equal_: {
+          std::cout << "sge";
+          break;
+        }
+        case signed_less_than_: {
+          std::cout << "slt";
+          break;
+        }
+        case signed_less_equal_: {
+          std::cout << "sle";
+          break;
+        }
+        default:;
+      }
+      std::cout << " ";
+      OutputType(instruction.result_type_);
+      std::cout << " %var." << instruction.operand_1_id_ << ", %var." <<
+          instruction.operand_2_id_;
+      break;
+    }
+    case var_const_icmp_: {
+      std::cout << "%var." << instruction.result_id_ << " = icmp ";
+      switch (instruction.icmp_condition_) {
+        case equal_: {
+          std::cout << "eq";
+          break;
+        }
+        case not_equal_: {
+          std::cout << "ne";
+          break;
+        }
+        case unsigned_greater_than_: {
+          std::cout << "ugt";
+          break;
+        }
+        case unsigned_greater_equal_: {
+          std::cout << "uge";
+          break;
+        }
+        case unsigned_less_than_: {
+          std::cout << "ult";
+          break;
+        }
+        case unsigned_less_equal_: {
+          std::cout << "ule";
+          break;
+        }
+        case signed_greater_than_: {
+          std::cout << "sgt";
+          break;
+        }
+        case signed_greater_equal_: {
+          std::cout << "sge";
+          break;
+        }
+        case signed_less_than_: {
+          std::cout << "slt";
+          break;
+        }
+        case signed_less_equal_: {
+          std::cout << "sle";
+          break;
+        }
+        default:;
+      }
+      std::cout << " ";
+      OutputType(instruction.result_type_);
+      std::cout << " %var." << instruction.operand_1_id_ << ", " <<
+          instruction.operand_2_id_;
+      break;
+    }
+    case const_var_icmp_: {
+      std::cout << "%var." << instruction.result_id_ << " = icmp ";
+      switch (instruction.icmp_condition_) {
+        case equal_: {
+          std::cout << "eq";
+          break;
+        }
+        case not_equal_: {
+          std::cout << "ne";
+          break;
+        }
+        case unsigned_greater_than_: {
+          std::cout << "ugt";
+          break;
+        }
+        case unsigned_greater_equal_: {
+          std::cout << "uge";
+          break;
+        }
+        case unsigned_less_than_: {
+          std::cout << "ult";
+          break;
+        }
+        case unsigned_less_equal_: {
+          std::cout << "ule";
+          break;
+        }
+        case signed_greater_than_: {
+          std::cout << "sgt";
+          break;
+        }
+        case signed_greater_equal_: {
+          std::cout << "sge";
+          break;
+        }
+        case signed_less_than_: {
+          std::cout << "slt";
+          break;
+        }
+        case signed_less_equal_: {
+          std::cout << "sle";
+          break;
+        }
+        default:;
+      }
+      std::cout << " ";
+      OutputType(instruction.result_type_);
+      std::cout << " " << instruction.operand_1_id_ << ", %var." <<
+          instruction.operand_2_id_;
+      break;
+    }
+    case non_void_call_: {
+      std::cout << "%var." << instruction.result_id_ << " = call ";
+      OutputType(instruction.result_type_);
+      std::cout << " @fn." << instruction.function_name_ << "(";
+      for (int i = 0; i < instruction.function_call_arguments_.size(); ++i) {
+        OutputType(instruction.function_call_arguments_[i].type_);
+        std::cout << " ";
+        if (instruction.function_call_arguments_[i].is_variable) {
+          std::cout << "%var." << instruction.function_call_arguments_[i].value_;
+        } else {
+          std::cout << instruction.function_call_arguments_[i].value_;
+        }
+        if (i < instruction.function_call_arguments_.size() - 1) {
+          std::cout << ", ";
+        }
+      }
+      std::cout << ")";
+      break;
+    }
+    case void_call_: {
+      std::cout << "call void @fn." << instruction.function_name_ << "(";
+      for (int i = 0; i < instruction.function_call_arguments_.size(); ++i) {
+        OutputType(instruction.function_call_arguments_[i].type_);
+        std::cout << " ";
+        if (instruction.function_call_arguments_[i].is_variable) {
+          std::cout << "%var." << instruction.function_call_arguments_[i].value_;
+        } else {
+          std::cout << instruction.function_call_arguments_[i].value_;
+        }
+        if (i < instruction.function_call_arguments_.size() - 1) {
+          std::cout << ", ";
+        }
+      }
+      std::cout << ")";
+      break;
+    }
+    case builtin_call_: {
+      switch (instruction.function_name_) {
+        case 0: { // printInt
+          std::cout << "call void @printInt(";
+          for (int i = 0; i < instruction.function_call_arguments_.size(); ++i) {
+            OutputType(instruction.function_call_arguments_[i].type_);
+            std::cout << " ";
+            if (instruction.function_call_arguments_[i].is_variable) {
+              std::cout << "%var." << instruction.function_call_arguments_[i].value_;
+            } else {
+              std::cout << instruction.function_call_arguments_[i].value_;
+            }
+            if (i < instruction.function_call_arguments_.size() - 1) {
+              std::cout << ", ";
+            }
+          }
+          std::cout << ")";
+          break;
+        }
+        case 1: { // printlnInt
+          std::cout << "call void @printinInt(";
+          for (int i = 0; i < instruction.function_call_arguments_.size(); ++i) {
+            OutputType(instruction.function_call_arguments_[i].type_);
+            std::cout << " ";
+            if (instruction.function_call_arguments_[i].is_variable) {
+              std::cout << "%var." << instruction.function_call_arguments_[i].value_;
+            } else {
+              std::cout << instruction.function_call_arguments_[i].value_;
+            }
+            if (i < instruction.function_call_arguments_.size() - 1) {
+              std::cout << ", ";
+            }
+          }
+          std::cout << ")";
+          break;
+        }
+        case 2: { // getInt
+          std::cout << "%var." << instruction.result_id_ << " = call ";
+          OutputType(instruction.result_type_);
+          std::cout << " @getInt(";
+          for (int i = 0; i < instruction.function_call_arguments_.size(); ++i) {
+            OutputType(instruction.function_call_arguments_[i].type_);
+            std::cout << " ";
+            if (instruction.function_call_arguments_[i].is_variable) {
+              std::cout << "%var." << instruction.function_call_arguments_[i].value_;
+            } else {
+              std::cout << instruction.function_call_arguments_[i].value_;
+            }
+            if (i < instruction.function_call_arguments_.size() - 1) {
+              std::cout << ", ";
+            }
+          }
+          std::cout << ")";
+          break;
+        }
+        default:;
+      }
+      break;
+    }
+    case phi_: {
+      Throw("No phi function.");
+      break;
+    }
+    case value_select_ii_: {
+      std::cout << "%var." << instruction.result_id_ << " = select i1 ";
+      if (instruction.condition_id_ == 0) {
+        std::cout << "false";
+      } else {
+        std::cout << "true";
+      }
+      std::cout << ", ";
+      OutputType(instruction.result_type_);
+      std::cout << " %var." << instruction.operand_1_id_ << ", ";
+      OutputType(instruction.another_type_);
+      std::cout << " %var." << instruction.operand_2_id_;
+      break;
+    }
+    case value_select_iv_: {
+      std::cout << "%var." << instruction.result_id_ << " = select i1 ";
+      if (instruction.condition_id_ == 0) {
+        std::cout << "false";
+      } else {
+        std::cout << "true";
+      }
+      std::cout << ", ";
+      OutputType(instruction.result_type_);
+      std::cout << " %var." << instruction.operand_1_id_ << ", ";
+      OutputType(instruction.another_type_);
+      std::cout << " " << instruction.operand_2_id_;
+      break;
+    }
+    case value_select_vi_: {
+      std::cout << "%var." << instruction.result_id_ << " = select i1 ";
+      if (instruction.condition_id_ == 0) {
+        std::cout << "false";
+      } else {
+        std::cout << "true";
+      }
+      std::cout << ", ";
+      OutputType(instruction.result_type_);
+      std::cout << " " << instruction.operand_1_id_ << ", ";
+      OutputType(instruction.another_type_);
+      std::cout << " %var." << instruction.operand_2_id_;
+      break;
+    }
+    case value_select_vv_: {
+      std::cout << "%var." << instruction.result_id_ << " = select i1 ";
+      if (instruction.condition_id_ == 0) {
+        std::cout << "false";
+      } else {
+        std::cout << "true";
+      }
+      std::cout << ", ";
+      OutputType(instruction.result_type_);
+      std::cout << " " << instruction.operand_1_id_ << ", ";
+      OutputType(instruction.another_type_);
+      std::cout << " " << instruction.operand_2_id_;
+      break;
+    }
+    case variable_select_ii_: {
+      std::cout << "%var." << instruction.result_id_ << " = select i1 ";
+      std::cout << "%var." << instruction.condition_id_;
+      std::cout << ", ";
+      OutputType(instruction.result_type_);
+      std::cout << " %var." << instruction.operand_1_id_ << ", ";
+      OutputType(instruction.another_type_);
+      std::cout << " %var." << instruction.operand_2_id_;
+      break;
+    }
+    case variable_select_iv_: {
+      std::cout << "%var." << instruction.result_id_ << " = select i1 ";
+      std::cout << "%var." << instruction.condition_id_;
+      std::cout << ", ";
+      OutputType(instruction.result_type_);
+      std::cout << " %var." << instruction.operand_1_id_ << ", ";
+      OutputType(instruction.another_type_);
+      std::cout << " " << instruction.operand_2_id_;
+      break;
+    }
+    case variable_select_vi_: {
+      std::cout << "%var." << instruction.result_id_ << " = select i1 ";
+      std::cout << "%var." << instruction.condition_id_;
+      std::cout << ", ";
+      OutputType(instruction.result_type_);
+      std::cout << " " << instruction.operand_1_id_ << ", ";
+      OutputType(instruction.another_type_);
+      std::cout << " %var." << instruction.operand_2_id_;
+      break;
+    }
+    case variable_select_vv_: {
+      std::cout << "%var." << instruction.result_id_ << " = select i1 ";
+      std::cout << "%var." << instruction.condition_id_;
+      std::cout << ", ";
+      OutputType(instruction.result_type_);
+      std::cout << " " << instruction.operand_1_id_ << ", ";
+      OutputType(instruction.another_type_);
+      std::cout << " " << instruction.operand_2_id_;
+      break;
+    }
+    default:;
+  }
+  std::cout << '\n';
+}
+
+void IRVisitor::Output() const {
+  // output the builtin function declarations
+  std::ifstream builtin_functions("../RCompiler-Testcases/IR-1/builtin/builtin.ll");
+  std::string line_in_file;
+  if (builtin_functions.is_open()) {
+    while (std::getline(builtin_functions, line_in_file)) {
+      std::cout << line_in_file << '\n';
+    }
+    builtin_functions.close();
+  } else {
+    std::cerr << "Cannot open builtin functions file!\n";
+  }
+  // output struct definitions
+  for (int i = 0; i < structs_.size(); ++i) {
+    std::cout << "%struct." << i << " = type { ";
+    for (int j = 0; j < structs_[i].element_type_.size(); ++j) {
+      OutputType(structs_[i].element_type_[j]);
+      if (j < structs_[i].element_type_.size() - 1) {
+        std::cout << ',';
+      }
+      std::cout << ' ';
+    }
+    std::cout << "}";
+  }
+  // output function definitions with blocks in it
+  for (int i = 0; i < functions_.size(); ++i) {
+    std::cout << "define ";
+    OutputType(functions_[i].return_type_);
+    std::cout << " @fn." << i << '(';
+    for (int j = 0; j < functions_[i].parameter_types_.size(); ++j) {
+      OutputType(functions_[i].parameter_types_[j]);
+      std::cout << " %param." << j;
+      if (j < functions_[i].parameter_types_.size() - 1) {
+        std::cout << ", ";
+      }
+    }
+    std::cout << ") {\n";
+    // print alloca
+    std::cout << "alloca:\n";
+    for (const auto &alloca_instruction : functions_[i].alloca_instructions_) {
+      Print(alloca_instruction);
+    }
+    std::cout << "\tbr label " << functions_[i].blocks_.begin()->first << '\n';
+    // print blocks
+    for (const auto &[block_label, block] : functions_[i].blocks_) {
+      std::cout << block_label << ":\n";
+      for (const auto &instruction : block.instructions_) {
+        Print(instruction);
+      }
+    }
+    std::cout << '}';
+  }
 }
