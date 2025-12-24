@@ -322,7 +322,7 @@ public:
 private:
   void AddFunction(const std::shared_ptr<IntegratedType> &return_type);
   void AddStruct();
-  void RecursiveInitialize(const Expression *expression_ptr, int ptr_id);
+  void RecursiveInitialize(const Node *expression_ptr, int ptr_id);
   void DeclareItems(const std::shared_ptr<ScopeNode> &new_scope);
   int GetBlockValue(Node *visited_statements_ptr, const std::shared_ptr<IntegratedType> &expected_type);
   void OutputType(std::ofstream &file, const std::shared_ptr<IntegratedType> &integrated_type);
