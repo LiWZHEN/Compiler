@@ -4,7 +4,7 @@
 #include "statements.h"
 #include "fstream"
 
-void Throw(const std::string &err_info) {
+void IRThrow(const std::string &err_info) {
   std::cerr << "[IR Error] " << err_info << '\n';
   throw "";
 }
@@ -29,7 +29,7 @@ void IRVisitor::RecursiveInitialize(const Expression *expression_ptr, const int 
       const auto basic_type = integrated_type->element_type->basic_type;
       // %element_ptr_id <- *element_expr_ptr
       if (basic_type == char_type || basic_type == str_type || basic_type == string_type) {
-        Throw("Invalid type in IR.");
+        IRThrow("Invalid type in IR.");
       }
       if (basic_type == array_type || basic_type == struct_type) {
         RecursiveInitialize(element_expr_ptr, element_ptr_id);
@@ -45,7 +45,7 @@ void IRVisitor::RecursiveInitialize(const Expression *expression_ptr, const int 
     }
   } else if (integrated_type->basic_type == struct_type) {
     if (expression_ptr->children_.size() == 3) {
-      Throw("Empty struct expression!");
+      IRThrow("Empty struct expression!");
     }
     const auto struct_expr_fields = expression_ptr->children_[2];
     const auto struct_def_ptr = dynamic_cast<Struct *>(integrated_type->struct_node);
@@ -61,7 +61,7 @@ void IRVisitor::RecursiveInitialize(const Expression *expression_ptr, const int 
       if (integrated_type->element_type->basic_type == char_type ||
           integrated_type->element_type->basic_type == str_type ||
           integrated_type->element_type->basic_type == string_type) {
-        Throw("Invalid type in IR.");
+        IRThrow("Invalid type in IR.");
       }
       if (item_expr_ptr->integrated_type_->basic_type == array_type ||
           item_expr_ptr->integrated_type_->basic_type == struct_type) {
@@ -78,9 +78,10 @@ void IRVisitor::RecursiveInitialize(const Expression *expression_ptr, const int 
       }
     }
   } else {
-    Throw("Recursive initializing shouldn't be used except when initalizing array or struct.");
+    IRThrow("Recursive initializing shouldn't be used except when initalizing array or struct.");
   }
 }
+
 void IRVisitor::DeclareItems(const std::shared_ptr<ScopeNode> &new_scope) {
   for (const auto &it : new_scope->type_namespace) {
     if (it.second.node_type == type_struct) {
@@ -93,12 +94,20 @@ void IRVisitor::DeclareItems(const std::shared_ptr<ScopeNode> &new_scope) {
           AddFunction(associated_item.second.node->integrated_type_);
         }
       }
-    } else if (it.second.node_type == type_function) {
+    }
+  }
+  for (const auto &it : new_scope->value_namespace) {
+    if (it.second.node_type == type_function && it.second.node != nullptr) {
       it.second.node->IR_ID_ = static_cast<int>(functions_.size());
       AddFunction(it.second.node->integrated_type_);
+      if (main_function_id_ == -1 &&
+          dynamic_cast<LeafNode *>(it.second.node->children_[1])->GetContent().GetStr() == "main") {
+        main_function_id_ = it.second.node->IR_ID_;
+      }
     }
   }
 }
+
 int IRVisitor::GetBlockValue(Node *visited_statements_ptr, const std::shared_ptr<IntegratedType> &expected_type) {
   if (expected_type->basic_type == unit_type || visited_statements_ptr->integrated_type_->basic_type == never_type) {
     return -1;
@@ -162,7 +171,7 @@ void IRVisitor::Visit(Crate *crate_ptr) {
   // collect and declare the structs and functions
   DeclareItems(crate_ptr->scope_node_);
   for (const auto &it : crate_ptr->children_) {
-    if (it->type_[0] == struct_type) {
+    if (it->type_[0] == type_struct) {
       it->Accept(this);
     }
   }
@@ -273,10 +282,10 @@ void IRVisitor::Visit(LetStatement *let_statement_ptr) {
       function.blocks_[block_stack_.back()].AddVariableStore(let_statement_ptr->children_[1]->integrated_type_,
           loaded_var_id, let_statement_ptr->children_[1]->IR_var_ID_);
     } else {
-      Throw("Invalid let statement of pointer type value.");
+      IRThrow("Invalid let statement of pointer type value.");
     }
   } else {
-    Throw("There is a basic type that not implemented in LetStatement!");
+    IRThrow("There is a basic type that not implemented in LetStatement!");
   }
 }
 void IRVisitor::Visit(ExpressionStatement *expression_statement_ptr) {
@@ -286,7 +295,7 @@ void IRVisitor::Visit(ExpressionStatement *expression_statement_ptr) {
   expression_statement_ptr->IR_ID_ = -1;
 }
 void IRVisitor::Visit(StringLiteral *string_literal_ptr) {
-  Throw("String is not implemented.");
+  IRThrow("String is not implemented.");
 }
 void IRVisitor::Visit(Expression *expression_ptr) {
   switch (expression_ptr->GetExprType()) {
@@ -314,7 +323,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
       wrapping_loops_.push_back({loop_begin, loop_end, expression_ptr->IR_ID_,
           wrapping_functions_.back()});
       if (expression_ptr->children_.size() == 3) {
-        Throw("Empty loop!");
+        IRThrow("Empty loop!");
       }
       DeclareItems(expression_ptr->children_[2]->scope_node_);
       expression_ptr->children_[2]->Accept(this);
@@ -463,7 +472,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
         case type_raw_string_literal:
         case type_c_string_literal:
         case type_raw_c_string_literal: {
-          Throw("Invalid literal type in IR.");
+          IRThrow("Invalid literal type in IR.");
           break;
         }
         default:;
@@ -472,7 +481,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
     }
     case path_in_expr: {
       expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
-      expression_ptr->IR_var_ID_ = expression_ptr->GetDefInfo().node->IR_ID_;
+      expression_ptr->IR_var_ID_ = expression_ptr->GetDefInfo().node->IR_var_ID_;
       functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(expression_ptr->IR_ID_,
           expression_ptr->integrated_type_, expression_ptr->IR_var_ID_);
       break;
@@ -496,7 +505,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
     case index_expr: {
       expression_ptr->children_[0]->Accept(this);
       if (expression_ptr->children_[0]->IR_var_ID_ == -1) {
-        Throw("Cannot get the element of a value.");
+        IRThrow("Cannot get the element of a value.");
       }
       expression_ptr->IR_var_ID_ = functions_[wrapping_functions_.back()].var_id_++;
       if (expression_ptr->children_[1]->integrated_type_->is_const) {
@@ -519,14 +528,14 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           std::vector<FunctionCallArgument> argument_list(1);
           if (expression_ptr->children_[1]->children_[0]->integrated_type_->is_const) {
             argument_list[0].type_ = expression_ptr->children_[1]->children_[0]->integrated_type_;
-            argument_list[0].is_variable = false;
+            argument_list[0].is_variable_ = false;
             argument_list[0].value_ = static_cast<int>(expression_ptr->children_[1]->children_[0]->value_.int_value);
             functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddBuiltinCall(-1,
                 nullptr, 0, argument_list);
           } else {
             expression_ptr->children_[1]->children_[0]->Accept(this);
             argument_list[0].type_ = expression_ptr->children_[1]->children_[0]->integrated_type_;
-            argument_list[0].is_variable = true;
+            argument_list[0].is_variable_ = true;
             argument_list[0].value_ = expression_ptr->children_[1]->children_[0]->IR_ID_;
             functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddBuiltinCall(-1,
                 nullptr, 0, argument_list);
@@ -535,14 +544,14 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           std::vector<FunctionCallArgument> argument_list(1);
           if (expression_ptr->children_[1]->children_[0]->integrated_type_->is_const) {
             argument_list[0].type_ = expression_ptr->children_[1]->children_[0]->integrated_type_;
-            argument_list[0].is_variable = false;
+            argument_list[0].is_variable_ = false;
             argument_list[0].value_ = static_cast<int>(expression_ptr->children_[1]->children_[0]->value_.int_value);
             functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddBuiltinCall(-1,
                 nullptr, 1, argument_list);
           } else {
             expression_ptr->children_[1]->children_[0]->Accept(this);
             argument_list[0].type_ = expression_ptr->children_[1]->children_[0]->integrated_type_;
-            argument_list[0].is_variable = true;
+            argument_list[0].is_variable_ = true;
             argument_list[0].value_ = expression_ptr->children_[1]->children_[0]->IR_ID_;
             functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddBuiltinCall(-1,
                 nullptr, 1, argument_list);
@@ -552,7 +561,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddBuiltinCall(
               expression_ptr->IR_ID_, expression_ptr->integrated_type_, 2);
         } else if (function_name == "exit") {
-          if (expression_ptr->children_[1]->children_[0]->integrated_type_->is_const) {
+          /*if (expression_ptr->children_[1]->children_[0]->integrated_type_->is_const) {
             functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddValueReturn(
                 expression_ptr->children_[1]->children_[0]->integrated_type_,
                 static_cast<int>(expression_ptr->children_[1]->children_[0]->value_.int_value));
@@ -561,22 +570,25 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddVariableReturn(
                 expression_ptr->children_[1]->children_[0]->integrated_type_,
                 expression_ptr->children_[1]->children_[0]->IR_ID_);
-          }
+          }*/
+          functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddVoidReturn();
         } else {
-          Throw("Invalid builtin (including print, println and getString).");
+          IRThrow("Invalid builtin (including print, println and getString).");
         }
       } else { // not builtin
         std::vector<FunctionCallArgument> argument_list;
-        for (int i = 0; i < expression_ptr->children_[1]->children_.size(); i += 2) {
-          if (expression_ptr->children_[1]->children_[i]->integrated_type_->is_const) {
-            argument_list.push_back(FunctionCallArgument(expression_ptr->children_[1]
-                ->children_[i]->integrated_type_, false,
-                static_cast<int>(expression_ptr->children_[1]->children_[i]->value_.int_value)));
-          } else {
-            expression_ptr->children_[1]->children_[i]->Accept(this);
-            argument_list.push_back(FunctionCallArgument(expression_ptr->children_[1]
-                ->children_[i]->integrated_type_, true,
-                expression_ptr->children_[1]->children_[i]->IR_ID_));
+        if (expression_ptr->children_.size() == 2) { // has call_params
+          for (int i = 0; i < expression_ptr->children_[1]->children_.size(); i += 2) {
+            if (expression_ptr->children_[1]->children_[i]->integrated_type_->is_const) {
+              argument_list.push_back(FunctionCallArgument(expression_ptr->children_[1]
+                  ->children_[i]->integrated_type_, false,
+                  static_cast<int>(expression_ptr->children_[1]->children_[i]->value_.int_value)));
+            } else {
+              expression_ptr->children_[1]->children_[i]->Accept(this);
+              argument_list.push_back(FunctionCallArgument(expression_ptr->children_[1]
+                  ->children_[i]->integrated_type_, true,
+                  expression_ptr->children_[1]->children_[i]->IR_ID_));
+            }
           }
         }
         if (expression_ptr->integrated_type_->basic_type == unit_type) { // void call
@@ -593,7 +605,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
     }
     case method_call_expr: {
       if (expression_ptr->GetDefInfo().node == nullptr) { // builtin
-        Throw("There is no builtin method in IR testcases.");
+        IRThrow("There is no builtin method in IR testcases.");
       } else { // not builtin
         std::vector<FunctionCallArgument> argument_list;
         const auto function_def_node = expression_ptr->GetDefInfo().node;
@@ -608,7 +620,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           case 3: { // &self or &mut self
             expression_ptr->children_[0]->Accept(this);
             if (expression_ptr->children_[0]->IR_var_ID_ == -1) {
-              Throw("The 'self' is not a left value and cannot be borrowed.");
+              IRThrow("The 'self' is not a left value and cannot be borrowed.");
             }
             const int borrowed_self_id = functions_[wrapping_functions_.back()].var_id_++;
             auto target_type = functions_[function_def_node->IR_ID_].parameter_types_[0];
@@ -730,7 +742,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
       }
       const int popped_function_id = wrapping_functions_.back();
       wrapping_functions_.pop_back();
-      while (wrapping_loops_.back().outer_function_id == popped_function_id) {
+      while (!wrapping_loops_.empty() && wrapping_loops_.back().outer_function_id == popped_function_id) {
         wrapping_loops_.pop_back();
       }
       break;
@@ -769,7 +781,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             content_expr_ptr->integrated_type_->basic_type == array_type) {
           content_expr_ptr->Accept(this);
           if (content_expr_ptr->IR_var_ID_ == -1) {
-            Throw("The struct/array in borrow expression is not a left value!");
+            IRThrow("The struct/array in borrow expression is not a left value!");
           }
           // the struct/array value has an allocated ptr %content_expr->IR_var_ID_
           expression_ptr->IR_var_ID_ = functions_[wrapping_functions_.back()].var_id_++;
@@ -782,10 +794,10 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(expression_ptr->IR_ID_,
               expression_ptr->integrated_type_, expression_ptr->IR_var_ID_);
         } else {
-          Throw("Invalid type for borrow expression in IR.");
+          IRThrow("Invalid type for borrow expression in IR.");
         }
       } else if (prefix == "&&") {
-        Throw("There is no && in IR testcases.");
+        IRThrow("There is no && in IR testcases.");
       }
       break;
     }
@@ -1858,10 +1870,10 @@ void IRVisitor::Visit(Expression *expression_ptr) {
   }
 }
 
-void IRVisitor::OutputType(const std::shared_ptr<IntegratedType> &integrated_type) const {
+void IRVisitor::OutputType(std::ofstream &file, const std::shared_ptr<IntegratedType> &integrated_type) {
   switch (integrated_type->basic_type) {
     case bool_type: {
-      std::cout << "i1";
+      file << "i1";
       break;
     }
     case i32_type:
@@ -1869,516 +1881,516 @@ void IRVisitor::OutputType(const std::shared_ptr<IntegratedType> &integrated_typ
     case isize_type:
     case usize_type:
     case enumeration_type: {
-      std::cout << "i32";
+      file << "i32";
       break;
     }
     case array_type: {
-      std::cout << '[' << integrated_type->size << " x ";
-      OutputType(integrated_type->element_type);
-      std::cout << ']';
+      file << '[' << integrated_type->size << " x ";
+      OutputType(file, integrated_type->element_type);
+      file << ']';
       break;
     }
     case struct_type: {
-      std::cout << "%struct." << integrated_type->struct_node->IR_ID_;
+      file << "%struct." << integrated_type->struct_node->IR_ID_;
       break;
     }
     case pointer_type: {
-      std::cout << "ptr";
+      file << "ptr";
       break;
     }
     default:;
   }
 }
 
-void IRVisitor::Print(const IRInstruction &instruction) const {
-  std::cout << '\t';
+void IRVisitor::Print(std::ofstream &file, const IRInstruction &instruction) {
+  file << '\t';
   switch (instruction.instruction_type_) {
     case two_var_binary_operation_: {
-      std::cout << "%var." << instruction.result_id_ << " = ";
+      file << "%var." << instruction.result_id_ << " = ";
       switch (instruction.operator_) {
         case add_: {
-          std::cout << "add";
+          file << "add";
           break;
         }
         case sub_: {
-          std::cout << "sub";
+          file << "sub";
           break;
         }
         case mul_: {
-          std::cout << "mul";
+          file << "mul";
           break;
         }
         case udiv_: {
-          std::cout << "udiv";
+          file << "udiv";
           break;
         }
         case sdiv_: {
-          std::cout << "sdiv";
+          file << "sdiv";
           break;
         }
         case urem_: {
-          std::cout << "urem";
+          file << "urem";
           break;
         }
         case srem_: {
-          std::cout << "srem";
+          file << "srem";
           break;
         }
         case shl_: {
-          std::cout << "shl";
+          file << "shl";
           break;
         }
         case ashr_: {
-          std::cout << "ashr";
+          file << "ashr";
           break;
         }
         case and_: {
-          std::cout << "and";
+          file << "and";
           break;
         }
         case or_: {
-          std::cout << "or";
+          file << "or";
           break;
         }
         case xor_: {
-          std::cout << "xor";
+          file << "xor";
           break;
         }
         default:;
       }
-      std::cout << " ";
-      OutputType(instruction.result_type_);
-      std::cout << " %var." << instruction.operand_1_id_ << ", %var." << instruction.operand_2_id_;
+      file << " ";
+      OutputType(file, instruction.result_type_);
+      file << " %var." << instruction.operand_1_id_ << ", %var." << instruction.operand_2_id_;
       break;
     }
     case var_const_binary_operation_: {
-      std::cout << "%var." << instruction.result_id_ << " = ";
+      file << "%var." << instruction.result_id_ << " = ";
       switch (instruction.operator_) {
         case add_: {
-          std::cout << "add";
+          file << "add";
           break;
         }
         case sub_: {
-          std::cout << "sub";
+          file << "sub";
           break;
         }
         case mul_: {
-          std::cout << "mul";
+          file << "mul";
           break;
         }
         case udiv_: {
-          std::cout << "udiv";
+          file << "udiv";
           break;
         }
         case sdiv_: {
-          std::cout << "sdiv";
+          file << "sdiv";
           break;
         }
         case urem_: {
-          std::cout << "urem";
+          file << "urem";
           break;
         }
         case srem_: {
-          std::cout << "srem";
+          file << "srem";
           break;
         }
         case shl_: {
-          std::cout << "shl";
+          file << "shl";
           break;
         }
         case ashr_: {
-          std::cout << "ashr";
+          file << "ashr";
           break;
         }
         case and_: {
-          std::cout << "and";
+          file << "and";
           break;
         }
         case or_: {
-          std::cout << "or";
+          file << "or";
           break;
         }
         case xor_: {
-          std::cout << "xor";
+          file << "xor";
           break;
         }
         default:;
       }
-      std::cout << " ";
-      OutputType(instruction.result_type_);
-      std::cout << " %var." << instruction.operand_1_id_ << ", " << instruction.operand_2_id_;
+      file << " ";
+      OutputType(file, instruction.result_type_);
+      file << " %var." << instruction.operand_1_id_ << ", " << instruction.operand_2_id_;
       break;
     }
     case const_var_binary_operation_: {
-      std::cout << "%var." << instruction.result_id_ << " = ";
+      file << "%var." << instruction.result_id_ << " = ";
       switch (instruction.operator_) {
         case add_: {
-          std::cout << "add";
+          file << "add";
           break;
         }
         case sub_: {
-          std::cout << "sub";
+          file << "sub";
           break;
         }
         case mul_: {
-          std::cout << "mul";
+          file << "mul";
           break;
         }
         case udiv_: {
-          std::cout << "udiv";
+          file << "udiv";
           break;
         }
         case sdiv_: {
-          std::cout << "sdiv";
+          file << "sdiv";
           break;
         }
         case urem_: {
-          std::cout << "urem";
+          file << "urem";
           break;
         }
         case srem_: {
-          std::cout << "srem";
+          file << "srem";
           break;
         }
         case shl_: {
-          std::cout << "shl";
+          file << "shl";
           break;
         }
         case ashr_: {
-          std::cout << "ashr";
+          file << "ashr";
           break;
         }
         case and_: {
-          std::cout << "and";
+          file << "and";
           break;
         }
         case or_: {
-          std::cout << "or";
+          file << "or";
           break;
         }
         case xor_: {
-          std::cout << "xor";
+          file << "xor";
           break;
         }
         default:;
       }
-      std::cout << " ";
-      OutputType(instruction.result_type_);
-      std::cout << " " << instruction.operand_1_id_ << ", %var." << instruction.operand_2_id_;
+      file << " ";
+      OutputType(file, instruction.result_type_);
+      file << " " << instruction.operand_1_id_ << ", %var." << instruction.operand_2_id_;
       break;
     }
     case conditional_br_: {
-      std::cout << "br i1 %var." << instruction.condition_id_ << ", label " <<
-          instruction.if_true_ << ", label " << instruction.if_false_;
+      file << "br i1 %var." << instruction.condition_id_ << ", label %label_" <<
+          instruction.if_true_ << ", label %label_" << instruction.if_false_;
       break;
     }
     case unconditional_br_: {
-      std::cout << "br label " << instruction.destination_;
+      file << "br label %label_" << instruction.destination_;
       break;
     }
     case value_ret_: {
-      std::cout << "ret ";
-      OutputType(instruction.result_type_);
-      std::cout << " " << instruction.result_id_;
+      file << "ret ";
+      OutputType(file, instruction.result_type_);
+      file << " " << instruction.result_id_;
       break;
     }
     case variable_ret_: {
-      std::cout << "ret ";
-      OutputType(instruction.result_type_);
-      std::cout << " %var." << instruction.result_id_;
+      file << "ret ";
+      OutputType(file, instruction.result_type_);
+      file << " %var." << instruction.result_id_;
       break;
     }
     case void_ret_: {
-      std::cout << "ret void";
+      file << "ret void";
       break;
     }
     case alloca_: {
-      std::cout << "%ptr." << instruction.result_id_ << " = alloca ";
-      OutputType(instruction.result_type_);
+      file << "%ptr." << instruction.result_id_ << " = alloca ";
+      OutputType(file, instruction.result_type_);
       break;
     }
     case load_: {
-      std::cout << "%var." << instruction.result_id_ << " = load ";
-      OutputType(instruction.result_type_);
-      std::cout << ", ptr %ptr." << instruction.pointer_;
+      file << "%var." << instruction.result_id_ << " = load ";
+      OutputType(file, instruction.result_type_);
+      file << ", ptr %ptr." << instruction.pointer_;
       break;
     }
     case ptr_load_: {
-      std::cout << "%var." << instruction.result_id_ <<
+      file << "%var." << instruction.result_id_ <<
           " = load ptr, ptr " << instruction.pointer_;
       break;
     }
     case variable_store_: {
-      std::cout << "store ";
-      OutputType(instruction.result_type_);
-      std::cout << " %var." << instruction.result_id_ << ", ptr %ptr." << instruction.pointer_;
+      file << "store ";
+      OutputType(file, instruction.result_type_);
+      file << " %var." << instruction.result_id_ << ", ptr %ptr." << instruction.pointer_;
       break;
     }
     case value_store_: {
-      std::cout << "store ";
-      OutputType(instruction.result_type_);
-      std::cout << " " << instruction.result_id_ << ", ptr %ptr." << instruction.pointer_;
+      file << "store ";
+      OutputType(file, instruction.result_type_);
+      file << " " << instruction.result_id_ << ", ptr %ptr." << instruction.pointer_;
       break;
     }
     case ptr_store_: {
-      std::cout << "store ptr %ptr." << instruction.result_id_
+      file << "store ptr %ptr." << instruction.result_id_
           << ", ptr %ptr." << instruction.pointer_;
       break;
     }
     case get_element_ptr_by_value_: {
-      std::cout << "%ptr." << instruction.result_id_ << " = getelementptr ";
-      OutputType(instruction.result_type_);
-      std::cout << ", ptr %ptr." << instruction.pointer_ << ", i32 " << instruction.index_;
+      file << "%ptr." << instruction.result_id_ << " = getelementptr ";
+      OutputType(file, instruction.result_type_);
+      file << ", ptr %ptr." << instruction.pointer_ << ", i32 " << instruction.index_;
       break;
     }
     case get_element_ptr_by_variable_: {
-      std::cout << "%ptr." << instruction.result_id_ << " = getelementptr ";
-      OutputType(instruction.result_type_);
-      std::cout << ", ptr %ptr." << instruction.pointer_ << ", i32 %var." << instruction.index_;
+      file << "%ptr." << instruction.result_id_ << " = getelementptr ";
+      OutputType(file, instruction.result_type_);
+      file << ", ptr %ptr." << instruction.pointer_ << ", i32 %var." << instruction.index_;
       break;
     }
     case two_var_icmp_: {
-      std::cout << "%var." << instruction.result_id_ << " = icmp ";
+      file << "%var." << instruction.result_id_ << " = icmp ";
       switch (instruction.icmp_condition_) {
         case equal_: {
-          std::cout << "eq";
+          file << "eq";
           break;
         }
         case not_equal_: {
-          std::cout << "ne";
+          file << "ne";
           break;
         }
         case unsigned_greater_than_: {
-          std::cout << "ugt";
+          file << "ugt";
           break;
         }
         case unsigned_greater_equal_: {
-          std::cout << "uge";
+          file << "uge";
           break;
         }
         case unsigned_less_than_: {
-          std::cout << "ult";
+          file << "ult";
           break;
         }
         case unsigned_less_equal_: {
-          std::cout << "ule";
+          file << "ule";
           break;
         }
         case signed_greater_than_: {
-          std::cout << "sgt";
+          file << "sgt";
           break;
         }
         case signed_greater_equal_: {
-          std::cout << "sge";
+          file << "sge";
           break;
         }
         case signed_less_than_: {
-          std::cout << "slt";
+          file << "slt";
           break;
         }
         case signed_less_equal_: {
-          std::cout << "sle";
+          file << "sle";
           break;
         }
         default:;
       }
-      std::cout << " ";
-      OutputType(instruction.result_type_);
-      std::cout << " %var." << instruction.operand_1_id_ << ", %var." <<
+      file << " ";
+      OutputType(file, instruction.result_type_);
+      file << " %var." << instruction.operand_1_id_ << ", %var." <<
           instruction.operand_2_id_;
       break;
     }
     case var_const_icmp_: {
-      std::cout << "%var." << instruction.result_id_ << " = icmp ";
+      file << "%var." << instruction.result_id_ << " = icmp ";
       switch (instruction.icmp_condition_) {
         case equal_: {
-          std::cout << "eq";
+          file << "eq";
           break;
         }
         case not_equal_: {
-          std::cout << "ne";
+          file << "ne";
           break;
         }
         case unsigned_greater_than_: {
-          std::cout << "ugt";
+          file << "ugt";
           break;
         }
         case unsigned_greater_equal_: {
-          std::cout << "uge";
+          file << "uge";
           break;
         }
         case unsigned_less_than_: {
-          std::cout << "ult";
+          file << "ult";
           break;
         }
         case unsigned_less_equal_: {
-          std::cout << "ule";
+          file << "ule";
           break;
         }
         case signed_greater_than_: {
-          std::cout << "sgt";
+          file << "sgt";
           break;
         }
         case signed_greater_equal_: {
-          std::cout << "sge";
+          file << "sge";
           break;
         }
         case signed_less_than_: {
-          std::cout << "slt";
+          file << "slt";
           break;
         }
         case signed_less_equal_: {
-          std::cout << "sle";
+          file << "sle";
           break;
         }
         default:;
       }
-      std::cout << " ";
-      OutputType(instruction.result_type_);
-      std::cout << " %var." << instruction.operand_1_id_ << ", " <<
+      file << " ";
+      OutputType(file, instruction.result_type_);
+      file << " %var." << instruction.operand_1_id_ << ", " <<
           instruction.operand_2_id_;
       break;
     }
     case const_var_icmp_: {
-      std::cout << "%var." << instruction.result_id_ << " = icmp ";
+      file << "%var." << instruction.result_id_ << " = icmp ";
       switch (instruction.icmp_condition_) {
         case equal_: {
-          std::cout << "eq";
+          file << "eq";
           break;
         }
         case not_equal_: {
-          std::cout << "ne";
+          file << "ne";
           break;
         }
         case unsigned_greater_than_: {
-          std::cout << "ugt";
+          file << "ugt";
           break;
         }
         case unsigned_greater_equal_: {
-          std::cout << "uge";
+          file << "uge";
           break;
         }
         case unsigned_less_than_: {
-          std::cout << "ult";
+          file << "ult";
           break;
         }
         case unsigned_less_equal_: {
-          std::cout << "ule";
+          file << "ule";
           break;
         }
         case signed_greater_than_: {
-          std::cout << "sgt";
+          file << "sgt";
           break;
         }
         case signed_greater_equal_: {
-          std::cout << "sge";
+          file << "sge";
           break;
         }
         case signed_less_than_: {
-          std::cout << "slt";
+          file << "slt";
           break;
         }
         case signed_less_equal_: {
-          std::cout << "sle";
+          file << "sle";
           break;
         }
         default:;
       }
-      std::cout << " ";
-      OutputType(instruction.result_type_);
-      std::cout << " " << instruction.operand_1_id_ << ", %var." <<
+      file << " ";
+      OutputType(file, instruction.result_type_);
+      file << " " << instruction.operand_1_id_ << ", %var." <<
           instruction.operand_2_id_;
       break;
     }
     case non_void_call_: {
-      std::cout << "%var." << instruction.result_id_ << " = call ";
-      OutputType(instruction.result_type_);
-      std::cout << " @fn." << instruction.function_name_ << "(";
+      file << "%var." << instruction.result_id_ << " = call ";
+      OutputType(file, instruction.result_type_);
+      file << " @fn." << instruction.function_name_ << "(";
       for (int i = 0; i < instruction.function_call_arguments_.size(); ++i) {
-        OutputType(instruction.function_call_arguments_[i].type_);
-        std::cout << " ";
-        if (instruction.function_call_arguments_[i].is_variable) {
-          std::cout << "%var." << instruction.function_call_arguments_[i].value_;
+        OutputType(file, instruction.function_call_arguments_[i].type_);
+        file << " ";
+        if (instruction.function_call_arguments_[i].is_variable_) {
+          file << "%var." << instruction.function_call_arguments_[i].value_;
         } else {
-          std::cout << instruction.function_call_arguments_[i].value_;
+          file << instruction.function_call_arguments_[i].value_;
         }
         if (i < instruction.function_call_arguments_.size() - 1) {
-          std::cout << ", ";
+          file << ", ";
         }
       }
-      std::cout << ")";
+      file << ")";
       break;
     }
     case void_call_: {
-      std::cout << "call void @fn." << instruction.function_name_ << "(";
+      file << "call void @fn." << instruction.function_name_ << "(";
       for (int i = 0; i < instruction.function_call_arguments_.size(); ++i) {
-        OutputType(instruction.function_call_arguments_[i].type_);
-        std::cout << " ";
-        if (instruction.function_call_arguments_[i].is_variable) {
-          std::cout << "%var." << instruction.function_call_arguments_[i].value_;
+        OutputType(file, instruction.function_call_arguments_[i].type_);
+        file << " ";
+        if (instruction.function_call_arguments_[i].is_variable_) {
+          file << "%var." << instruction.function_call_arguments_[i].value_;
         } else {
-          std::cout << instruction.function_call_arguments_[i].value_;
+          file << instruction.function_call_arguments_[i].value_;
         }
         if (i < instruction.function_call_arguments_.size() - 1) {
-          std::cout << ", ";
+          file << ", ";
         }
       }
-      std::cout << ")";
+      file << ")";
       break;
     }
     case builtin_call_: {
       switch (instruction.function_name_) {
         case 0: { // printInt
-          std::cout << "call void @printInt(";
+          file << "call void @printInt(";
           for (int i = 0; i < instruction.function_call_arguments_.size(); ++i) {
-            OutputType(instruction.function_call_arguments_[i].type_);
-            std::cout << " ";
-            if (instruction.function_call_arguments_[i].is_variable) {
-              std::cout << "%var." << instruction.function_call_arguments_[i].value_;
+            OutputType(file, instruction.function_call_arguments_[i].type_);
+            file << " ";
+            if (instruction.function_call_arguments_[i].is_variable_) {
+              file << "%var." << instruction.function_call_arguments_[i].value_;
             } else {
-              std::cout << instruction.function_call_arguments_[i].value_;
+              file << instruction.function_call_arguments_[i].value_;
             }
             if (i < instruction.function_call_arguments_.size() - 1) {
-              std::cout << ", ";
+              file << ", ";
             }
           }
-          std::cout << ")";
+          file << ")";
           break;
         }
         case 1: { // printlnInt
-          std::cout << "call void @printinInt(";
+          file << "call void @printinInt(";
           for (int i = 0; i < instruction.function_call_arguments_.size(); ++i) {
-            OutputType(instruction.function_call_arguments_[i].type_);
-            std::cout << " ";
-            if (instruction.function_call_arguments_[i].is_variable) {
-              std::cout << "%var." << instruction.function_call_arguments_[i].value_;
+            OutputType(file, instruction.function_call_arguments_[i].type_);
+            file << " ";
+            if (instruction.function_call_arguments_[i].is_variable_) {
+              file << "%var." << instruction.function_call_arguments_[i].value_;
             } else {
-              std::cout << instruction.function_call_arguments_[i].value_;
+              file << instruction.function_call_arguments_[i].value_;
             }
             if (i < instruction.function_call_arguments_.size() - 1) {
-              std::cout << ", ";
+              file << ", ";
             }
           }
-          std::cout << ")";
+          file << ")";
           break;
         }
         case 2: { // getInt
-          std::cout << "%var." << instruction.result_id_ << " = call ";
-          OutputType(instruction.result_type_);
-          std::cout << " @getInt(";
+          file << "%var." << instruction.result_id_ << " = call ";
+          OutputType(file, instruction.result_type_);
+          file << " @getInt(";
           for (int i = 0; i < instruction.function_call_arguments_.size(); ++i) {
-            OutputType(instruction.function_call_arguments_[i].type_);
-            std::cout << " ";
-            if (instruction.function_call_arguments_[i].is_variable) {
-              std::cout << "%var." << instruction.function_call_arguments_[i].value_;
+            OutputType(file, instruction.function_call_arguments_[i].type_);
+            file << " ";
+            if (instruction.function_call_arguments_[i].is_variable_) {
+              file << "%var." << instruction.function_call_arguments_[i].value_;
             } else {
-              std::cout << instruction.function_call_arguments_[i].value_;
+              file << instruction.function_call_arguments_[i].value_;
             }
             if (i < instruction.function_call_arguments_.size() - 1) {
-              std::cout << ", ";
+              file << ", ";
             }
           }
-          std::cout << ")";
+          file << ")";
           break;
         }
         default:;
@@ -2386,160 +2398,169 @@ void IRVisitor::Print(const IRInstruction &instruction) const {
       break;
     }
     case phi_: {
-      Throw("No phi function.");
+      IRThrow("No phi function.");
       break;
     }
     case value_select_ii_: {
-      std::cout << "%var." << instruction.result_id_ << " = select i1 ";
+      file << "%var." << instruction.result_id_ << " = select i1 ";
       if (instruction.condition_id_ == 0) {
-        std::cout << "false";
+        file << "false";
       } else {
-        std::cout << "true";
+        file << "true";
       }
-      std::cout << ", ";
-      OutputType(instruction.result_type_);
-      std::cout << " %var." << instruction.operand_1_id_ << ", ";
-      OutputType(instruction.another_type_);
-      std::cout << " %var." << instruction.operand_2_id_;
+      file << ", ";
+      OutputType(file, instruction.result_type_);
+      file << " %var." << instruction.operand_1_id_ << ", ";
+      OutputType(file, instruction.another_type_);
+      file << " %var." << instruction.operand_2_id_;
       break;
     }
     case value_select_iv_: {
-      std::cout << "%var." << instruction.result_id_ << " = select i1 ";
+      file << "%var." << instruction.result_id_ << " = select i1 ";
       if (instruction.condition_id_ == 0) {
-        std::cout << "false";
+        file << "false";
       } else {
-        std::cout << "true";
+        file << "true";
       }
-      std::cout << ", ";
-      OutputType(instruction.result_type_);
-      std::cout << " %var." << instruction.operand_1_id_ << ", ";
-      OutputType(instruction.another_type_);
-      std::cout << " " << instruction.operand_2_id_;
+      file << ", ";
+      OutputType(file, instruction.result_type_);
+      file << " %var." << instruction.operand_1_id_ << ", ";
+      OutputType(file, instruction.another_type_);
+      file << " " << instruction.operand_2_id_;
       break;
     }
     case value_select_vi_: {
-      std::cout << "%var." << instruction.result_id_ << " = select i1 ";
+      file << "%var." << instruction.result_id_ << " = select i1 ";
       if (instruction.condition_id_ == 0) {
-        std::cout << "false";
+        file << "false";
       } else {
-        std::cout << "true";
+        file << "true";
       }
-      std::cout << ", ";
-      OutputType(instruction.result_type_);
-      std::cout << " " << instruction.operand_1_id_ << ", ";
-      OutputType(instruction.another_type_);
-      std::cout << " %var." << instruction.operand_2_id_;
+      file << ", ";
+      OutputType(file, instruction.result_type_);
+      file << " " << instruction.operand_1_id_ << ", ";
+      OutputType(file, instruction.another_type_);
+      file << " %var." << instruction.operand_2_id_;
       break;
     }
     case value_select_vv_: {
-      std::cout << "%var." << instruction.result_id_ << " = select i1 ";
+      file << "%var." << instruction.result_id_ << " = select i1 ";
       if (instruction.condition_id_ == 0) {
-        std::cout << "false";
+        file << "false";
       } else {
-        std::cout << "true";
+        file << "true";
       }
-      std::cout << ", ";
-      OutputType(instruction.result_type_);
-      std::cout << " " << instruction.operand_1_id_ << ", ";
-      OutputType(instruction.another_type_);
-      std::cout << " " << instruction.operand_2_id_;
+      file << ", ";
+      OutputType(file, instruction.result_type_);
+      file << " " << instruction.operand_1_id_ << ", ";
+      OutputType(file, instruction.another_type_);
+      file << " " << instruction.operand_2_id_;
       break;
     }
     case variable_select_ii_: {
-      std::cout << "%var." << instruction.result_id_ << " = select i1 ";
-      std::cout << "%var." << instruction.condition_id_;
-      std::cout << ", ";
-      OutputType(instruction.result_type_);
-      std::cout << " %var." << instruction.operand_1_id_ << ", ";
-      OutputType(instruction.another_type_);
-      std::cout << " %var." << instruction.operand_2_id_;
+      file << "%var." << instruction.result_id_ << " = select i1 ";
+      file << "%var." << instruction.condition_id_;
+      file << ", ";
+      OutputType(file, instruction.result_type_);
+      file << " %var." << instruction.operand_1_id_ << ", ";
+      OutputType(file, instruction.another_type_);
+      file << " %var." << instruction.operand_2_id_;
       break;
     }
     case variable_select_iv_: {
-      std::cout << "%var." << instruction.result_id_ << " = select i1 ";
-      std::cout << "%var." << instruction.condition_id_;
-      std::cout << ", ";
-      OutputType(instruction.result_type_);
-      std::cout << " %var." << instruction.operand_1_id_ << ", ";
-      OutputType(instruction.another_type_);
-      std::cout << " " << instruction.operand_2_id_;
+      file << "%var." << instruction.result_id_ << " = select i1 ";
+      file << "%var." << instruction.condition_id_;
+      file << ", ";
+      OutputType(file, instruction.result_type_);
+      file << " %var." << instruction.operand_1_id_ << ", ";
+      OutputType(file, instruction.another_type_);
+      file << " " << instruction.operand_2_id_;
       break;
     }
     case variable_select_vi_: {
-      std::cout << "%var." << instruction.result_id_ << " = select i1 ";
-      std::cout << "%var." << instruction.condition_id_;
-      std::cout << ", ";
-      OutputType(instruction.result_type_);
-      std::cout << " " << instruction.operand_1_id_ << ", ";
-      OutputType(instruction.another_type_);
-      std::cout << " %var." << instruction.operand_2_id_;
+      file << "%var." << instruction.result_id_ << " = select i1 ";
+      file << "%var." << instruction.condition_id_;
+      file << ", ";
+      OutputType(file, instruction.result_type_);
+      file << " " << instruction.operand_1_id_ << ", ";
+      OutputType(file, instruction.another_type_);
+      file << " %var." << instruction.operand_2_id_;
       break;
     }
     case variable_select_vv_: {
-      std::cout << "%var." << instruction.result_id_ << " = select i1 ";
-      std::cout << "%var." << instruction.condition_id_;
-      std::cout << ", ";
-      OutputType(instruction.result_type_);
-      std::cout << " " << instruction.operand_1_id_ << ", ";
-      OutputType(instruction.another_type_);
-      std::cout << " " << instruction.operand_2_id_;
+      file << "%var." << instruction.result_id_ << " = select i1 ";
+      file << "%var." << instruction.condition_id_;
+      file << ", ";
+      OutputType(file, instruction.result_type_);
+      file << " " << instruction.operand_1_id_ << ", ";
+      OutputType(file, instruction.another_type_);
+      file << " " << instruction.operand_2_id_;
       break;
     }
     default:;
   }
-  std::cout << '\n';
+  file << '\n';
 }
 
-void IRVisitor::Output() const {
+void IRVisitor::Output(std::ofstream &file) {
   // output the builtin function declarations
   std::ifstream builtin_functions("../RCompiler-Testcases/IR-1/builtin/builtin.ll");
   std::string line_in_file;
   if (builtin_functions.is_open()) {
     while (std::getline(builtin_functions, line_in_file)) {
-      std::cout << line_in_file << '\n';
+      file << line_in_file << '\n';
     }
     builtin_functions.close();
   } else {
     std::cerr << "Cannot open builtin functions file!\n";
   }
+  file << "\n\n";
   // output struct definitions
   for (int i = 0; i < structs_.size(); ++i) {
-    std::cout << "%struct." << i << " = type { ";
+    file << "%struct." << i << " = type { ";
     for (int j = 0; j < structs_[i].element_type_.size(); ++j) {
-      OutputType(structs_[i].element_type_[j]);
+      OutputType(file, structs_[i].element_type_[j]);
       if (j < structs_[i].element_type_.size() - 1) {
-        std::cout << ',';
+        file << ',';
       }
-      std::cout << ' ';
+      file << ' ';
     }
-    std::cout << "}";
+    file << "}";
   }
   // output function definitions with blocks in it
   for (int i = 0; i < functions_.size(); ++i) {
-    std::cout << "define ";
-    OutputType(functions_[i].return_type_);
-    std::cout << " @fn." << i << '(';
+    file << "define ";
+    if (functions_[i].return_type_->basic_type == unit_type) {
+      file << "void";
+    } else {
+      OutputType(file, functions_[i].return_type_);
+    }
+    if (i == main_function_id_) {
+      file << " @main(";
+    } else {
+      file << " @fn." << i << '(';
+    }
     for (int j = 0; j < functions_[i].parameter_types_.size(); ++j) {
-      OutputType(functions_[i].parameter_types_[j]);
-      std::cout << " %param." << j;
+      OutputType(file, functions_[i].parameter_types_[j]);
+      file << " %param." << j;
       if (j < functions_[i].parameter_types_.size() - 1) {
-        std::cout << ", ";
+        file << ", ";
       }
     }
-    std::cout << ") {\n";
+    file << ") {\n";
     // print alloca
-    std::cout << "alloca:\n";
+    file << "alloca:\n";
     for (const auto &alloca_instruction : functions_[i].alloca_instructions_) {
-      Print(alloca_instruction);
+      Print(file, alloca_instruction);
     }
-    std::cout << "\tbr label " << functions_[i].blocks_.begin()->first << '\n';
+    file << "\tbr label %label_" << functions_[i].blocks_.begin()->first << '\n';
     // print blocks
     for (const auto &[block_label, block] : functions_[i].blocks_) {
-      std::cout << block_label << ":\n";
+      file << "label_" << block_label << ":\n";
       for (const auto &instruction : block.instructions_) {
-        Print(instruction);
+        Print(file, instruction);
       }
     }
-    std::cout << '}';
+    file << '}';
   }
 }

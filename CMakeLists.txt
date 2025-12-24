@@ -20,7 +20,9 @@ add_executable(semantic_tests test/semantic_test.cpp
     semantic/src/scope.cpp semantic/src/value_type.cpp
     semantic/src/visitor_manager.cpp)
 
-add_executable(run_front_end
+target_link_libraries(semantic_tests GTest::GTest GTest::Main pthread)
+
+add_executable(IR_tests test/IR_test.cpp
     lexer/src/token.cpp lexer/src/tokenizer.cpp
     lexer/src/regex_matcher.cpp parser/src/builder.cpp
     parser/src/enumerations.cpp parser/src/expression.cpp
@@ -34,6 +36,6 @@ add_executable(run_front_end
     semantic/src/visitor_manager.cpp IR/src/IR_generator.cpp
     front_end_entry/src/check_and_generate_IR.cpp)
 
-target_link_libraries(semantic_tests GTest::GTest GTest::Main)
+target_link_libraries(IR_tests GTest::gtest GTest::gtest_main pthread)
 
 add_test(NAME tests COMMAND tests)

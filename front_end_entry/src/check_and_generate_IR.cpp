@@ -2,8 +2,9 @@
 #include "classes.h"
 #include "tokenizer.h"
 #include "builder.h"
+#include <fstream>
 
-void FrontEndRunner::Run() {
+void FrontEndRunner::Run(const std::string &output_file_name) {
   std::vector<Token> tokens;
   Tokenizer tokenizer(code_, tokens);
   tokenizer.Tokenize();
@@ -24,6 +25,11 @@ void FrontEndRunner::Run() {
     // Pass semantic check, but the IR generating is not implemented
     exit(0);
   }
-  IR_generator_.Output();
+  std::ofstream output_file(output_file_name);
+  if (output_file.is_open()) {
+    IR_generator_.Output(output_file);
+  } else {
+    std::cerr << "[Error] Cannot open " << output_file_name << "!\n";
+  }
   delete syntax_tree;
 }

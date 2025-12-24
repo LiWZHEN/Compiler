@@ -8,7 +8,7 @@
 class FrontEndRunner {
 public:
   explicit FrontEndRunner(const std::string &code) : code_(code) {}
-  void Run();
+  void Run(const std::string &output_file_name);
 private:
   const std::string &code_;
   VisitorManager semantic_checker_;
