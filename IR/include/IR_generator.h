@@ -104,7 +104,7 @@ struct IRBlock {
         0));
   }
   void AddVariableReturn(const std::shared_ptr<IntegratedType> &return_type, const int value_id) {
-    instructions_.push_back(IRInstruction(value_ret_, value_id, add_, return_type,
+    instructions_.push_back(IRInstruction(variable_ret_, value_id, add_, return_type,
         0, 0, 0, 0, 0, 0, 0, equal_,
         0));
   }
