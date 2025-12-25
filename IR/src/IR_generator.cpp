@@ -2530,57 +2530,69 @@ void IRVisitor::Print(std::ofstream &file, const IRInstruction &instruction) {
     case value_select_ii_: {
       file << "%var." << instruction.result_id_ << " = select i1 ";
       if (instruction.condition_id_ == 0) {
-        file << "false";
+        file << "false, ";
+        OutputType(file, instruction.another_type_);
+        file << " %var." << instruction.operand_2_id_ << ", ";
+        OutputType(file, instruction.another_type_);
+        file << " %var." << instruction.operand_2_id_;
       } else {
-        file << "true";
+        file << "true, ";
+        OutputType(file, instruction.result_type_);
+        file << " %var." << instruction.operand_1_id_ << ", ";
+        OutputType(file, instruction.result_type_);
+        file << " %var." << instruction.operand_1_id_;
       }
-      file << ", ";
-      OutputType(file, instruction.result_type_);
-      file << " %var." << instruction.operand_1_id_ << ", ";
-      OutputType(file, instruction.another_type_);
-      file << " %var." << instruction.operand_2_id_;
       break;
     }
     case value_select_iv_: {
       file << "%var." << instruction.result_id_ << " = select i1 ";
       if (instruction.condition_id_ == 0) {
-        file << "false";
+        file << "false, ";
+        OutputType(file, instruction.another_type_);
+        file << " " << instruction.operand_2_id_ << ", ";
+        OutputType(file, instruction.another_type_);
+        file << " " << instruction.operand_2_id_;
       } else {
-        file << "true";
+        file << "true, ";
+        OutputType(file, instruction.result_type_);
+        file << " %var." << instruction.operand_1_id_ << ", ";
+        OutputType(file, instruction.result_type_);
+        file << " %var." << instruction.operand_1_id_;
       }
-      file << ", ";
-      OutputType(file, instruction.result_type_);
-      file << " %var." << instruction.operand_1_id_ << ", ";
-      OutputType(file, instruction.another_type_);
-      file << " " << instruction.operand_2_id_;
       break;
     }
     case value_select_vi_: {
       file << "%var." << instruction.result_id_ << " = select i1 ";
       if (instruction.condition_id_ == 0) {
-        file << "false";
+        file << "false, ";
+        OutputType(file, instruction.another_type_);
+        file << " %var." << instruction.operand_2_id_ << ", ";
+        OutputType(file, instruction.another_type_);
+        file << " %var." << instruction.operand_2_id_;
       } else {
-        file << "true";
+        file << "true, ";
+        OutputType(file, instruction.result_type_);
+        file << " " << instruction.operand_1_id_ << ", ";
+        OutputType(file, instruction.result_type_);
+        file << " " << instruction.operand_1_id_;
       }
-      file << ", ";
-      OutputType(file, instruction.result_type_);
-      file << " " << instruction.operand_1_id_ << ", ";
-      OutputType(file, instruction.another_type_);
-      file << " %var." << instruction.operand_2_id_;
       break;
     }
     case value_select_vv_: {
       file << "%var." << instruction.result_id_ << " = select i1 ";
       if (instruction.condition_id_ == 0) {
-        file << "false";
+        file << "false, ";
+        OutputType(file, instruction.another_type_);
+        file << " " << instruction.operand_2_id_ << ", ";
+        OutputType(file, instruction.another_type_);
+        file << " " << instruction.operand_2_id_;
       } else {
-        file << "true";
+        file << "true, ";
+        OutputType(file, instruction.result_type_);
+        file << " " << instruction.operand_1_id_ << ", ";
+        OutputType(file, instruction.result_type_);
+        file << " " << instruction.operand_1_id_;
       }
-      file << ", ";
-      OutputType(file, instruction.result_type_);
-      file << " " << instruction.operand_1_id_ << ", ";
-      OutputType(file, instruction.another_type_);
-      file << " " << instruction.operand_2_id_;
       break;
     }
     case variable_select_ii_: {
