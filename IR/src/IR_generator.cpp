@@ -21,22 +21,43 @@ void IRVisitor::RecursiveInitialize(const Node *expression_ptr, const int ptr_id
   auto &target_block = function.blocks_[block_stack_.back()];
   const auto &integrated_type = expression_ptr->integrated_type_;
   if (integrated_type->basic_type == array_type) {
-    for (int i = 0; i < integrated_type->size; ++i) {
-      const int element_ptr_id = function.var_id_++;
-      target_block.AddGetElementPtrByValue(element_ptr_id, integrated_type, ptr_id, i);
-      const auto basic_type = integrated_type->element_type->basic_type;
-      // %element_ptr_id <- *expression_ptr->children_[2 * i + 1]
-      if (basic_type == char_type || basic_type == str_type || basic_type == string_type) {
-        IRThrow("Invalid type in IR.");
+    const auto basic_type = integrated_type->element_type->basic_type;
+    if (basic_type == char_type || basic_type == str_type || basic_type == string_type) {
+      IRThrow("Invalid type in IR.");
+    }
+    if (expression_ptr->children_.size() != 5 ||
+        dynamic_cast<LeafNode *>(expression_ptr->children_[2])->GetContent().GetStr() != ";") { // [(Expression (, Expression)* ,?)?]
+      for (int i = 0; i < integrated_type->size; ++i) {
+        const int element_ptr_id = function.var_id_++;
+        target_block.AddGetElementPtrByValue(element_ptr_id, integrated_type, ptr_id, i);
+        // %element_ptr_id <- *expression_ptr->children_[2 * i + 1]
+        if (basic_type == array_type || basic_type == struct_type || basic_type == pointer_type
+            || !expression_ptr->children_[2 * i + 1]->integrated_type_->is_const) {
+          expression_ptr->children_[2 * i + 1]->Accept(this);
+          target_block.AddVariableStore(integrated_type->element_type,
+              expression_ptr->children_[2 * i + 1]->IR_ID_, element_ptr_id);
+        } else {
+          target_block.AddValueStore(integrated_type->element_type,
+              static_cast<int>(expression_ptr->children_[2 * i + 1]->value_.int_value), element_ptr_id);
+        }
       }
+    } else { // [Expression; Expression]
       if (basic_type == array_type || basic_type == struct_type || basic_type == pointer_type
-          || !expression_ptr->children_[2 * i + 1]->integrated_type_->is_const) {
-        expression_ptr->children_[2 * i + 1]->Accept(this);
-        target_block.AddVariableStore(integrated_type->element_type,
-            expression_ptr->children_[2 * i + 1]->IR_ID_, element_ptr_id);
+          || !expression_ptr->children_[1]->integrated_type_->is_const) {
+        expression_ptr->children_[1]->Accept(this);
+        for (int i = 0; i < integrated_type->size; ++i) {
+          const int element_ptr_id = function.var_id_++;
+          target_block.AddGetElementPtrByValue(element_ptr_id, integrated_type, ptr_id, i);
+          target_block.AddVariableStore(integrated_type->element_type,
+              expression_ptr->children_[1]->IR_ID_, element_ptr_id);
+        }
       } else {
-        target_block.AddValueStore(integrated_type->element_type,
-            static_cast<int>(expression_ptr->children_[2 * i + 1]->value_.int_value), element_ptr_id);
+        for (int i = 0; i < integrated_type->size; ++i) {
+          const int element_ptr_id = function.var_id_++;
+          target_block.AddGetElementPtrByValue(element_ptr_id, integrated_type, ptr_id, i);
+          target_block.AddValueStore(integrated_type->element_type,
+              static_cast<int>(expression_ptr->children_[1]->value_.int_value), element_ptr_id);
+        }
       }
     }
   } else if (integrated_type->basic_type == struct_type) {
@@ -199,20 +220,32 @@ void IRVisitor::Visit(Function *function_ptr) {
   for (int i = 0; i < function_ptr->children_.size(); ++i) {
     if (function_ptr->type_[i] == type_function_parameters) {
       auto &function_parameter_types = functions_[function_id].parameter_types_;
-      for (int j = 0; j < function_ptr->children_[i]->children_.size(); ++j) {
-        if (function_ptr->children_[i]->type_[j] == type_self_param
-            || function_ptr->children_[i]->type_[j] == type_function_param) {
-          function_ptr->children_[i]->children_[j]->IR_var_ID_ = functions_[wrapping_functions_.back()].var_id_++;
-          functions_[wrapping_functions_.back()].AddAlloca(function_ptr->children_[i]->children_[j]->IR_var_ID_,
-              function_ptr->children_[i]->children_[j]->integrated_type_);
-          function_ptr->children_[i]->children_[j]->IR_ID_ = static_cast<int>(function_parameter_types.size());
-          function_parameter_types.push_back(function_ptr->children_[i]->children_[j]->integrated_type_);
-        }
+      functions_[wrapping_functions_.back()].var_id_ +=
+          static_cast<int>((function_ptr->children_[i]->children_.size() + 1) / 2);
+      for (int j = 0; j < function_ptr->children_[i]->children_.size(); j += 2) {
+        function_ptr->children_[i]->children_[j]->IR_var_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+        functions_[wrapping_functions_.back()].AddAlloca(function_ptr->children_[i]->children_[j]->IR_var_ID_,
+            function_ptr->children_[i]->children_[j]->integrated_type_);
+        functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddVariableStore(function_ptr->
+            children_[i]->children_[j]->integrated_type_, j / 2,
+            function_ptr->children_[i]->children_[j]->IR_var_ID_);
+        function_ptr->children_[i]->children_[j]->IR_ID_ = static_cast<int>(function_parameter_types.size());
+        function_parameter_types.push_back(function_ptr->children_[i]->children_[j]->integrated_type_);
       }
     } else if (function_ptr->type_[i] == type_block_expression) {
       // collect and declare the struct and function
       DeclareItems(function_ptr->children_[i]->scope_node_);
       function_ptr->children_[i]->Accept(this);
+    }
+  }
+  if (functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].instructions_.empty()) {
+    functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddVoidReturn();
+  } else {
+    const auto type = functions_[wrapping_functions_.back()].blocks_[block_stack_.back()]
+      .instructions_.back().instruction_type_;
+    if (type != conditional_br_ && type != unconditional_br_ && type != value_ret_
+        && type != variable_ret_ && type != void_ret_) {
+      functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddVoidReturn();
     }
   }
   wrapping_functions_.pop_back();
@@ -724,21 +757,20 @@ void IRVisitor::Visit(Expression *expression_ptr) {
       break;
     }
     case return_expr: {
-      const auto basic_type = expression_ptr->children_[1]->integrated_type_->basic_type;
-      if ((expression_ptr->children_[1]->integrated_type_->is_int || basic_type == bool_type ||
-          basic_type == enumeration_type) && expression_ptr->children_[1]->integrated_type_->is_const) {
-        functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddValueReturn(
+      if (expression_ptr->children_.size() == 1) {
+        functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddVoidReturn();
+      } else {
+        const auto basic_type = expression_ptr->children_[1]->integrated_type_->basic_type;
+        if ((expression_ptr->children_[1]->integrated_type_->is_int || basic_type == bool_type ||
+            basic_type == enumeration_type) && expression_ptr->children_[1]->integrated_type_->is_const) {
+          functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddValueReturn(
               expression_ptr->children_[1]->integrated_type_,
               static_cast<int>(expression_ptr->children_[1]->value_.int_value));
-      } else {
-        expression_ptr->children_[1]->Accept(this);
-        functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddVariableReturn(
-            expression_ptr->children_[1]->integrated_type_, expression_ptr->children_[1]->IR_ID_);
-      }
-      const int popped_function_id = wrapping_functions_.back();
-      wrapping_functions_.pop_back();
-      while (!wrapping_loops_.empty() && wrapping_loops_.back().outer_function_id == popped_function_id) {
-        wrapping_loops_.pop_back();
+        } else {
+          expression_ptr->children_[1]->Accept(this);
+          functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddVariableReturn(
+              expression_ptr->children_[1]->integrated_type_, expression_ptr->children_[1]->IR_ID_);
+        }
       }
       break;
     }
@@ -768,26 +800,35 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               1, expression_ptr->children_[0]->IR_ID_);
         }
       } else if (prefix == "&") {
-        auto content_expr_ptr = expression_ptr->children_[0];
-        if (content_expr_ptr->integrated_type_->is_int ||
-            content_expr_ptr->integrated_type_->basic_type == bool_type ||
-            content_expr_ptr->integrated_type_->basic_type == enumeration_type ||
-            content_expr_ptr->integrated_type_->basic_type == struct_type ||
-            content_expr_ptr->integrated_type_->basic_type == array_type) {
+        auto content_expr_ptr = expression_ptr->children_.back();
+        const auto basic_type = content_expr_ptr->integrated_type_->basic_type;
+        if (content_expr_ptr->integrated_type_->is_int || basic_type == bool_type ||
+            basic_type == enumeration_type || basic_type == struct_type || basic_type == array_type) {
           content_expr_ptr->Accept(this);
           if (content_expr_ptr->IR_var_ID_ == -1) {
-            IRThrow("The struct/array in borrow expression is not a left value!");
+            const int new_left_value = functions_[wrapping_functions_.back()].var_id_++;
+            functions_[wrapping_functions_.back()].AddAlloca(new_left_value, content_expr_ptr->integrated_type_);
+            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddValueStore(
+                content_expr_ptr->integrated_type_, content_expr_ptr->IR_ID_, new_left_value);
+            expression_ptr->IR_var_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+            functions_[wrapping_functions_.back()].AddAlloca(expression_ptr->IR_var_ID_, expression_ptr->integrated_type_);
+            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddPtrStore(new_left_value,
+                expression_ptr->IR_var_ID_);
+            expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(expression_ptr->IR_ID_,
+                expression_ptr->integrated_type_, expression_ptr->IR_var_ID_);
+          } else {
+            // the struct/array value has an allocated ptr %content_expr->IR_var_ID_
+            expression_ptr->IR_var_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+            functions_[wrapping_functions_.back()].AddAlloca(expression_ptr->IR_var_ID_, expression_ptr->integrated_type_);
+            // store the ptr %content_expr->IR_var_ID_ into %expression_ptr->IR_var_ID_
+            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddPtrStore(content_expr_ptr->IR_var_ID_,
+                expression_ptr->IR_var_ID_);
+            // load the value from ptr %expression_ptr->IR_var_ID_ to variable %expression_ptr->IR_ID_
+            expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(expression_ptr->IR_ID_,
+                expression_ptr->integrated_type_, expression_ptr->IR_var_ID_);
           }
-          // the struct/array value has an allocated ptr %content_expr->IR_var_ID_
-          expression_ptr->IR_var_ID_ = functions_[wrapping_functions_.back()].var_id_++;
-          functions_[wrapping_functions_.back()].AddAlloca(expression_ptr->IR_var_ID_, expression_ptr->integrated_type_);
-          // store the ptr %content_expr->IR_var_ID_ into %expression_ptr->IR_var_ID_
-          functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddPtrStore(content_expr_ptr->IR_var_ID_,
-              expression_ptr->IR_var_ID_);
-          // load the value from ptr %expression_ptr->IR_var_ID_ to variable %expression_ptr->IR_ID_
-          expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
-          functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(expression_ptr->IR_ID_,
-              expression_ptr->integrated_type_, expression_ptr->IR_var_ID_);
         } else {
           IRThrow("Invalid type for borrow expression in IR.");
         }
@@ -1592,7 +1633,8 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           break;
         }
         case assign: {
-          const int variable_id = expression_ptr->GetDefInfo().node->IR_var_ID_;
+          expression_ptr->children_[0]->Accept(this);
+          const int variable_id = expression_ptr->children_[0]->IR_var_ID_;
           const auto basic_type = expression_ptr->children_[1]->integrated_type_->basic_type;
           if (expression_ptr->children_[1]->integrated_type_->is_int ||
               basic_type == bool_type || basic_type == enumeration_type) {
@@ -1613,8 +1655,8 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           break;
         }
         case add_assign: {
-          const int pointer_id = dynamic_cast<Expression *>(expression_ptr->children_[0])
-              ->GetDefInfo().node->IR_ID_;
+          expression_ptr->children_[0]->Accept(this);
+          const int pointer_id = expression_ptr->children_[0]->IR_var_ID_;
           const int loaded_var_id = function.var_id_++;
           target_block.AddLoad(loaded_var_id, expression_ptr->children_[0]->integrated_type_,
               pointer_id);
@@ -1634,8 +1676,8 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           break;
         }
         case minus_assign: {
-          const int pointer_id = dynamic_cast<Expression *>(expression_ptr->children_[0])
-              ->GetDefInfo().node->IR_ID_;
+          expression_ptr->children_[0]->Accept(this);
+          const int pointer_id = expression_ptr->children_[0]->IR_var_ID_;
           const int loaded_var_id = function.var_id_++;
           target_block.AddLoad(loaded_var_id, expression_ptr->children_[0]->integrated_type_,
               pointer_id);
@@ -1655,8 +1697,8 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           break;
         }
         case multiply_assign: {
-          const int pointer_id = dynamic_cast<Expression *>(expression_ptr->children_[0])
-              ->GetDefInfo().node->IR_ID_;
+          expression_ptr->children_[0]->Accept(this);
+          const int pointer_id = expression_ptr->children_[0]->IR_var_ID_;
           const int loaded_var_id = function.var_id_++;
           target_block.AddLoad(loaded_var_id, expression_ptr->children_[0]->integrated_type_,
               pointer_id);
@@ -1676,8 +1718,8 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           break;
         }
         case divide_assign: {
-          const int pointer_id = dynamic_cast<Expression *>(expression_ptr->children_[0])
-              ->GetDefInfo().node->IR_ID_;
+          expression_ptr->children_[0]->Accept(this);
+          const int pointer_id = expression_ptr->children_[0]->IR_var_ID_;
           const int loaded_var_id = function.var_id_++;
           target_block.AddLoad(loaded_var_id, expression_ptr->children_[0]->integrated_type_,
               pointer_id);
@@ -1711,8 +1753,8 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           break;
         }
         case mod_assign: {
-          const int pointer_id = dynamic_cast<Expression *>(expression_ptr->children_[0])
-              ->GetDefInfo().node->IR_ID_;
+          expression_ptr->children_[0]->Accept(this);
+          const int pointer_id = expression_ptr->children_[0]->IR_var_ID_;
           const int loaded_var_id = function.var_id_++;
           target_block.AddLoad(loaded_var_id, expression_ptr->children_[0]->integrated_type_,
               pointer_id);
@@ -1746,8 +1788,8 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           break;
         }
         case bitwise_and_assign: {
-          const int pointer_id = dynamic_cast<Expression *>(expression_ptr->children_[0])
-              ->GetDefInfo().node->IR_ID_;
+          expression_ptr->children_[0]->Accept(this);
+          const int pointer_id = expression_ptr->children_[0]->IR_var_ID_;
           const int loaded_var_id = function.var_id_++;
           target_block.AddLoad(loaded_var_id, expression_ptr->children_[0]->integrated_type_,
               pointer_id);
@@ -1767,8 +1809,8 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           break;
         }
         case bitwise_or_assign: {
-          const int pointer_id = dynamic_cast<Expression *>(expression_ptr->children_[0])
-              ->GetDefInfo().node->IR_ID_;
+          expression_ptr->children_[0]->Accept(this);
+          const int pointer_id = expression_ptr->children_[0]->IR_var_ID_;
           const int loaded_var_id = function.var_id_++;
           target_block.AddLoad(loaded_var_id, expression_ptr->children_[0]->integrated_type_,
               pointer_id);
@@ -1788,8 +1830,8 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           break;
         }
         case bitwise_xor_assign: {
-          const int pointer_id = dynamic_cast<Expression *>(expression_ptr->children_[0])
-              ->GetDefInfo().node->IR_ID_;
+          expression_ptr->children_[0]->Accept(this);
+          const int pointer_id = expression_ptr->children_[0]->IR_var_ID_;
           const int loaded_var_id = function.var_id_++;
           target_block.AddLoad(loaded_var_id, expression_ptr->children_[0]->integrated_type_,
               pointer_id);
@@ -1809,8 +1851,8 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           break;
         }
         case left_shift_assign: {
-          const int pointer_id = dynamic_cast<Expression *>(expression_ptr->children_[0])
-              ->GetDefInfo().node->IR_ID_;
+          expression_ptr->children_[0]->Accept(this);
+          const int pointer_id = expression_ptr->children_[0]->IR_var_ID_;
           const int loaded_var_id = function.var_id_++;
           target_block.AddLoad(loaded_var_id, expression_ptr->children_[0]->integrated_type_,
               pointer_id);
@@ -1830,8 +1872,8 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           break;
         }
         case right_shift_assign: {
-          const int pointer_id = dynamic_cast<Expression *>(expression_ptr->children_[0])
-              ->GetDefInfo().node->IR_ID_;
+          expression_ptr->children_[0]->Accept(this);
+          const int pointer_id = expression_ptr->children_[0]->IR_var_ID_;
           const int loaded_var_id = function.var_id_++;
           target_block.AddLoad(loaded_var_id, expression_ptr->children_[0]->integrated_type_,
               pointer_id);
@@ -2098,48 +2140,48 @@ void IRVisitor::Print(std::ofstream &file, const IRInstruction &instruction) {
       break;
     }
     case alloca_: {
-      file << "%ptr." << instruction.result_id_ << " = alloca ";
+      file << "%var." << instruction.result_id_ << " = alloca ";
       OutputType(file, instruction.result_type_);
       break;
     }
     case load_: {
       file << "%var." << instruction.result_id_ << " = load ";
       OutputType(file, instruction.result_type_);
-      file << ", ptr %ptr." << instruction.pointer_;
+      file << ", ptr %var." << instruction.pointer_;
       break;
     }
     case ptr_load_: {
       file << "%var." << instruction.result_id_ <<
-          " = load ptr, ptr " << instruction.pointer_;
+          " = load ptr, ptr %var." << instruction.pointer_;
       break;
     }
     case variable_store_: {
       file << "store ";
       OutputType(file, instruction.result_type_);
-      file << " %var." << instruction.result_id_ << ", ptr %ptr." << instruction.pointer_;
+      file << " %var." << instruction.result_id_ << ", ptr %var." << instruction.pointer_;
       break;
     }
     case value_store_: {
       file << "store ";
       OutputType(file, instruction.result_type_);
-      file << " " << instruction.result_id_ << ", ptr %ptr." << instruction.pointer_;
+      file << " " << instruction.result_id_ << ", ptr %var." << instruction.pointer_;
       break;
     }
     case ptr_store_: {
-      file << "store ptr %ptr." << instruction.result_id_
-          << ", ptr %ptr." << instruction.pointer_;
+      file << "store ptr %var." << instruction.result_id_
+          << ", ptr %var." << instruction.pointer_;
       break;
     }
     case get_element_ptr_by_value_: {
-      file << "%ptr." << instruction.result_id_ << " = getelementptr ";
+      file << "%var." << instruction.result_id_ << " = getelementptr ";
       OutputType(file, instruction.result_type_);
-      file << ", ptr %ptr." << instruction.pointer_ << ", i32 0, i32 " << instruction.index_;
+      file << ", ptr %var." << instruction.pointer_ << ", i32 0, i32 " << instruction.index_;
       break;
     }
     case get_element_ptr_by_variable_: {
-      file << "%ptr." << instruction.result_id_ << " = getelementptr ";
+      file << "%var." << instruction.result_id_ << " = getelementptr ";
       OutputType(file, instruction.result_type_);
-      file << ", ptr %ptr." << instruction.pointer_ << ", i32 0, i32 %var." << instruction.index_;
+      file << ", ptr %var." << instruction.pointer_ << ", i32 0, i32 %var." << instruction.index_;
       break;
     }
     case two_var_icmp_: {
@@ -2536,7 +2578,7 @@ void IRVisitor::Output(std::ofstream &file) {
     }
     for (int j = 0; j < functions_[i].parameter_types_.size(); ++j) {
       OutputType(file, functions_[i].parameter_types_[j]);
-      file << " %param." << j;
+      file << " %var." << j;
       if (j < functions_[i].parameter_types_.size() - 1) {
         file << ", ";
       }
@@ -2555,6 +2597,6 @@ void IRVisitor::Output(std::ofstream &file) {
         Print(file, instruction);
       }
     }
-    file << '}';
+    file << "}\n\n";
   }
 }
