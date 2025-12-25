@@ -21,7 +21,7 @@ void IRVisitor::RecursiveInitialize(const Node *expression_ptr, const int ptr_id
   auto &target_block = function.blocks_[block_stack_.back()];
   const auto &integrated_type = expression_ptr->integrated_type_;
   if (integrated_type->basic_type == array_type) {
-    const auto basic_type = integrated_type->element_type->basic_type;
+    const auto basic_type = integrated_type->element_type->basic_type; // the type of the elements of the array
     if (basic_type == char_type || basic_type == str_type || basic_type == string_type) {
       IRThrow("Invalid type in IR.");
     }
@@ -31,7 +31,11 @@ void IRVisitor::RecursiveInitialize(const Node *expression_ptr, const int ptr_id
         const int element_ptr_id = function.var_id_++;
         target_block.AddGetElementPtrByValue(element_ptr_id, integrated_type, ptr_id, i);
         // %element_ptr_id <- *expression_ptr->children_[2 * i + 1]
-        if (basic_type == array_type || basic_type == struct_type || basic_type == pointer_type
+        if (basic_type == pointer_type) {
+          expression_ptr->children_[2 * i + 1]->Accept(this);
+          target_block.AddVariableStore(integrated_type->element_type,
+              expression_ptr->children_[2 * i + 1]->IR_var_ID_, element_ptr_id);
+        } else if (basic_type == array_type || basic_type == struct_type
             || !expression_ptr->children_[2 * i + 1]->integrated_type_->is_const) {
           expression_ptr->children_[2 * i + 1]->Accept(this);
           target_block.AddVariableStore(integrated_type->element_type,
@@ -42,7 +46,15 @@ void IRVisitor::RecursiveInitialize(const Node *expression_ptr, const int ptr_id
         }
       }
     } else { // [Expression; Expression]
-      if (basic_type == array_type || basic_type == struct_type || basic_type == pointer_type
+      if (basic_type == pointer_type) {
+        expression_ptr->children_[1]->Accept(this);
+        for (int i = 0; i < integrated_type->size; ++i) {
+          const int element_ptr_id = function.var_id_++;
+          target_block.AddGetElementPtrByValue(element_ptr_id, integrated_type, ptr_id, i);
+          target_block.AddVariableStore(integrated_type->element_type,
+              expression_ptr->children_[1]->IR_var_ID_, element_ptr_id);
+        }
+      } else if (basic_type == array_type || basic_type == struct_type
           || !expression_ptr->children_[1]->integrated_type_->is_const) {
         expression_ptr->children_[1]->Accept(this);
         for (int i = 0; i < integrated_type->size; ++i) {
@@ -79,7 +91,11 @@ void IRVisitor::RecursiveInitialize(const Node *expression_ptr, const int ptr_id
       if (basic_type == char_type || basic_type == str_type || basic_type == string_type) {
         IRThrow("Invalid type in IR.");
       }
-      if (basic_type == array_type || basic_type == struct_type || basic_type == pointer_type
+      if (basic_type == pointer_type) {
+        struct_expr_fields->children_[2 * i]->children_[2]->Accept(this);
+        target_block.AddVariableStore(item_expr_ptr->integrated_type_,
+            struct_expr_fields->children_[2 * i]->children_[2]->IR_var_ID_, target_item_id);
+      } else if (basic_type == array_type || basic_type == struct_type
           || !item_expr_ptr->integrated_type_->is_const) {
         struct_expr_fields->children_[2 * i]->children_[2]->Accept(this);
         target_block.AddVariableStore(item_expr_ptr->integrated_type_,
@@ -529,19 +545,39 @@ void IRVisitor::Visit(Expression *expression_ptr) {
     }
     case index_expr: {
       expression_ptr->children_[0]->Accept(this);
-      if (expression_ptr->children_[0]->IR_var_ID_ == -1) {
-        IRThrow("Cannot get the element of a value.");
-      }
-      expression_ptr->IR_var_ID_ = functions_[wrapping_functions_.back()].var_id_++;
-      if (expression_ptr->children_[1]->integrated_type_->is_const) {
-        functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddGetElementPtrByValue(
-            expression_ptr->IR_var_ID_, expression_ptr->children_[0]->integrated_type_,
-            expression_ptr->children_[0]->IR_var_ID_, static_cast<int>(expression_ptr->children_[1]->value_.int_value));
-      } else {
-        expression_ptr->children_[1]->Accept(this);
-        functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddGetElementPtrByVariable(
-            expression_ptr->IR_var_ID_, expression_ptr->children_[0]->integrated_type_,
-            expression_ptr->children_[0]->IR_var_ID_, expression_ptr->children_[1]->IR_ID_);
+      if (expression_ptr->children_[0]->integrated_type_->basic_type == array_type) {
+        if (expression_ptr->children_[0]->IR_var_ID_ == -1) {
+          IRThrow("Cannot get the element of a value.");
+        }
+        expression_ptr->IR_var_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+        if (expression_ptr->children_[1]->integrated_type_->is_const) {
+          functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddGetElementPtrByValue(
+              expression_ptr->IR_var_ID_, expression_ptr->children_[0]->integrated_type_,
+              expression_ptr->children_[0]->IR_var_ID_, static_cast<int>(expression_ptr->children_[1]->value_.int_value));
+        } else {
+          expression_ptr->children_[1]->Accept(this);
+          functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddGetElementPtrByVariable(
+              expression_ptr->IR_var_ID_, expression_ptr->children_[0]->integrated_type_,
+              expression_ptr->children_[0]->IR_var_ID_, expression_ptr->children_[1]->IR_ID_);
+        }
+      } else { // expression_ptr->children_[0]->integrated_type_->basic_type == pointer_type
+        if (expression_ptr->children_[0]->IR_var_ID_ == -1) {
+          IRThrow("Cannot dereference a value.");
+        }
+        const int dereferenced_id = functions_[wrapping_functions_.back()].var_id_++;
+        functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddPtrLoad(dereferenced_id,
+            expression_ptr->children_[0]->IR_var_ID_);
+        expression_ptr->IR_var_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+        if (expression_ptr->children_[1]->integrated_type_->is_const) {
+          functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddGetElementPtrByValue(
+              expression_ptr->IR_var_ID_, expression_ptr->children_[0]->integrated_type_->element_type,
+              dereferenced_id, static_cast<int>(expression_ptr->children_[1]->value_.int_value));
+        } else {
+          expression_ptr->children_[1]->Accept(this);
+          functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddGetElementPtrByVariable(
+              expression_ptr->IR_var_ID_, expression_ptr->children_[0]->integrated_type_->element_type,
+              dereferenced_id, expression_ptr->children_[1]->IR_ID_);
+        }
       }
       expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
       functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(expression_ptr->IR_ID_,
@@ -709,7 +745,8 @@ void IRVisitor::Visit(Expression *expression_ptr) {
         const int dereferenced_id = functions_[wrapping_functions_.back()].var_id_++;
         functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddPtrLoad(dereferenced_id,
             expression_ptr->children_[0]->IR_var_ID_);
-        const auto struct_ptr = dynamic_cast<Struct *>(expression_ptr->children_[0]->integrated_type_->element_type->struct_node);
+        const auto struct_ptr = dynamic_cast<Struct *>(expression_ptr->children_[0]
+            ->integrated_type_->element_type->struct_node);
         const std::string identifier_name = dynamic_cast<LeafNode *>(expression_ptr->children_[1]->
             children_[0]->children_[0])->GetContent().GetStr();
         expression_ptr->IR_var_ID_ = functions_[wrapping_functions_.back()].var_id_++;
