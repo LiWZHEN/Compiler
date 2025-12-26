@@ -58,6 +58,7 @@ TEST(IRTestSingle, run_debugging) {
   std::string line;
   while (std::getline(reader, line)) {
     code += line;
+    code += '\n';
   }
   FrontEndRunner runner(code);
   runner.Run(IR_file);

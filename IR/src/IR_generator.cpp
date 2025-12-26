@@ -18,7 +18,6 @@ void IRVisitor::AddStruct() {
 
 void IRVisitor::RecursiveInitialize(const Node *expression_ptr, const int ptr_id) {
   auto &function = functions_[wrapping_functions_.back()];
-  auto &target_block = function.blocks_[block_stack_.back()];
   const auto &integrated_type = expression_ptr->integrated_type_;
   if (integrated_type->basic_type == array_type) {
     const auto basic_type = integrated_type->element_type->basic_type; // the type of the elements of the array
@@ -29,19 +28,19 @@ void IRVisitor::RecursiveInitialize(const Node *expression_ptr, const int ptr_id
         dynamic_cast<LeafNode *>(expression_ptr->children_[2])->GetContent().GetStr() != ";") { // [(Expression (, Expression)* ,?)?]
       for (int i = 0; i < integrated_type->size; ++i) {
         const int element_ptr_id = function.var_id_++;
-        target_block.AddGetElementPtrByValue(element_ptr_id, integrated_type, ptr_id, i);
+        function.blocks_[block_stack_.back()].AddGetElementPtrByValue(element_ptr_id, integrated_type, ptr_id, i);
         // %element_ptr_id <- *expression_ptr->children_[2 * i + 1]
         if (basic_type == pointer_type) {
           expression_ptr->children_[2 * i + 1]->Accept(this);
-          target_block.AddVariableStore(integrated_type->element_type,
+          function.blocks_[block_stack_.back()].AddVariableStore(integrated_type->element_type,
               expression_ptr->children_[2 * i + 1]->IR_var_ID_, element_ptr_id);
         } else if (basic_type == array_type || basic_type == struct_type
             || !expression_ptr->children_[2 * i + 1]->integrated_type_->is_const) {
           expression_ptr->children_[2 * i + 1]->Accept(this);
-          target_block.AddVariableStore(integrated_type->element_type,
+          function.blocks_[block_stack_.back()].AddVariableStore(integrated_type->element_type,
               expression_ptr->children_[2 * i + 1]->IR_ID_, element_ptr_id);
         } else {
-          target_block.AddValueStore(integrated_type->element_type,
+          function.blocks_[block_stack_.back()].AddValueStore(integrated_type->element_type,
               static_cast<int>(expression_ptr->children_[2 * i + 1]->value_.int_value), element_ptr_id);
         }
       }
@@ -50,8 +49,8 @@ void IRVisitor::RecursiveInitialize(const Node *expression_ptr, const int ptr_id
         expression_ptr->children_[1]->Accept(this);
         for (int i = 0; i < integrated_type->size; ++i) {
           const int element_ptr_id = function.var_id_++;
-          target_block.AddGetElementPtrByValue(element_ptr_id, integrated_type, ptr_id, i);
-          target_block.AddVariableStore(integrated_type->element_type,
+          function.blocks_[block_stack_.back()].AddGetElementPtrByValue(element_ptr_id, integrated_type, ptr_id, i);
+          function.blocks_[block_stack_.back()].AddVariableStore(integrated_type->element_type,
               expression_ptr->children_[1]->IR_var_ID_, element_ptr_id);
         }
       } else if (basic_type == array_type || basic_type == struct_type
@@ -59,15 +58,15 @@ void IRVisitor::RecursiveInitialize(const Node *expression_ptr, const int ptr_id
         expression_ptr->children_[1]->Accept(this);
         for (int i = 0; i < integrated_type->size; ++i) {
           const int element_ptr_id = function.var_id_++;
-          target_block.AddGetElementPtrByValue(element_ptr_id, integrated_type, ptr_id, i);
-          target_block.AddVariableStore(integrated_type->element_type,
+          function.blocks_[block_stack_.back()].AddGetElementPtrByValue(element_ptr_id, integrated_type, ptr_id, i);
+          function.blocks_[block_stack_.back()].AddVariableStore(integrated_type->element_type,
               expression_ptr->children_[1]->IR_ID_, element_ptr_id);
         }
       } else {
         for (int i = 0; i < integrated_type->size; ++i) {
           const int element_ptr_id = function.var_id_++;
-          target_block.AddGetElementPtrByValue(element_ptr_id, integrated_type, ptr_id, i);
-          target_block.AddValueStore(integrated_type->element_type,
+          function.blocks_[block_stack_.back()].AddGetElementPtrByValue(element_ptr_id, integrated_type, ptr_id, i);
+          function.blocks_[block_stack_.back()].AddValueStore(integrated_type->element_type,
               static_cast<int>(expression_ptr->children_[1]->value_.int_value), element_ptr_id);
         }
       }
@@ -85,7 +84,7 @@ void IRVisitor::RecursiveInitialize(const Node *expression_ptr, const int ptr_id
       const int item_index = struct_def_ptr->field_item_index_[item_name];
       const int target_item_id = function.var_id_++;
       const auto item_expr_ptr = dynamic_cast<Expression *>(struct_expr_fields->children_[2 * i]->children_[2]);
-      target_block.AddGetElementPtrByValue(target_item_id, integrated_type, ptr_id, item_index);
+      function.blocks_[block_stack_.back()].AddGetElementPtrByValue(target_item_id, integrated_type, ptr_id, item_index);
       // %target_item_id <- *item_expr_ptr
       const auto basic_type = item_expr_ptr->integrated_type_->basic_type;
       if (basic_type == char_type || basic_type == str_type || basic_type == string_type) {
@@ -93,15 +92,15 @@ void IRVisitor::RecursiveInitialize(const Node *expression_ptr, const int ptr_id
       }
       if (basic_type == pointer_type) {
         struct_expr_fields->children_[2 * i]->children_[2]->Accept(this);
-        target_block.AddVariableStore(item_expr_ptr->integrated_type_,
+        function.blocks_[block_stack_.back()].AddVariableStore(item_expr_ptr->integrated_type_,
             struct_expr_fields->children_[2 * i]->children_[2]->IR_var_ID_, target_item_id);
       } else if (basic_type == array_type || basic_type == struct_type
           || !item_expr_ptr->integrated_type_->is_const) {
         struct_expr_fields->children_[2 * i]->children_[2]->Accept(this);
-        target_block.AddVariableStore(item_expr_ptr->integrated_type_,
+        function.blocks_[block_stack_.back()].AddVariableStore(item_expr_ptr->integrated_type_,
             struct_expr_fields->children_[2 * i]->children_[2]->IR_ID_, target_item_id);
       } else {
-        target_block.AddValueStore(item_expr_ptr->integrated_type_,
+        function.blocks_[block_stack_.back()].AddValueStore(item_expr_ptr->integrated_type_,
             static_cast<int>(item_expr_ptr->value_.int_value), target_item_id);
       }
     }
@@ -711,15 +710,17 @@ void IRVisitor::Visit(Expression *expression_ptr) {
         std::vector<FunctionCallArgument> argument_list;
         if (expression_ptr->children_.size() == 2) { // has call_params
           for (int i = 0; i < expression_ptr->children_[1]->children_.size(); i += 2) {
-            if (expression_ptr->children_[1]->children_[i]->integrated_type_->is_const) {
-              argument_list.push_back(FunctionCallArgument(expression_ptr->children_[1]
-                  ->children_[i]->integrated_type_, false,
-                  static_cast<int>(expression_ptr->children_[1]->children_[i]->value_.int_value)));
-            } else {
+            const auto basic_type = expression_ptr->children_[1]->children_[i]->integrated_type_->basic_type;
+            if (!expression_ptr->children_[1]->children_[i]->integrated_type_->is_const ||
+                basic_type == array_type || basic_type == struct_type || basic_type == pointer_type) {
               expression_ptr->children_[1]->children_[i]->Accept(this);
               argument_list.push_back(FunctionCallArgument(expression_ptr->children_[1]
                   ->children_[i]->integrated_type_, true,
                   expression_ptr->children_[1]->children_[i]->IR_ID_));
+            } else {
+              argument_list.push_back(FunctionCallArgument(expression_ptr->children_[1]
+                  ->children_[i]->integrated_type_, false,
+                  static_cast<int>(expression_ptr->children_[1]->children_[i]->value_.int_value)));
             }
           }
         }
@@ -770,15 +771,17 @@ void IRVisitor::Visit(Expression *expression_ptr) {
         }
         if (expression_ptr->children_.size() == 3) {
           for (int i = 0; i < expression_ptr->children_[2]->children_.size(); i += 2) {
-            if (expression_ptr->children_[2]->children_[i]->integrated_type_->is_const) {
-              argument_list.push_back(FunctionCallArgument(expression_ptr->children_[2]
-                  ->children_[i]->integrated_type_, false,
-                  static_cast<int>(expression_ptr->children_[2]->children_[i]->value_.int_value)));
-            } else {
+            const auto basic_type = expression_ptr->children_[2]->children_[i]->integrated_type_->basic_type;
+            if (!expression_ptr->children_[2]->children_[i]->integrated_type_->is_const ||
+                basic_type == array_type || basic_type == struct_type || basic_type == pointer_type) {
               expression_ptr->children_[2]->children_[i]->Accept(this);
               argument_list.push_back(FunctionCallArgument(expression_ptr->children_[2]
                   ->children_[i]->integrated_type_, true,
                   expression_ptr->children_[2]->children_[i]->IR_ID_));
+            } else {
+              argument_list.push_back(FunctionCallArgument(expression_ptr->children_[2]
+                  ->children_[i]->integrated_type_, false,
+                  static_cast<int>(expression_ptr->children_[2]->children_[i]->value_.int_value)));
             }
           }
         }
@@ -891,9 +894,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             expression_ptr->children_[1]->IR_ID_);
       } else if (prefix == "*") {
         expression_ptr->children_[1]->Accept(this);
-        expression_ptr->IR_var_ID_ = functions_[wrapping_functions_.back()].var_id_++;
-        functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddPtrLoad(
-            expression_ptr->IR_var_ID_, expression_ptr->children_[1]->IR_ID_);
+        expression_ptr->IR_var_ID_ = expression_ptr->children_[1]->IR_ID_;
         expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
         functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(expression_ptr->IR_ID_,
             expression_ptr->integrated_type_, expression_ptr->IR_var_ID_);
@@ -948,7 +949,6 @@ void IRVisitor::Visit(Expression *expression_ptr) {
     }
     default: { // operator_expr
       auto &function = functions_[wrapping_functions_.back()];
-      auto &target_block = function.blocks_[block_stack_.back()];
       switch (expression_ptr->GetExprInfix()) {
         case add: {
           if (expression_ptr->children_[0]->integrated_type_->is_const) { // const + var
@@ -956,15 +956,15 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             const int result_id = function.var_id_;
             expression_ptr->IR_ID_ = result_id;
             ++function.var_id_;
-            target_block.AddConstVarBinaryOperation(expression_ptr->integrated_type_, add_,
-                result_id, static_cast<int>(expression_ptr->children_[0]->value_.int_value),
+            function.blocks_[block_stack_.back()].AddConstVarBinaryOperation(expression_ptr->integrated_type_,
+                add_, result_id, static_cast<int>(expression_ptr->children_[0]->value_.int_value),
                 expression_ptr->children_[1]->IR_ID_);
           } else if (expression_ptr->children_[1]->integrated_type_->is_const) { // var + const
             expression_ptr->children_[0]->Accept(this);
             const int result_id = function.var_id_;
             expression_ptr->IR_ID_ = result_id;
             ++function.var_id_;
-            target_block.AddVarConstBinaryOperation(expression_ptr->integrated_type_,
+            function.blocks_[block_stack_.back()].AddVarConstBinaryOperation(expression_ptr->integrated_type_,
                 add_, result_id, expression_ptr->children_[0]->IR_ID_,
                 static_cast<int>(expression_ptr->children_[1]->value_.int_value));
           } else { // var + var
@@ -973,7 +973,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             const int result_id = function.var_id_;
             expression_ptr->IR_ID_ = result_id;
             ++function.var_id_;
-            target_block.AddTwoVarBinaryOperation(expression_ptr->integrated_type_,
+            function.blocks_[block_stack_.back()].AddTwoVarBinaryOperation(expression_ptr->integrated_type_,
                 add_, result_id, expression_ptr->children_[0]->IR_ID_,
                 expression_ptr->children_[1]->IR_ID_);
           }
@@ -985,15 +985,15 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             const int result_id = function.var_id_;
             expression_ptr->IR_ID_ = result_id;
             ++function.var_id_;
-            target_block.AddConstVarBinaryOperation(expression_ptr->integrated_type_, sub_,
-                result_id, static_cast<int>(expression_ptr->children_[0]->value_.int_value),
+            function.blocks_[block_stack_.back()].AddConstVarBinaryOperation(expression_ptr->integrated_type_,
+                sub_, result_id, static_cast<int>(expression_ptr->children_[0]->value_.int_value),
                 expression_ptr->children_[1]->IR_ID_);
           } else if (expression_ptr->children_[1]->integrated_type_->is_const) { // var - const
             expression_ptr->children_[0]->Accept(this);
             const int result_id = function.var_id_;
             expression_ptr->IR_ID_ = result_id;
             ++function.var_id_;
-            target_block.AddVarConstBinaryOperation(expression_ptr->integrated_type_,
+            function.blocks_[block_stack_.back()].AddVarConstBinaryOperation(expression_ptr->integrated_type_,
                 sub_, result_id, expression_ptr->children_[0]->IR_ID_,
                 static_cast<int>(expression_ptr->children_[1]->value_.int_value));
           } else { // var - var
@@ -1002,7 +1002,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             const int result_id = function.var_id_;
             expression_ptr->IR_ID_ = result_id;
             ++function.var_id_;
-            target_block.AddTwoVarBinaryOperation(expression_ptr->integrated_type_,
+            function.blocks_[block_stack_.back()].AddTwoVarBinaryOperation(expression_ptr->integrated_type_,
                 sub_, result_id, expression_ptr->children_[0]->IR_ID_,
                 expression_ptr->children_[1]->IR_ID_);
           }
@@ -1014,15 +1014,15 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             const int result_id = function.var_id_;
             expression_ptr->IR_ID_ = result_id;
             ++function.var_id_;
-            target_block.AddConstVarBinaryOperation(expression_ptr->integrated_type_, mul_,
-                result_id, static_cast<int>(expression_ptr->children_[0]->value_.int_value),
+            function.blocks_[block_stack_.back()].AddConstVarBinaryOperation(expression_ptr->integrated_type_,
+                mul_, result_id, static_cast<int>(expression_ptr->children_[0]->value_.int_value),
                 expression_ptr->children_[1]->IR_ID_);
           } else if (expression_ptr->children_[1]->integrated_type_->is_const) { // var * const
             expression_ptr->children_[0]->Accept(this);
             const int result_id = function.var_id_;
             expression_ptr->IR_ID_ = result_id;
             ++function.var_id_;
-            target_block.AddVarConstBinaryOperation(expression_ptr->integrated_type_,
+            function.blocks_[block_stack_.back()].AddVarConstBinaryOperation(expression_ptr->integrated_type_,
                 mul_, result_id, expression_ptr->children_[0]->IR_ID_,
                 static_cast<int>(expression_ptr->children_[1]->value_.int_value));
           } else { // var * var
@@ -1031,7 +1031,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             const int result_id = function.var_id_;
             expression_ptr->IR_ID_ = result_id;
             ++function.var_id_;
-            target_block.AddTwoVarBinaryOperation(expression_ptr->integrated_type_,
+            function.blocks_[block_stack_.back()].AddTwoVarBinaryOperation(expression_ptr->integrated_type_,
                 mul_, result_id, expression_ptr->children_[0]->IR_ID_,
                 expression_ptr->children_[1]->IR_ID_);
           }
@@ -1045,15 +1045,15 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddConstVarBinaryOperation(expression_ptr->integrated_type_, udiv_,
-                  result_id, static_cast<int>(expression_ptr->children_[0]->value_.int_value),
+              function.blocks_[block_stack_.back()].AddConstVarBinaryOperation(expression_ptr->integrated_type_,
+                  udiv_, result_id, static_cast<int>(expression_ptr->children_[0]->value_.int_value),
                   expression_ptr->children_[1]->IR_ID_);
             } else if (expression_ptr->children_[1]->integrated_type_->is_const) { // var / const
               expression_ptr->children_[0]->Accept(this);
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddVarConstBinaryOperation(expression_ptr->integrated_type_,
+              function.blocks_[block_stack_.back()].AddVarConstBinaryOperation(expression_ptr->integrated_type_,
                   udiv_, result_id, expression_ptr->children_[0]->IR_ID_,
                   static_cast<int>(expression_ptr->children_[1]->value_.int_value));
             } else { // var / var
@@ -1062,7 +1062,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddTwoVarBinaryOperation(expression_ptr->integrated_type_,
+              function.blocks_[block_stack_.back()].AddTwoVarBinaryOperation(expression_ptr->integrated_type_,
                   udiv_, result_id, expression_ptr->children_[0]->IR_ID_,
                   expression_ptr->children_[1]->IR_ID_);
             }
@@ -1072,15 +1072,15 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddConstVarBinaryOperation(expression_ptr->integrated_type_, sdiv_,
-                  result_id, static_cast<int>(expression_ptr->children_[0]->value_.int_value),
+              function.blocks_[block_stack_.back()].AddConstVarBinaryOperation(expression_ptr->integrated_type_,
+                  sdiv_, result_id, static_cast<int>(expression_ptr->children_[0]->value_.int_value),
                   expression_ptr->children_[1]->IR_ID_);
             } else if (expression_ptr->children_[1]->integrated_type_->is_const) { // var / const
               expression_ptr->children_[0]->Accept(this);
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddVarConstBinaryOperation(expression_ptr->integrated_type_,
+              function.blocks_[block_stack_.back()].AddVarConstBinaryOperation(expression_ptr->integrated_type_,
                   sdiv_, result_id, expression_ptr->children_[0]->IR_ID_,
                   static_cast<int>(expression_ptr->children_[1]->value_.int_value));
             } else { // var / var
@@ -1089,7 +1089,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddTwoVarBinaryOperation(expression_ptr->integrated_type_,
+              function.blocks_[block_stack_.back()].AddTwoVarBinaryOperation(expression_ptr->integrated_type_,
                   sdiv_, result_id, expression_ptr->children_[0]->IR_ID_,
                   expression_ptr->children_[1]->IR_ID_);
             }
@@ -1104,15 +1104,15 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddConstVarBinaryOperation(expression_ptr->integrated_type_, urem_,
-                  result_id, static_cast<int>(expression_ptr->children_[0]->value_.int_value),
+              function.blocks_[block_stack_.back()].AddConstVarBinaryOperation(expression_ptr->integrated_type_,
+                  urem_, result_id, static_cast<int>(expression_ptr->children_[0]->value_.int_value),
                   expression_ptr->children_[1]->IR_ID_);
             } else if (expression_ptr->children_[1]->integrated_type_->is_const) { // var % const
               expression_ptr->children_[0]->Accept(this);
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddVarConstBinaryOperation(expression_ptr->integrated_type_,
+              function.blocks_[block_stack_.back()].AddVarConstBinaryOperation(expression_ptr->integrated_type_,
                   urem_, result_id, expression_ptr->children_[0]->IR_ID_,
                   static_cast<int>(expression_ptr->children_[1]->value_.int_value));
             } else { // var % var
@@ -1121,7 +1121,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddTwoVarBinaryOperation(expression_ptr->integrated_type_,
+              function.blocks_[block_stack_.back()].AddTwoVarBinaryOperation(expression_ptr->integrated_type_,
                   urem_, result_id, expression_ptr->children_[0]->IR_ID_,
                   expression_ptr->children_[1]->IR_ID_);
             }
@@ -1131,15 +1131,15 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddConstVarBinaryOperation(expression_ptr->integrated_type_, srem_,
-                  result_id, static_cast<int>(expression_ptr->children_[0]->value_.int_value),
+              function.blocks_[block_stack_.back()].AddConstVarBinaryOperation(expression_ptr->integrated_type_,
+                  srem_, result_id, static_cast<int>(expression_ptr->children_[0]->value_.int_value),
                   expression_ptr->children_[1]->IR_ID_);
             } else if (expression_ptr->children_[1]->integrated_type_->is_const) { // var % const
               expression_ptr->children_[0]->Accept(this);
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddVarConstBinaryOperation(expression_ptr->integrated_type_,
+              function.blocks_[block_stack_.back()].AddVarConstBinaryOperation(expression_ptr->integrated_type_,
                   srem_, result_id, expression_ptr->children_[0]->IR_ID_,
                   static_cast<int>(expression_ptr->children_[1]->value_.int_value));
             } else { // var % var
@@ -1148,7 +1148,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddTwoVarBinaryOperation(expression_ptr->integrated_type_,
+              function.blocks_[block_stack_.back()].AddTwoVarBinaryOperation(expression_ptr->integrated_type_,
                   srem_, result_id, expression_ptr->children_[0]->IR_ID_,
                   expression_ptr->children_[1]->IR_ID_);
             }
@@ -1161,15 +1161,15 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             const int result_id = function.var_id_;
             expression_ptr->IR_ID_ = result_id;
             ++function.var_id_;
-            target_block.AddConstVarBinaryOperation(expression_ptr->integrated_type_, and_,
-                result_id, static_cast<int>(expression_ptr->children_[0]->value_.int_value),
+            function.blocks_[block_stack_.back()].AddConstVarBinaryOperation(expression_ptr->integrated_type_,
+                and_, result_id, static_cast<int>(expression_ptr->children_[0]->value_.int_value),
                 expression_ptr->children_[1]->IR_ID_);
           } else if (expression_ptr->children_[1]->integrated_type_->is_const) { // var & const
             expression_ptr->children_[0]->Accept(this);
             const int result_id = function.var_id_;
             expression_ptr->IR_ID_ = result_id;
             ++function.var_id_;
-            target_block.AddVarConstBinaryOperation(expression_ptr->integrated_type_,
+            function.blocks_[block_stack_.back()].AddVarConstBinaryOperation(expression_ptr->integrated_type_,
                 and_, result_id, expression_ptr->children_[0]->IR_ID_,
                 static_cast<int>(expression_ptr->children_[1]->value_.int_value));
           } else { // var & var
@@ -1178,7 +1178,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             const int result_id = function.var_id_;
             expression_ptr->IR_ID_ = result_id;
             ++function.var_id_;
-            target_block.AddTwoVarBinaryOperation(expression_ptr->integrated_type_,
+            function.blocks_[block_stack_.back()].AddTwoVarBinaryOperation(expression_ptr->integrated_type_,
                 and_, result_id, expression_ptr->children_[0]->IR_ID_,
                 expression_ptr->children_[1]->IR_ID_);
           }
@@ -1190,15 +1190,15 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             const int result_id = function.var_id_;
             expression_ptr->IR_ID_ = result_id;
             ++function.var_id_;
-            target_block.AddConstVarBinaryOperation(expression_ptr->integrated_type_, or_,
-                result_id, static_cast<int>(expression_ptr->children_[0]->value_.int_value),
+            function.blocks_[block_stack_.back()].AddConstVarBinaryOperation(expression_ptr->integrated_type_,
+                or_, result_id, static_cast<int>(expression_ptr->children_[0]->value_.int_value),
                 expression_ptr->children_[1]->IR_ID_);
           } else if (expression_ptr->children_[1]->integrated_type_->is_const) { // var | const
             expression_ptr->children_[0]->Accept(this);
             const int result_id = function.var_id_;
             expression_ptr->IR_ID_ = result_id;
             ++function.var_id_;
-            target_block.AddVarConstBinaryOperation(expression_ptr->integrated_type_,
+            function.blocks_[block_stack_.back()].AddVarConstBinaryOperation(expression_ptr->integrated_type_,
                 or_, result_id, expression_ptr->children_[0]->IR_ID_,
                 static_cast<int>(expression_ptr->children_[1]->value_.int_value));
           } else { // var | var
@@ -1207,7 +1207,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             const int result_id = function.var_id_;
             expression_ptr->IR_ID_ = result_id;
             ++function.var_id_;
-            target_block.AddTwoVarBinaryOperation(expression_ptr->integrated_type_,
+            function.blocks_[block_stack_.back()].AddTwoVarBinaryOperation(expression_ptr->integrated_type_,
                 or_, result_id, expression_ptr->children_[0]->IR_ID_,
                 expression_ptr->children_[1]->IR_ID_);
           }
@@ -1219,15 +1219,15 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             const int result_id = function.var_id_;
             expression_ptr->IR_ID_ = result_id;
             ++function.var_id_;
-            target_block.AddConstVarBinaryOperation(expression_ptr->integrated_type_, xor_,
-                result_id, static_cast<int>(expression_ptr->children_[0]->value_.int_value),
+            function.blocks_[block_stack_.back()].AddConstVarBinaryOperation(expression_ptr->integrated_type_,
+                xor_, result_id, static_cast<int>(expression_ptr->children_[0]->value_.int_value),
                 expression_ptr->children_[1]->IR_ID_);
           } else if (expression_ptr->children_[1]->integrated_type_->is_const) { // var ^ const
             expression_ptr->children_[0]->Accept(this);
             const int result_id = function.var_id_;
             expression_ptr->IR_ID_ = result_id;
             ++function.var_id_;
-            target_block.AddVarConstBinaryOperation(expression_ptr->integrated_type_,
+            function.blocks_[block_stack_.back()].AddVarConstBinaryOperation(expression_ptr->integrated_type_,
                 xor_, result_id, expression_ptr->children_[0]->IR_ID_,
                 static_cast<int>(expression_ptr->children_[1]->value_.int_value));
           } else { // var ^ var
@@ -1236,7 +1236,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             const int result_id = function.var_id_;
             expression_ptr->IR_ID_ = result_id;
             ++function.var_id_;
-            target_block.AddTwoVarBinaryOperation(expression_ptr->integrated_type_,
+            function.blocks_[block_stack_.back()].AddTwoVarBinaryOperation(expression_ptr->integrated_type_,
                 xor_, result_id, expression_ptr->children_[0]->IR_ID_,
                 expression_ptr->children_[1]->IR_ID_);
           }
@@ -1248,15 +1248,15 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             const int result_id = function.var_id_;
             expression_ptr->IR_ID_ = result_id;
             ++function.var_id_;
-            target_block.AddConstVarBinaryOperation(expression_ptr->integrated_type_, shl_,
-                result_id, static_cast<int>(expression_ptr->children_[0]->value_.int_value),
+            function.blocks_[block_stack_.back()].AddConstVarBinaryOperation(expression_ptr->integrated_type_,
+                shl_, result_id, static_cast<int>(expression_ptr->children_[0]->value_.int_value),
                 expression_ptr->children_[1]->IR_ID_);
           } else if (expression_ptr->children_[1]->integrated_type_->is_const) { // var << const
             expression_ptr->children_[0]->Accept(this);
             const int result_id = function.var_id_;
             expression_ptr->IR_ID_ = result_id;
             ++function.var_id_;
-            target_block.AddVarConstBinaryOperation(expression_ptr->integrated_type_,
+            function.blocks_[block_stack_.back()].AddVarConstBinaryOperation(expression_ptr->integrated_type_,
                 shl_, result_id, expression_ptr->children_[0]->IR_ID_,
                 static_cast<int>(expression_ptr->children_[1]->value_.int_value));
           } else { // var << var
@@ -1265,7 +1265,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             const int result_id = function.var_id_;
             expression_ptr->IR_ID_ = result_id;
             ++function.var_id_;
-            target_block.AddTwoVarBinaryOperation(expression_ptr->integrated_type_,
+            function.blocks_[block_stack_.back()].AddTwoVarBinaryOperation(expression_ptr->integrated_type_,
                 shl_, result_id, expression_ptr->children_[0]->IR_ID_,
                 expression_ptr->children_[1]->IR_ID_);
           }
@@ -1277,15 +1277,15 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             const int result_id = function.var_id_;
             expression_ptr->IR_ID_ = result_id;
             ++function.var_id_;
-            target_block.AddConstVarBinaryOperation(expression_ptr->integrated_type_, ashr_,
-                result_id, static_cast<int>(expression_ptr->children_[0]->value_.int_value),
+            function.blocks_[block_stack_.back()].AddConstVarBinaryOperation(expression_ptr->integrated_type_,
+                ashr_, result_id, static_cast<int>(expression_ptr->children_[0]->value_.int_value),
                 expression_ptr->children_[1]->IR_ID_);
           } else if (expression_ptr->children_[1]->integrated_type_->is_const) { // var >> const
             expression_ptr->children_[0]->Accept(this);
             const int result_id = function.var_id_;
             expression_ptr->IR_ID_ = result_id;
             ++function.var_id_;
-            target_block.AddVarConstBinaryOperation(expression_ptr->integrated_type_,
+            function.blocks_[block_stack_.back()].AddVarConstBinaryOperation(expression_ptr->integrated_type_,
                 ashr_, result_id, expression_ptr->children_[0]->IR_ID_,
                 static_cast<int>(expression_ptr->children_[1]->value_.int_value));
           } else { // var >> var
@@ -1294,7 +1294,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             const int result_id = function.var_id_;
             expression_ptr->IR_ID_ = result_id;
             ++function.var_id_;
-            target_block.AddTwoVarBinaryOperation(expression_ptr->integrated_type_,
+            function.blocks_[block_stack_.back()].AddTwoVarBinaryOperation(expression_ptr->integrated_type_,
                 ashr_, result_id, expression_ptr->children_[0]->IR_ID_,
                 expression_ptr->children_[1]->IR_ID_);
           }
@@ -1308,7 +1308,8 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             const int result_id = function.var_id_;
             expression_ptr->IR_ID_ = result_id;
             ++function.var_id_;
-            target_block.AddConstVarIcmp(result_id, equal_, expression_ptr->children_[0]->integrated_type_,
+            function.blocks_[block_stack_.back()].AddConstVarIcmp(result_id, equal_,
+                expression_ptr->children_[0]->integrated_type_,
                 static_cast<int>(expression_ptr->children_[0]->value_.int_value),
                 expression_ptr->children_[1]->IR_ID_);
           } else if (expression_ptr->children_[1]->integrated_type_->is_const) { // var == const
@@ -1316,7 +1317,8 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             const int result_id = function.var_id_;
             expression_ptr->IR_ID_ = result_id;
             ++function.var_id_;
-            target_block.AddVarConstIcmp(result_id, equal_, expression_ptr->children_[0]->integrated_type_,
+            function.blocks_[block_stack_.back()].AddVarConstIcmp(result_id, equal_,
+                expression_ptr->children_[0]->integrated_type_,
                 expression_ptr->children_[0]->IR_ID_,
                 static_cast<int>(expression_ptr->children_[1]->value_.int_value));
           } else { // var == var
@@ -1325,8 +1327,9 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             const int result_id = function.var_id_;
             expression_ptr->IR_ID_ = result_id;
             ++function.var_id_;
-            target_block.AddTwoVarIcmp(result_id, equal_, expression_ptr->children_[0]->integrated_type_,
-                expression_ptr->children_[0]->IR_ID_, expression_ptr->children_[1]->IR_ID_);
+            function.blocks_[block_stack_.back()].AddTwoVarIcmp(result_id, equal_,
+                expression_ptr->children_[0]->integrated_type_, expression_ptr->children_[0]->IR_ID_,
+                expression_ptr->children_[1]->IR_ID_);
           }
           break;
         }
@@ -1338,7 +1341,8 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             const int result_id = function.var_id_;
             expression_ptr->IR_ID_ = result_id;
             ++function.var_id_;
-            target_block.AddConstVarIcmp(result_id, not_equal_, expression_ptr->children_[0]->integrated_type_,
+            function.blocks_[block_stack_.back()].AddConstVarIcmp(result_id, not_equal_,
+                expression_ptr->children_[0]->integrated_type_,
                 static_cast<int>(expression_ptr->children_[0]->value_.int_value),
                 expression_ptr->children_[1]->IR_ID_);
           } else if (expression_ptr->children_[1]->integrated_type_->is_const) { // var != const
@@ -1346,8 +1350,8 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             const int result_id = function.var_id_;
             expression_ptr->IR_ID_ = result_id;
             ++function.var_id_;
-            target_block.AddVarConstIcmp(result_id, not_equal_, expression_ptr->children_[0]->integrated_type_,
-                expression_ptr->children_[0]->IR_ID_,
+            function.blocks_[block_stack_.back()].AddVarConstIcmp(result_id, not_equal_,
+                expression_ptr->children_[0]->integrated_type_, expression_ptr->children_[0]->IR_ID_,
                 static_cast<int>(expression_ptr->children_[1]->value_.int_value));
           } else { // var != var
             expression_ptr->children_[0]->Accept(this);
@@ -1355,8 +1359,9 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             const int result_id = function.var_id_;
             expression_ptr->IR_ID_ = result_id;
             ++function.var_id_;
-            target_block.AddTwoVarIcmp(result_id, not_equal_, expression_ptr->children_[0]->integrated_type_,
-                expression_ptr->children_[0]->IR_ID_, expression_ptr->children_[1]->IR_ID_);
+            function.blocks_[block_stack_.back()].AddTwoVarIcmp(result_id, not_equal_,
+                expression_ptr->children_[0]->integrated_type_, expression_ptr->children_[0]->IR_ID_,
+                expression_ptr->children_[1]->IR_ID_);
           }
           break;
         }
@@ -1370,7 +1375,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddConstVarIcmp(result_id, unsigned_greater_than_,
+              function.blocks_[block_stack_.back()].AddConstVarIcmp(result_id, unsigned_greater_than_,
                   expression_ptr->children_[0]->integrated_type_,
                   static_cast<int>(expression_ptr->children_[0]->value_.int_value),
                   expression_ptr->children_[1]->IR_ID_);
@@ -1379,7 +1384,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddVarConstIcmp(result_id, unsigned_greater_than_,
+              function.blocks_[block_stack_.back()].AddVarConstIcmp(result_id, unsigned_greater_than_,
                   expression_ptr->children_[0]->integrated_type_, expression_ptr->children_[0]->IR_ID_,
                   static_cast<int>(expression_ptr->children_[1]->value_.int_value));
             } else { // var > var
@@ -1388,7 +1393,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddTwoVarIcmp(result_id, unsigned_greater_than_,
+              function.blocks_[block_stack_.back()].AddTwoVarIcmp(result_id, unsigned_greater_than_,
                   expression_ptr->children_[0]->integrated_type_, expression_ptr->children_[0]->IR_ID_,
                   expression_ptr->children_[1]->IR_ID_);
             }
@@ -1398,7 +1403,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddConstVarIcmp(result_id, signed_greater_than_,
+              function.blocks_[block_stack_.back()].AddConstVarIcmp(result_id, signed_greater_than_,
                   expression_ptr->children_[0]->integrated_type_,
                   static_cast<int>(expression_ptr->children_[0]->value_.int_value),
                   expression_ptr->children_[1]->IR_ID_);
@@ -1407,7 +1412,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddVarConstIcmp(result_id, signed_greater_than_,
+              function.blocks_[block_stack_.back()].AddVarConstIcmp(result_id, signed_greater_than_,
                   expression_ptr->children_[0]->integrated_type_, expression_ptr->children_[0]->IR_ID_,
                   static_cast<int>(expression_ptr->children_[1]->value_.int_value));
             } else { // var > var
@@ -1416,7 +1421,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddTwoVarIcmp(result_id, signed_greater_than_,
+              function.blocks_[block_stack_.back()].AddTwoVarIcmp(result_id, signed_greater_than_,
                   expression_ptr->children_[0]->integrated_type_, expression_ptr->children_[0]->IR_ID_,
                   expression_ptr->children_[1]->IR_ID_);
             }
@@ -1433,7 +1438,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddConstVarIcmp(result_id, unsigned_less_than_,
+              function.blocks_[block_stack_.back()].AddConstVarIcmp(result_id, unsigned_less_than_,
                   expression_ptr->children_[0]->integrated_type_,
                   static_cast<int>(expression_ptr->children_[0]->value_.int_value),
                   expression_ptr->children_[1]->IR_ID_);
@@ -1442,7 +1447,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddVarConstIcmp(result_id, unsigned_less_than_,
+              function.blocks_[block_stack_.back()].AddVarConstIcmp(result_id, unsigned_less_than_,
                   expression_ptr->children_[0]->integrated_type_, expression_ptr->children_[0]->IR_ID_,
                   static_cast<int>(expression_ptr->children_[1]->value_.int_value));
             } else { // var < var
@@ -1451,7 +1456,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddTwoVarIcmp(result_id, unsigned_less_than_,
+              function.blocks_[block_stack_.back()].AddTwoVarIcmp(result_id, unsigned_less_than_,
                   expression_ptr->children_[0]->integrated_type_, expression_ptr->children_[0]->IR_ID_,
                   expression_ptr->children_[1]->IR_ID_);
             }
@@ -1461,7 +1466,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddConstVarIcmp(result_id, signed_less_than_,
+              function.blocks_[block_stack_.back()].AddConstVarIcmp(result_id, signed_less_than_,
                   expression_ptr->children_[0]->integrated_type_,
                   static_cast<int>(expression_ptr->children_[0]->value_.int_value),
                   expression_ptr->children_[1]->IR_ID_);
@@ -1470,7 +1475,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddVarConstIcmp(result_id, signed_less_than_,
+              function.blocks_[block_stack_.back()].AddVarConstIcmp(result_id, signed_less_than_,
                   expression_ptr->children_[0]->integrated_type_, expression_ptr->children_[0]->IR_ID_,
                   static_cast<int>(expression_ptr->children_[1]->value_.int_value));
             } else { // var < var
@@ -1479,7 +1484,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddTwoVarIcmp(result_id, signed_less_than_,
+              function.blocks_[block_stack_.back()].AddTwoVarIcmp(result_id, signed_less_than_,
                   expression_ptr->children_[0]->integrated_type_, expression_ptr->children_[0]->IR_ID_,
                   expression_ptr->children_[1]->IR_ID_);
             }
@@ -1496,7 +1501,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddConstVarIcmp(result_id, unsigned_greater_equal_,
+              function.blocks_[block_stack_.back()].AddConstVarIcmp(result_id, unsigned_greater_equal_,
                   expression_ptr->children_[0]->integrated_type_,
                   static_cast<int>(expression_ptr->children_[0]->value_.int_value),
                   expression_ptr->children_[1]->IR_ID_);
@@ -1505,7 +1510,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddVarConstIcmp(result_id, unsigned_greater_equal_,
+              function.blocks_[block_stack_.back()].AddVarConstIcmp(result_id, unsigned_greater_equal_,
                   expression_ptr->children_[0]->integrated_type_, expression_ptr->children_[0]->IR_ID_,
                   static_cast<int>(expression_ptr->children_[1]->value_.int_value));
             } else { // var >= var
@@ -1514,7 +1519,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddTwoVarIcmp(result_id, unsigned_greater_equal_,
+              function.blocks_[block_stack_.back()].AddTwoVarIcmp(result_id, unsigned_greater_equal_,
                   expression_ptr->children_[0]->integrated_type_, expression_ptr->children_[0]->IR_ID_,
                   expression_ptr->children_[1]->IR_ID_);
             }
@@ -1524,7 +1529,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddConstVarIcmp(result_id, signed_greater_equal_,
+              function.blocks_[block_stack_.back()].AddConstVarIcmp(result_id, signed_greater_equal_,
                   expression_ptr->children_[0]->integrated_type_,
                   static_cast<int>(expression_ptr->children_[0]->value_.int_value),
                   expression_ptr->children_[1]->IR_ID_);
@@ -1533,7 +1538,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddVarConstIcmp(result_id, signed_greater_equal_,
+              function.blocks_[block_stack_.back()].AddVarConstIcmp(result_id, signed_greater_equal_,
                   expression_ptr->children_[0]->integrated_type_, expression_ptr->children_[0]->IR_ID_,
                   static_cast<int>(expression_ptr->children_[1]->value_.int_value));
             } else { // var >= var
@@ -1542,7 +1547,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddTwoVarIcmp(result_id, signed_greater_equal_,
+              function.blocks_[block_stack_.back()].AddTwoVarIcmp(result_id, signed_greater_equal_,
                   expression_ptr->children_[0]->integrated_type_, expression_ptr->children_[0]->IR_ID_,
                   expression_ptr->children_[1]->IR_ID_);
             }
@@ -1559,7 +1564,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddConstVarIcmp(result_id, unsigned_less_equal_,
+              function.blocks_[block_stack_.back()].AddConstVarIcmp(result_id, unsigned_less_equal_,
                   expression_ptr->children_[0]->integrated_type_,
                   static_cast<int>(expression_ptr->children_[0]->value_.int_value),
                   expression_ptr->children_[1]->IR_ID_);
@@ -1568,7 +1573,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddVarConstIcmp(result_id, unsigned_less_equal_,
+              function.blocks_[block_stack_.back()].AddVarConstIcmp(result_id, unsigned_less_equal_,
                   expression_ptr->children_[0]->integrated_type_, expression_ptr->children_[0]->IR_ID_,
                   static_cast<int>(expression_ptr->children_[1]->value_.int_value));
             } else { // var <= var
@@ -1577,7 +1582,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddTwoVarIcmp(result_id, unsigned_less_equal_,
+              function.blocks_[block_stack_.back()].AddTwoVarIcmp(result_id, unsigned_less_equal_,
                   expression_ptr->children_[0]->integrated_type_, expression_ptr->children_[0]->IR_ID_,
                   expression_ptr->children_[1]->IR_ID_);
             }
@@ -1587,7 +1592,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddConstVarIcmp(result_id, signed_less_equal_,
+              function.blocks_[block_stack_.back()].AddConstVarIcmp(result_id, signed_less_equal_,
                   expression_ptr->children_[0]->integrated_type_,
                   static_cast<int>(expression_ptr->children_[0]->value_.int_value),
                   expression_ptr->children_[1]->IR_ID_);
@@ -1596,7 +1601,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddVarConstIcmp(result_id, signed_less_equal_,
+              function.blocks_[block_stack_.back()].AddVarConstIcmp(result_id, signed_less_equal_,
                   expression_ptr->children_[0]->integrated_type_, expression_ptr->children_[0]->IR_ID_,
                   static_cast<int>(expression_ptr->children_[1]->value_.int_value));
             } else { // var <= var
@@ -1605,7 +1610,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               const int result_id = function.var_id_;
               expression_ptr->IR_ID_ = result_id;
               ++function.var_id_;
-              target_block.AddTwoVarIcmp(result_id, signed_less_equal_,
+              function.blocks_[block_stack_.back()].AddTwoVarIcmp(result_id, signed_less_equal_,
                   expression_ptr->children_[0]->integrated_type_, expression_ptr->children_[0]->IR_ID_,
                   expression_ptr->children_[1]->IR_ID_);
             }
@@ -1617,14 +1622,14 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             if (expression_ptr->children_[0]->value_.int_value == 1) {
               // true || _ = true
               expression_ptr->IR_ID_ = function.var_id_++;
-              target_block.AddSelect(0b111, expression_ptr->IR_ID_, 1,
+              function.blocks_[block_stack_.back()].AddSelect(0b111, expression_ptr->IR_ID_, 1,
                   expression_ptr->children_[0]->integrated_type_, 1,
                   expression_ptr->children_[0]->integrated_type_, 1);
             } else {
               // false || _ = _
               expression_ptr->children_[1]->Accept(this);
               expression_ptr->IR_ID_ = function.var_id_++;
-              target_block.AddSelect(0b100, expression_ptr->IR_ID_, 1,
+              function.blocks_[block_stack_.back()].AddSelect(0b100, expression_ptr->IR_ID_, 1,
                   expression_ptr->children_[1]->integrated_type_, expression_ptr->children_[1]->IR_ID_,
                   expression_ptr->children_[1]->integrated_type_, expression_ptr->children_[1]->IR_ID_);
             }
@@ -1637,7 +1642,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             function.blocks_[if_false_block_label] = IRBlock();
             const int merged_label = function.var_id_++;
             function.blocks_[merged_label] = IRBlock();
-            target_block.AddConditionalBranch(expression_ptr->children_[0]->IR_ID_,
+            function.blocks_[block_stack_.back()].AddConditionalBranch(expression_ptr->children_[0]->IR_ID_,
                 if_true_block_label, if_false_block_label);
             // in if_true_block
             block_stack_.back() = if_true_block_label;
@@ -1682,13 +1687,13 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               // true && _ = _
               expression_ptr->children_[1]->Accept(this);
               expression_ptr->IR_ID_ = function.var_id_++;
-              target_block.AddSelect(0b100, expression_ptr->IR_ID_, 1,
+              function.blocks_[block_stack_.back()].AddSelect(0b100, expression_ptr->IR_ID_, 1,
                   expression_ptr->children_[1]->integrated_type_, expression_ptr->children_[1]->IR_ID_,
                   expression_ptr->children_[1]->integrated_type_, expression_ptr->children_[1]->IR_ID_);
             } else {
               // false && _ = false
               expression_ptr->IR_ID_ = function.var_id_++;
-              target_block.AddSelect(0b111, expression_ptr->IR_ID_, 1,
+              function.blocks_[block_stack_.back()].AddSelect(0b111, expression_ptr->IR_ID_, 1,
                   expression_ptr->children_[0]->integrated_type_, 0,
                   expression_ptr->children_[0]->integrated_type_, 0);
             }
@@ -1701,7 +1706,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             function.blocks_[if_false_block_label] = IRBlock();
             const int merged_label = function.var_id_++;
             function.blocks_[merged_label] = IRBlock();
-            target_block.AddConditionalBranch(expression_ptr->children_[0]->IR_ID_,
+            function.blocks_[block_stack_.back()].AddConditionalBranch(expression_ptr->children_[0]->IR_ID_,
                 if_true_block_label, if_false_block_label);
             // in if_true_block
             block_stack_.back() = if_true_block_label;
@@ -1747,11 +1752,11 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           if (expression_ptr->children_[1]->integrated_type_->is_int ||
               basic_type == bool_type || basic_type == enumeration_type) {
             if (expression_ptr->children_[1]->integrated_type_->is_const) {
-              target_block.AddValueStore(expression_ptr->children_[0]->integrated_type_,
+              function.blocks_[block_stack_.back()].AddValueStore(expression_ptr->children_[0]->integrated_type_,
                   static_cast<int>(expression_ptr->children_[1]->value_.int_value), variable_id);
             } else {
               expression_ptr->children_[1]->Accept(this);
-              target_block.AddVariableStore(expression_ptr->children_[0]->integrated_type_,
+              function.blocks_[block_stack_.back()].AddVariableStore(expression_ptr->children_[0]->integrated_type_,
                   expression_ptr->children_[1]->IR_ID_, variable_id);
             }
           } else if (basic_type == array_type || basic_type == struct_type || basic_type == pointer_type) {
@@ -1766,20 +1771,20 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           expression_ptr->children_[0]->Accept(this);
           const int pointer_id = expression_ptr->children_[0]->IR_var_ID_;
           const int loaded_var_id = function.var_id_++;
-          target_block.AddLoad(loaded_var_id, expression_ptr->children_[0]->integrated_type_,
+          function.blocks_[block_stack_.back()].AddLoad(loaded_var_id, expression_ptr->children_[0]->integrated_type_,
               pointer_id);
           const int temp_result_id = function.var_id_++;
           if (expression_ptr->children_[1]->integrated_type_->is_const) {
-            target_block.AddVarConstBinaryOperation(expression_ptr->children_[0]->integrated_type_,
+            function.blocks_[block_stack_.back()].AddVarConstBinaryOperation(expression_ptr->children_[0]->integrated_type_,
                 add_, temp_result_id, loaded_var_id,
                 static_cast<int>(expression_ptr->children_[1]->value_.int_value));
           } else {
             expression_ptr->children_[1]->Accept(this);
-            target_block.AddTwoVarBinaryOperation(expression_ptr->children_[0]->integrated_type_,
+            function.blocks_[block_stack_.back()].AddTwoVarBinaryOperation(expression_ptr->children_[0]->integrated_type_,
                 add_, temp_result_id, loaded_var_id,
                 expression_ptr->children_[1]->IR_ID_);
           }
-          target_block.AddVariableStore(expression_ptr->children_[0]->integrated_type_,
+          function.blocks_[block_stack_.back()].AddVariableStore(expression_ptr->children_[0]->integrated_type_,
               temp_result_id, pointer_id);
           break;
         }
@@ -1787,20 +1792,20 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           expression_ptr->children_[0]->Accept(this);
           const int pointer_id = expression_ptr->children_[0]->IR_var_ID_;
           const int loaded_var_id = function.var_id_++;
-          target_block.AddLoad(loaded_var_id, expression_ptr->children_[0]->integrated_type_,
+          function.blocks_[block_stack_.back()].AddLoad(loaded_var_id, expression_ptr->children_[0]->integrated_type_,
               pointer_id);
           const int temp_result_id = function.var_id_++;
           if (expression_ptr->children_[1]->integrated_type_->is_const) {
-            target_block.AddVarConstBinaryOperation(expression_ptr->children_[0]->integrated_type_,
+            function.blocks_[block_stack_.back()].AddVarConstBinaryOperation(expression_ptr->children_[0]->integrated_type_,
                 sub_, temp_result_id, loaded_var_id,
                 static_cast<int>(expression_ptr->children_[1]->value_.int_value));
           } else {
             expression_ptr->children_[1]->Accept(this);
-            target_block.AddTwoVarBinaryOperation(expression_ptr->children_[0]->integrated_type_,
+            function.blocks_[block_stack_.back()].AddTwoVarBinaryOperation(expression_ptr->children_[0]->integrated_type_,
                 sub_, temp_result_id, loaded_var_id,
                 expression_ptr->children_[1]->IR_ID_);
           }
-          target_block.AddVariableStore(expression_ptr->children_[0]->integrated_type_,
+          function.blocks_[block_stack_.back()].AddVariableStore(expression_ptr->children_[0]->integrated_type_,
               temp_result_id, pointer_id);
           break;
         }
@@ -1808,20 +1813,20 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           expression_ptr->children_[0]->Accept(this);
           const int pointer_id = expression_ptr->children_[0]->IR_var_ID_;
           const int loaded_var_id = function.var_id_++;
-          target_block.AddLoad(loaded_var_id, expression_ptr->children_[0]->integrated_type_,
+          function.blocks_[block_stack_.back()].AddLoad(loaded_var_id, expression_ptr->children_[0]->integrated_type_,
               pointer_id);
           const int temp_result_id = function.var_id_++;
           if (expression_ptr->children_[1]->integrated_type_->is_const) {
-            target_block.AddVarConstBinaryOperation(expression_ptr->children_[0]->integrated_type_,
+            function.blocks_[block_stack_.back()].AddVarConstBinaryOperation(expression_ptr->children_[0]->integrated_type_,
                 mul_, temp_result_id, loaded_var_id,
                 static_cast<int>(expression_ptr->children_[1]->value_.int_value));
           } else {
             expression_ptr->children_[1]->Accept(this);
-            target_block.AddTwoVarBinaryOperation(expression_ptr->children_[0]->integrated_type_,
+            function.blocks_[block_stack_.back()].AddTwoVarBinaryOperation(expression_ptr->children_[0]->integrated_type_,
                 mul_, temp_result_id, loaded_var_id,
                 expression_ptr->children_[1]->IR_ID_);
           }
-          target_block.AddVariableStore(expression_ptr->children_[0]->integrated_type_,
+          function.blocks_[block_stack_.back()].AddVariableStore(expression_ptr->children_[0]->integrated_type_,
               temp_result_id, pointer_id);
           break;
         }
@@ -1829,17 +1834,17 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           expression_ptr->children_[0]->Accept(this);
           const int pointer_id = expression_ptr->children_[0]->IR_var_ID_;
           const int loaded_var_id = function.var_id_++;
-          target_block.AddLoad(loaded_var_id, expression_ptr->children_[0]->integrated_type_,
+          function.blocks_[block_stack_.back()].AddLoad(loaded_var_id, expression_ptr->children_[0]->integrated_type_,
               pointer_id);
           const int temp_result_id = function.var_id_++;
           if (expression_ptr->children_[1]->integrated_type_->is_const) {
             if (expression_ptr->children_[0]->integrated_type_->basic_type == u32_type ||
                 expression_ptr->children_[0]->integrated_type_->basic_type == usize_type) {
-              target_block.AddVarConstBinaryOperation(expression_ptr->children_[0]->integrated_type_,
+              function.blocks_[block_stack_.back()].AddVarConstBinaryOperation(expression_ptr->children_[0]->integrated_type_,
                   udiv_, temp_result_id, loaded_var_id,
                   static_cast<int>(expression_ptr->children_[1]->value_.int_value));
             } else {
-              target_block.AddVarConstBinaryOperation(expression_ptr->children_[0]->integrated_type_,
+              function.blocks_[block_stack_.back()].AddVarConstBinaryOperation(expression_ptr->children_[0]->integrated_type_,
                 sdiv_, temp_result_id, loaded_var_id,
                 static_cast<int>(expression_ptr->children_[1]->value_.int_value));
             }
@@ -1847,16 +1852,16 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             expression_ptr->children_[1]->Accept(this);
             if (expression_ptr->children_[0]->integrated_type_->basic_type == u32_type ||
                 expression_ptr->children_[0]->integrated_type_->basic_type == usize_type) {
-              target_block.AddTwoVarBinaryOperation(expression_ptr->children_[0]->integrated_type_,
+              function.blocks_[block_stack_.back()].AddTwoVarBinaryOperation(expression_ptr->children_[0]->integrated_type_,
                 udiv_, temp_result_id, loaded_var_id,
                 expression_ptr->children_[1]->IR_ID_);
             } else {
-              target_block.AddTwoVarBinaryOperation(expression_ptr->children_[0]->integrated_type_,
+              function.blocks_[block_stack_.back()].AddTwoVarBinaryOperation(expression_ptr->children_[0]->integrated_type_,
                 sdiv_, temp_result_id, loaded_var_id,
                 expression_ptr->children_[1]->IR_ID_);
             }
           }
-          target_block.AddVariableStore(expression_ptr->children_[0]->integrated_type_,
+          function.blocks_[block_stack_.back()].AddVariableStore(expression_ptr->children_[0]->integrated_type_,
               temp_result_id, pointer_id);
           break;
         }
@@ -1864,17 +1869,17 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           expression_ptr->children_[0]->Accept(this);
           const int pointer_id = expression_ptr->children_[0]->IR_var_ID_;
           const int loaded_var_id = function.var_id_++;
-          target_block.AddLoad(loaded_var_id, expression_ptr->children_[0]->integrated_type_,
+          function.blocks_[block_stack_.back()].AddLoad(loaded_var_id, expression_ptr->children_[0]->integrated_type_,
               pointer_id);
           const int temp_result_id = function.var_id_++;
           if (expression_ptr->children_[1]->integrated_type_->is_const) {
             if (expression_ptr->children_[0]->integrated_type_->basic_type == u32_type ||
                 expression_ptr->children_[0]->integrated_type_->basic_type == usize_type) {
-              target_block.AddVarConstBinaryOperation(expression_ptr->children_[0]->integrated_type_,
+              function.blocks_[block_stack_.back()].AddVarConstBinaryOperation(expression_ptr->children_[0]->integrated_type_,
                   urem_, temp_result_id, loaded_var_id,
                   static_cast<int>(expression_ptr->children_[1]->value_.int_value));
             } else {
-              target_block.AddVarConstBinaryOperation(expression_ptr->children_[0]->integrated_type_,
+              function.blocks_[block_stack_.back()].AddVarConstBinaryOperation(expression_ptr->children_[0]->integrated_type_,
                 srem_, temp_result_id, loaded_var_id,
                 static_cast<int>(expression_ptr->children_[1]->value_.int_value));
             }
@@ -1882,16 +1887,16 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             expression_ptr->children_[1]->Accept(this);
             if (expression_ptr->children_[0]->integrated_type_->basic_type == u32_type ||
                 expression_ptr->children_[0]->integrated_type_->basic_type == usize_type) {
-              target_block.AddTwoVarBinaryOperation(expression_ptr->children_[0]->integrated_type_,
+              function.blocks_[block_stack_.back()].AddTwoVarBinaryOperation(expression_ptr->children_[0]->integrated_type_,
                 urem_, temp_result_id, loaded_var_id,
                 expression_ptr->children_[1]->IR_ID_);
             } else {
-              target_block.AddTwoVarBinaryOperation(expression_ptr->children_[0]->integrated_type_,
+              function.blocks_[block_stack_.back()].AddTwoVarBinaryOperation(expression_ptr->children_[0]->integrated_type_,
                 srem_, temp_result_id, loaded_var_id,
                 expression_ptr->children_[1]->IR_ID_);
             }
           }
-          target_block.AddVariableStore(expression_ptr->children_[0]->integrated_type_,
+          function.blocks_[block_stack_.back()].AddVariableStore(expression_ptr->children_[0]->integrated_type_,
               temp_result_id, pointer_id);
           break;
         }
@@ -1899,20 +1904,20 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           expression_ptr->children_[0]->Accept(this);
           const int pointer_id = expression_ptr->children_[0]->IR_var_ID_;
           const int loaded_var_id = function.var_id_++;
-          target_block.AddLoad(loaded_var_id, expression_ptr->children_[0]->integrated_type_,
+          function.blocks_[block_stack_.back()].AddLoad(loaded_var_id, expression_ptr->children_[0]->integrated_type_,
               pointer_id);
           const int temp_result_id = function.var_id_++;
           if (expression_ptr->children_[1]->integrated_type_->is_const) {
-            target_block.AddVarConstBinaryOperation(expression_ptr->children_[0]->integrated_type_,
+            function.blocks_[block_stack_.back()].AddVarConstBinaryOperation(expression_ptr->children_[0]->integrated_type_,
                 and_, temp_result_id, loaded_var_id,
                 static_cast<int>(expression_ptr->children_[1]->value_.int_value));
           } else {
             expression_ptr->children_[1]->Accept(this);
-            target_block.AddTwoVarBinaryOperation(expression_ptr->children_[0]->integrated_type_,
+            function.blocks_[block_stack_.back()].AddTwoVarBinaryOperation(expression_ptr->children_[0]->integrated_type_,
                 and_, temp_result_id, loaded_var_id,
                 expression_ptr->children_[1]->IR_ID_);
           }
-          target_block.AddVariableStore(expression_ptr->children_[0]->integrated_type_,
+          function.blocks_[block_stack_.back()].AddVariableStore(expression_ptr->children_[0]->integrated_type_,
               temp_result_id, pointer_id);
           break;
         }
@@ -1920,20 +1925,20 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           expression_ptr->children_[0]->Accept(this);
           const int pointer_id = expression_ptr->children_[0]->IR_var_ID_;
           const int loaded_var_id = function.var_id_++;
-          target_block.AddLoad(loaded_var_id, expression_ptr->children_[0]->integrated_type_,
+          function.blocks_[block_stack_.back()].AddLoad(loaded_var_id, expression_ptr->children_[0]->integrated_type_,
               pointer_id);
           const int temp_result_id = function.var_id_++;
           if (expression_ptr->children_[1]->integrated_type_->is_const) {
-            target_block.AddVarConstBinaryOperation(expression_ptr->children_[0]->integrated_type_,
+            function.blocks_[block_stack_.back()].AddVarConstBinaryOperation(expression_ptr->children_[0]->integrated_type_,
                 or_, temp_result_id, loaded_var_id,
                 static_cast<int>(expression_ptr->children_[1]->value_.int_value));
           } else {
             expression_ptr->children_[1]->Accept(this);
-            target_block.AddTwoVarBinaryOperation(expression_ptr->children_[0]->integrated_type_,
+            function.blocks_[block_stack_.back()].AddTwoVarBinaryOperation(expression_ptr->children_[0]->integrated_type_,
                 or_, temp_result_id, loaded_var_id,
                 expression_ptr->children_[1]->IR_ID_);
           }
-          target_block.AddVariableStore(expression_ptr->children_[0]->integrated_type_,
+          function.blocks_[block_stack_.back()].AddVariableStore(expression_ptr->children_[0]->integrated_type_,
               temp_result_id, pointer_id);
           break;
         }
@@ -1941,20 +1946,20 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           expression_ptr->children_[0]->Accept(this);
           const int pointer_id = expression_ptr->children_[0]->IR_var_ID_;
           const int loaded_var_id = function.var_id_++;
-          target_block.AddLoad(loaded_var_id, expression_ptr->children_[0]->integrated_type_,
+          function.blocks_[block_stack_.back()].AddLoad(loaded_var_id, expression_ptr->children_[0]->integrated_type_,
               pointer_id);
           const int temp_result_id = function.var_id_++;
           if (expression_ptr->children_[1]->integrated_type_->is_const) {
-            target_block.AddVarConstBinaryOperation(expression_ptr->children_[0]->integrated_type_,
+            function.blocks_[block_stack_.back()].AddVarConstBinaryOperation(expression_ptr->children_[0]->integrated_type_,
                 xor_, temp_result_id, loaded_var_id,
                 static_cast<int>(expression_ptr->children_[1]->value_.int_value));
           } else {
             expression_ptr->children_[1]->Accept(this);
-            target_block.AddTwoVarBinaryOperation(expression_ptr->children_[0]->integrated_type_,
+            function.blocks_[block_stack_.back()].AddTwoVarBinaryOperation(expression_ptr->children_[0]->integrated_type_,
                 xor_, temp_result_id, loaded_var_id,
                 expression_ptr->children_[1]->IR_ID_);
           }
-          target_block.AddVariableStore(expression_ptr->children_[0]->integrated_type_,
+          function.blocks_[block_stack_.back()].AddVariableStore(expression_ptr->children_[0]->integrated_type_,
               temp_result_id, pointer_id);
           break;
         }
@@ -1962,20 +1967,20 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           expression_ptr->children_[0]->Accept(this);
           const int pointer_id = expression_ptr->children_[0]->IR_var_ID_;
           const int loaded_var_id = function.var_id_++;
-          target_block.AddLoad(loaded_var_id, expression_ptr->children_[0]->integrated_type_,
+          function.blocks_[block_stack_.back()].AddLoad(loaded_var_id, expression_ptr->children_[0]->integrated_type_,
               pointer_id);
           const int temp_result_id = function.var_id_++;
           if (expression_ptr->children_[1]->integrated_type_->is_const) {
-            target_block.AddVarConstBinaryOperation(expression_ptr->children_[0]->integrated_type_,
+            function.blocks_[block_stack_.back()].AddVarConstBinaryOperation(expression_ptr->children_[0]->integrated_type_,
                 shl_, temp_result_id, loaded_var_id,
                 static_cast<int>(expression_ptr->children_[1]->value_.int_value));
           } else {
             expression_ptr->children_[1]->Accept(this);
-            target_block.AddTwoVarBinaryOperation(expression_ptr->children_[0]->integrated_type_,
+            function.blocks_[block_stack_.back()].AddTwoVarBinaryOperation(expression_ptr->children_[0]->integrated_type_,
                 shl_, temp_result_id, loaded_var_id,
                 expression_ptr->children_[1]->IR_ID_);
           }
-          target_block.AddVariableStore(expression_ptr->children_[0]->integrated_type_,
+          function.blocks_[block_stack_.back()].AddVariableStore(expression_ptr->children_[0]->integrated_type_,
               temp_result_id, pointer_id);
           break;
         }
@@ -1983,20 +1988,20 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           expression_ptr->children_[0]->Accept(this);
           const int pointer_id = expression_ptr->children_[0]->IR_var_ID_;
           const int loaded_var_id = function.var_id_++;
-          target_block.AddLoad(loaded_var_id, expression_ptr->children_[0]->integrated_type_,
+          function.blocks_[block_stack_.back()].AddLoad(loaded_var_id, expression_ptr->children_[0]->integrated_type_,
               pointer_id);
           const int temp_result_id = function.var_id_++;
           if (expression_ptr->children_[1]->integrated_type_->is_const) {
-            target_block.AddVarConstBinaryOperation(expression_ptr->children_[0]->integrated_type_,
+            function.blocks_[block_stack_.back()].AddVarConstBinaryOperation(expression_ptr->children_[0]->integrated_type_,
                 ashr_, temp_result_id, loaded_var_id,
                 static_cast<int>(expression_ptr->children_[1]->value_.int_value));
           } else {
             expression_ptr->children_[1]->Accept(this);
-            target_block.AddTwoVarBinaryOperation(expression_ptr->children_[0]->integrated_type_,
+            function.blocks_[block_stack_.back()].AddTwoVarBinaryOperation(expression_ptr->children_[0]->integrated_type_,
                 ashr_, temp_result_id, loaded_var_id,
                 expression_ptr->children_[1]->IR_ID_);
           }
-          target_block.AddVariableStore(expression_ptr->children_[0]->integrated_type_,
+          function.blocks_[block_stack_.back()].AddVariableStore(expression_ptr->children_[0]->integrated_type_,
               temp_result_id, pointer_id);
           break;
         }
@@ -2008,9 +2013,9 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           } else { // expression_ptr->children_[0]->integrated_type_->basic_type == bool_type
             expression_ptr->children_[0]->Accept(this);
             expression_ptr->IR_ID_ = function.var_id_++;
-            target_block.AddSelect(0b011, expression_ptr->IR_ID_, expression_ptr->children_[0]->IR_ID_,
-                expression_ptr->integrated_type_, 1,
-                expression_ptr->integrated_type_, 0);
+            function.blocks_[block_stack_.back()].AddSelect(0b011, expression_ptr->IR_ID_,
+                expression_ptr->children_[0]->IR_ID_, expression_ptr->integrated_type_,
+                1, expression_ptr->integrated_type_, 0);
           }
           break;
         }
