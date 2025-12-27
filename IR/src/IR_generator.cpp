@@ -416,12 +416,13 @@ void IRVisitor::Visit(Expression *expression_ptr) {
       wrapping_loops_.push_back({loop_begin, loop_end, expression_ptr->IR_ID_,
           wrapping_functions_.back()});
       if (expression_ptr->children_.size() == 3) {
-        IRThrow("Empty loop!");
+        IRThrow("Empty indefinite loop!");
       }
       DeclareItems(expression_ptr->children_[2]->scope_node_);
       expression_ptr->children_[2]->Accept(this);
       functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].
           AddUnconditionalBranch(loop_begin);
+      block_stack_.back() = loop_end;
       break;
     }
     case predicate_loop_expr: {
@@ -440,12 +441,17 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].
               AddUnconditionalBranch(loop_begin);
           // loop_begin
+          block_stack_.back() = loop_begin;
           if (expression_ptr->children_.size() == 7) {
             DeclareItems(expression_ptr->children_[5]->scope_node_);
             expression_ptr->children_[5]->Accept(this);
+          } else {
+            IRThrow("Empty indefinite loop!");
           }
           functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].
               AddUnconditionalBranch(loop_begin);
+          // loop_end
+          block_stack_.back() = loop_end;
         } else { // skip
           break;
         }
