@@ -980,6 +980,10 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddConstVarBinaryOperation(
               expression_ptr->integrated_type_, sub_, expression_ptr->IR_ID_,
               1, expression_ptr->children_[1]->IR_ID_);
+        } else {
+          functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddVarConstBinaryOperation(
+              expression_ptr->integrated_type_, xor_, expression_ptr->IR_ID_,
+              expression_ptr->children_[1]->IR_ID_, -1);
         }
       } else if (prefix == "&") {
         auto content_expr_ptr = expression_ptr->children_.back();
