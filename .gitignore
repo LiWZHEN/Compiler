@@ -9,6 +9,9 @@ RCompiler-Testcases/**/*.json
 RCompiler-Testcases/IR-1/builtin
 RCompiler-Testcases/IR-1/Makefile
 RCompiler-Testcases/IR-1/test_llvm.bash
+RCompiler-Testcases/IR-1/src/**/*.ll
+RCompiler-Testcases/IR-1/src/**/*.s
+RCompiler-Testcases/IR-1/src/**/*_my_output.out
 RCompiler-Testcases/semantic-1/**/*.in
 RCompiler-Testcases/semantic-1/**/*.out
 RCompiler-Testcases/semantic-2/**/*.in
