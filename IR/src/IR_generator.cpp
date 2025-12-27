@@ -787,42 +787,58 @@ void IRVisitor::Visit(Expression *expression_ptr) {
       } else { // not builtin
         std::vector<FunctionCallArgument> argument_list;
         const auto function_def_node = expression_ptr->GetDefInfo().node;
-        switch (function_def_node->children_[3]->children_[0]->children_[0]->children_.size()) {
-          case 1: { // self
-            expression_ptr->children_[0]->Accept(this);
-            argument_list.push_back(FunctionCallArgument(expression_ptr->children_[0]->integrated_type_,
-                true, expression_ptr->children_[0]->IR_ID_));
-            break;
-          }
-          case 2:
-          case 3: { // &self or &mut self
-            expression_ptr->children_[0]->Accept(this);
-            if (expression_ptr->children_[0]->IR_var_ID_ == -1) {
-              IRThrow("The 'self' is not a left value and cannot be borrowed.");
+        if (expression_ptr->children_[0]->integrated_type_->basic_type == pointer_type) {
+          switch (function_def_node->children_[3]->children_[0]->children_[0]->children_.size()) {
+            case 1: { // self
+              expression_ptr->children_[0]->Accept(this);
+              const int loaded_reference_self_id = functions_[wrapping_functions_.back()].var_id_++;
+              functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                  loaded_reference_self_id, expression_ptr->children_[0]->integrated_type_->element_type,
+                  expression_ptr->children_[0]->IR_ID_);
+              argument_list.push_back(FunctionCallArgument(expression_ptr->children_[0]->integrated_type_,
+                  true, loaded_reference_self_id));
+              break;
             }
-            const int borrowed_self_id = functions_[wrapping_functions_.back()].var_id_++;
-            std::shared_ptr<IntegratedType> target_type;
-            if (functions_[function_def_node->IR_ID_].parameter_types_.empty()) { // complete the function's parameter type first
-              for (int i = 0; i < function_def_node->children_.size(); ++i) {
-                if (function_def_node->type_[i] == type_function_parameters) {
-                  target_type = function_def_node->children_[i]->children_[0]->integrated_type_;
-                  break;
-                }
+            case 2:
+            case 3: { // &self or &mut self
+              expression_ptr->children_[0]->Accept(this);
+              argument_list.push_back(FunctionCallArgument(expression_ptr->children_[0]->integrated_type_,
+                  true, expression_ptr->children_[0]->IR_ID_));
+              break;
+            }
+            default:;
+          }
+        } else {
+          switch (function_def_node->children_[3]->children_[0]->children_[0]->children_.size()) {
+            case 1: { // self
+              expression_ptr->children_[0]->Accept(this);
+              argument_list.push_back(FunctionCallArgument(expression_ptr->children_[0]->integrated_type_,
+                  true, expression_ptr->children_[0]->IR_ID_));
+              break;
+            }
+            case 2:
+            case 3: { // &self or &mut self
+              expression_ptr->children_[0]->Accept(this);
+              if (expression_ptr->children_[0]->IR_var_ID_ == -1) {
+                IRThrow("The 'self' is not a left value and cannot be borrowed.");
               }
-            } else {
-              target_type = functions_[function_def_node->IR_ID_].parameter_types_[0];
+              std::shared_ptr<IntegratedType> target_type;
+              if (functions_[function_def_node->IR_ID_].parameter_types_.empty()) {
+                for (int i = 0; i < function_def_node->children_.size(); ++i) {
+                  if (function_def_node->type_[i] == type_function_parameters) {
+                    target_type = function_def_node->children_[i]->children_[0]->integrated_type_;
+                    break;
+                  }
+                }
+              } else {
+                target_type = functions_[function_def_node->IR_ID_].parameter_types_[0];
+              }
+              argument_list.push_back(FunctionCallArgument(target_type, true,
+                  expression_ptr->children_[0]->IR_var_ID_));
+              break;
             }
-            functions_[wrapping_functions_.back()].AddAlloca(borrowed_self_id,
-                target_type);
-            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddPtrStore(
-                expression_ptr->children_[0]->IR_var_ID_, borrowed_self_id);
-            const int loaded_borrowed_self_id = functions_[wrapping_functions_.back()].var_id_++;
-            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
-                loaded_borrowed_self_id, target_type, borrowed_self_id);
-            argument_list.push_back(FunctionCallArgument(target_type, true, loaded_borrowed_self_id));
-            break;
+            default:;
           }
-          default:;
         }
         if (expression_ptr->children_.size() == 3) {
           for (int i = 0; i < expression_ptr->children_[2]->children_.size(); i += 2) {
