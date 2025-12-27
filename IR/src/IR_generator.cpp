@@ -1700,34 +1700,34 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             // in if_true_block
             block_stack_.back() = if_true_block_label;
             const int true_block_ans_id = function.var_id_++;
-            function.blocks_[if_true_block_label].AddSelect(0b111, true_block_ans_id, 1,
+            function.blocks_[block_stack_.back()].AddSelect(0b111, true_block_ans_id, 1,
                 expression_ptr->children_[0]->integrated_type_, 1,
                 expression_ptr->children_[0]->integrated_type_, 1);
-            function.blocks_[if_true_block_label].AddUnconditionalBranch(merged_label);
+            function.blocks_[block_stack_.back()].AddUnconditionalBranch(merged_label);
             // in if_false_block
             block_stack_.back() = if_false_block_label;
             const int false_block_ans_id = function.var_id_++;
             if (expression_ptr->children_[1]->integrated_type_->is_const) {
               if (expression_ptr->children_[1]->value_.int_value == 0) {
-                function.blocks_[if_false_block_label].AddSelect(0b111, false_block_ans_id, 1,
+                function.blocks_[block_stack_.back()].AddSelect(0b111, false_block_ans_id, 1,
                     expression_ptr->children_[1]->integrated_type_, 0,
                     expression_ptr->children_[1]->integrated_type_, 0);
               } else {
-                function.blocks_[if_false_block_label].AddSelect(0b111, false_block_ans_id, 1,
+                function.blocks_[block_stack_.back()].AddSelect(0b111, false_block_ans_id, 1,
                     expression_ptr->children_[1]->integrated_type_, 1,
                     expression_ptr->children_[1]->integrated_type_, 1);
               }
             } else {
               expression_ptr->children_[1]->Accept(this);
-              function.blocks_[if_false_block_label].AddSelect(0b011, false_block_ans_id,
+              function.blocks_[block_stack_.back()].AddSelect(0b011, false_block_ans_id,
                   expression_ptr->children_[1]->IR_ID_, expression_ptr->children_[1]->integrated_type_,
                   1, expression_ptr->children_[1]->integrated_type_, 0);
             }
-            function.blocks_[if_false_block_label].AddUnconditionalBranch(merged_label);
+            function.blocks_[block_stack_.back()].AddUnconditionalBranch(merged_label);
             // merge
             block_stack_.back() = merged_label;
             expression_ptr->IR_ID_ = function.var_id_++;
-            function.blocks_[merged_label].AddSelect(0b000, expression_ptr->IR_ID_,
+            function.blocks_[block_stack_.back()].AddSelect(0b000, expression_ptr->IR_ID_,
                 expression_ptr->children_[0]->IR_ID_, expression_ptr->children_[1]->integrated_type_,
                 true_block_ans_id, expression_ptr->children_[1]->integrated_type_,
                 false_block_ans_id);
@@ -1766,32 +1766,32 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             const int true_block_ans_id = function.var_id_++;
             if (expression_ptr->children_[1]->integrated_type_->is_const) {
               if (expression_ptr->children_[1]->value_.int_value == 0) {
-                function.blocks_[if_true_block_label].AddSelect(0b111, true_block_ans_id, 1,
+                function.blocks_[block_stack_.back()].AddSelect(0b111, true_block_ans_id, 1,
                     expression_ptr->children_[1]->integrated_type_, 0,
                     expression_ptr->children_[1]->integrated_type_, 0);
               } else {
-                function.blocks_[if_true_block_label].AddSelect(0b111, true_block_ans_id, 1,
+                function.blocks_[block_stack_.back()].AddSelect(0b111, true_block_ans_id, 1,
                     expression_ptr->children_[1]->integrated_type_, 1,
                     expression_ptr->children_[1]->integrated_type_, 1);
               }
             } else {
               expression_ptr->children_[1]->Accept(this);
-              function.blocks_[if_true_block_label].AddSelect(0b011, true_block_ans_id,
+              function.blocks_[block_stack_.back()].AddSelect(0b011, true_block_ans_id,
                   expression_ptr->children_[1]->IR_ID_, expression_ptr->children_[1]->integrated_type_,
                   1, expression_ptr->children_[1]->integrated_type_, 0);
             }
-            function.blocks_[if_true_block_label].AddUnconditionalBranch(merged_label);
+            function.blocks_[block_stack_.back()].AddUnconditionalBranch(merged_label);
             // in if_false_block
             block_stack_.back() = if_false_block_label;
             const int false_block_ans_id = function.var_id_++;
-            function.blocks_[if_false_block_label].AddSelect(0b111, false_block_ans_id, 1,
+            function.blocks_[block_stack_.back()].AddSelect(0b111, false_block_ans_id, 1,
                 expression_ptr->children_[0]->integrated_type_, 0,
                 expression_ptr->children_[0]->integrated_type_, 0);
-            function.blocks_[if_false_block_label].AddUnconditionalBranch(merged_label);
+            function.blocks_[block_stack_.back()].AddUnconditionalBranch(merged_label);
             // merge
             block_stack_.back() = merged_label;
             expression_ptr->IR_ID_ = function.var_id_++;
-            function.blocks_[merged_label].AddSelect(0b000, expression_ptr->IR_ID_,
+            function.blocks_[block_stack_.back()].AddSelect(0b000, expression_ptr->IR_ID_,
                 expression_ptr->children_[0]->IR_ID_, expression_ptr->children_[1]->integrated_type_,
                 true_block_ans_id, expression_ptr->children_[1]->integrated_type_,
                 false_block_ans_id);
