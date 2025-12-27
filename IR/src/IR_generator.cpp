@@ -501,8 +501,21 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           block_stack_.back() = if_block_id;
           DeclareItems(expression_ptr->children_[5]->scope_node_);
           expression_ptr->children_[5]->Accept(this);
-          functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddUnconditionalBranch(exit_if_block_id);
-          block_stack_.back() = exit_if_block_id;
+          if (functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].instructions_.empty()) {
+            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddUnconditionalBranch(exit_if_block_id);
+            block_stack_.back() = exit_if_block_id;
+          } else {
+            const auto last_instruction_type = functions_[wrapping_functions_.back()].
+              blocks_[block_stack_.back()].instructions_.back().instruction_type_;
+            if (last_instruction_type == value_ret_ || last_instruction_type == variable_ret_ ||
+                last_instruction_type == void_ret_ || last_instruction_type == conditional_br_ ||
+                last_instruction_type == unconditional_br_) { // the if block has ended
+              block_stack_.back() = exit_if_block_id;
+            } else {
+              functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddUnconditionalBranch(exit_if_block_id);
+              block_stack_.back() = exit_if_block_id;
+            }
+          }
         }
       } else { // has "else" branch
         if (expression_ptr->children_[2]->integrated_type_->is_const) {
@@ -529,6 +542,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           functions_[wrapping_functions_.back()].blocks_[if_block_id] = IRBlock();
           const int exit_if_block_id = functions_[wrapping_functions_.back()].var_id_++;
           functions_[wrapping_functions_.back()].blocks_[exit_if_block_id] = IRBlock();
+          // jump conditionally
           functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddConditionalBranch(
               expression_ptr->children_[2]->IR_ID_, if_block_id, else_block_id);
           // complete if_label_block
@@ -536,31 +550,62 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           DeclareItems(expression_ptr->children_[5]->scope_node_);
           expression_ptr->children_[5]->Accept(this);
           const int if_block_value = GetBlockValue(expression_ptr->children_[5], expression_ptr->integrated_type_);
-          functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddUnconditionalBranch(exit_if_block_id);
+          bool if_returns = true;
+          if (functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].instructions_.empty()) {
+            if_returns = false;
+            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddUnconditionalBranch(exit_if_block_id);
+          } else {
+            const auto last_instruction_type_in_if = functions_[wrapping_functions_.back()].
+              blocks_[block_stack_.back()].instructions_.back().instruction_type_;
+            if (last_instruction_type_in_if != value_ret_ && last_instruction_type_in_if != variable_ret_ &&
+                last_instruction_type_in_if != void_ret_ && last_instruction_type_in_if != conditional_br_ &&
+                last_instruction_type_in_if != unconditional_br_) {
+              if_returns = false;
+              functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddUnconditionalBranch(exit_if_block_id);
+            }
+          }
           // complete else_label_block
           block_stack_.back() = else_block_id;
           expression_ptr->children_.back()->Accept(this);
-          functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddUnconditionalBranch(exit_if_block_id);
-          // back together
-          block_stack_.back() = exit_if_block_id;
-          if (if_block_value != -1 && expression_ptr->children_.back()->IR_ID_ != -1) {
-            expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
-            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddSelect(0b000,
-                expression_ptr->IR_ID_, expression_ptr->children_[2]->IR_ID_,
-                expression_ptr->integrated_type_, if_block_value,
-                expression_ptr->integrated_type_, expression_ptr->children_.back()->IR_ID_);
-          } else if (if_block_value != -1) {
-            expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
-            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddSelect(0b100,
-                expression_ptr->IR_ID_, 1, expression_ptr->integrated_type_, if_block_value,
-                expression_ptr->integrated_type_, if_block_value);
-          } else if (expression_ptr->children_.back()->IR_ID_ != -1) {
-            expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
-            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddSelect(0b100,
-                expression_ptr->IR_ID_, 0, expression_ptr->integrated_type_, expression_ptr->children_.back()->IR_ID_,
-                expression_ptr->integrated_type_, expression_ptr->children_.back()->IR_ID_);
+          bool else_returns = true;
+          if (functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].instructions_.empty()) {
+            else_returns = false;
+            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddUnconditionalBranch(exit_if_block_id);
+          } else {
+            const auto last_instruction_type_in_else = functions_[wrapping_functions_.back()].
+              blocks_[block_stack_.back()].instructions_.back().instruction_type_;
+            if (last_instruction_type_in_else != value_ret_ && last_instruction_type_in_else != variable_ret_ &&
+                last_instruction_type_in_else != void_ret_ && last_instruction_type_in_else != conditional_br_ &&
+                last_instruction_type_in_else != unconditional_br_) {
+              else_returns = false;
+              functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddUnconditionalBranch(exit_if_block_id);
+            }
           }
-          // If two blocks all returned, there shouldn't be select instruction.
+          // back together
+          if (if_returns && else_returns) {
+            // remove block with index exit_if_block_id
+            functions_[wrapping_functions_.back()].blocks_.erase(exit_if_block_id);
+          } else {
+            block_stack_.back() = exit_if_block_id;
+            if (if_block_value != -1 && expression_ptr->children_.back()->IR_ID_ != -1) {
+              expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+              functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddSelect(0b000,
+                  expression_ptr->IR_ID_, expression_ptr->children_[2]->IR_ID_,
+                  expression_ptr->integrated_type_, if_block_value,
+                  expression_ptr->integrated_type_, expression_ptr->children_.back()->IR_ID_);
+            } else if (if_block_value != -1) {
+              expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+              functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddSelect(0b100,
+                  expression_ptr->IR_ID_, 1, expression_ptr->integrated_type_, if_block_value,
+                  expression_ptr->integrated_type_, if_block_value);
+            } else if (expression_ptr->children_.back()->IR_ID_ != -1) {
+              expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+              functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddSelect(0b100,
+                  expression_ptr->IR_ID_, 0, expression_ptr->integrated_type_, expression_ptr->children_.back()->IR_ID_,
+                  expression_ptr->integrated_type_, expression_ptr->children_.back()->IR_ID_);
+            }
+            // If two blocks all returned, there shouldn't be select instruction.
+          }
         }
       }
       break;
@@ -756,7 +801,17 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               IRThrow("The 'self' is not a left value and cannot be borrowed.");
             }
             const int borrowed_self_id = functions_[wrapping_functions_.back()].var_id_++;
-            auto target_type = functions_[function_def_node->IR_ID_].parameter_types_[0];
+            std::shared_ptr<IntegratedType> target_type;
+            if (functions_[function_def_node->IR_ID_].parameter_types_.empty()) { // complete the function's parameter type first
+              for (int i = 0; i < function_def_node->children_.size(); ++i) {
+                if (function_def_node->type_[i] == type_function_parameters) {
+                  target_type = function_def_node->children_[i]->children_[0]->integrated_type_;
+                  break;
+                }
+              }
+            } else {
+              target_type = functions_[function_def_node->IR_ID_].parameter_types_[0];
+            }
             functions_[wrapping_functions_.back()].AddAlloca(borrowed_self_id,
                 target_type);
             functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddPtrStore(
@@ -840,7 +895,6 @@ void IRVisitor::Visit(Expression *expression_ptr) {
       if (expression_ptr->children_.size() == 1) {
         functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].
             AddUnconditionalBranch(wrapping_loops_.back().end);
-        wrapping_loops_.pop_back();
       } else {
         const auto basic_type = expression_ptr->children_[1]->integrated_type_->basic_type;
         if (expression_ptr->children_[1]->integrated_type_->is_const &&
@@ -861,7 +915,6 @@ void IRVisitor::Visit(Expression *expression_ptr) {
         }
         functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].
             AddUnconditionalBranch(wrapping_loops_.back().end);
-        wrapping_loops_.pop_back();
       }
       break;
     }
