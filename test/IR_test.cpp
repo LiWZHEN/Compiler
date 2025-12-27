@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 
 TEST(IRTestBatch, mutable_range_test) {
-  for (int i = 1; i <= 1; ++i) {
+  for (int i = 1; i <= 8; ++i) {
     const std::string file = "../RCompiler-Testcases/IR-1/src/comprehensive" + std::to_string(i) +
         "/comprehensive" + std::to_string(i);
     const std::string code_file = file + ".rx";
@@ -18,6 +18,7 @@ TEST(IRTestBatch, mutable_range_test) {
     std::string line;
     while (std::getline(reader, line)) {
       code += line;
+      code += '\n';
     }
     FrontEndRunner runner(code);
     runner.Run(IR_file);
@@ -39,6 +40,7 @@ TEST(IRTestBatch, run_all) {
     std::string line;
     while (std::getline(reader, line)) {
       code += line;
+      code += '\n';
     }
     FrontEndRunner runner(code);
     runner.Run(IR_file);
