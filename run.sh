@@ -14,16 +14,16 @@ for INDEX in {1..50}; do
     if [ $? -eq 0 ]; then
       diff "RCompiler-Testcases/IR-1/src/comprehensive${INDEX}/comprehensive${INDEX}_my_output.out" "RCompiler-Testcases/IR-1/src/comprehensive${INDEX}/comprehensive${INDEX}.out" -Z
       if [ $? -eq 0 ]; then
-        echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!${INDEX} success!"
+        echo "!!!!!!!!!!!!!! ${INDEX} success!"
         ((success_count++))
       else
-        echo "*********************${INDEX} failed in diff"
+        echo "********************************************************************************** ${INDEX} failed in diff"
       fi
     else
-      echo "@@@@@@@@@@@@@@@@@@@@@${INDEX} failed in executing reimu"
+      echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ ${INDEX} failed in executing reimu"
     fi
   else
-    echo "^^^^^^^^^^^^^^^^^^^^^${INDEX} failed in generating .s"
+    echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ ${INDEX} failed in generating .s"
   fi
 done
 
@@ -38,13 +38,13 @@ echo "${success_count} success out of 50"
 #  if [ $? -eq 0 ]; then
 #    diff "RCompiler-Testcases/working_space/debugging.out" "RCompiler-Testcases/working_space/debugging_my_output.out" -Z
 #    if [ $? -eq 0 ]; then
-#      echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! success!"
+#      echo "!!!!!!!!!!!!!! success!"
 #    else
-#      echo "********************* failed in diff"
+#      echo "********************************************************************************** failed in diff"
 #    fi
 #  else
-#    echo "@@@@@@@@@@@@@@@@@@@@@ failed in executing reimu"
+#    echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ failed in executing reimu"
 #  fi
 #else
-#  echo "^^^^^^^^^^^^^^^^^^^^^ failed in generating RCompiler-Testcases/working_space/debugging.s"
+#  echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ failed in generating .s"
 #fi
