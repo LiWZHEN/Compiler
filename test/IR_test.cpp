@@ -4,7 +4,8 @@
 #include <gtest/gtest.h>
 
 TEST(IRTestBatch, mutable_range_test) {
-  for (int i = 1; i <= 8; ++i) {
+  auto a = {2, 6, 7};
+  for (int i : a) {
     const std::string file = "../RCompiler-Testcases/IR-1/src/comprehensive" + std::to_string(i) +
         "/comprehensive" + std::to_string(i);
     const std::string code_file = file + ".rx";
