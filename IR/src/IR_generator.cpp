@@ -422,6 +422,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
       expression_ptr->children_[2]->Accept(this);
       functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].
           AddUnconditionalBranch(loop_begin);
+      wrapping_loops_.pop_back();
       block_stack_.back() = loop_end;
       break;
     }
@@ -452,6 +453,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               AddUnconditionalBranch(loop_begin);
           // loop_end
           block_stack_.back() = loop_end;
+          wrapping_loops_.pop_back();
         } else { // skip
           break;
         }
@@ -480,6 +482,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
         functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].
             AddUnconditionalBranch(condition_check);
         block_stack_.back() = loop_end;
+        wrapping_loops_.pop_back();
       }
       break;
     }
