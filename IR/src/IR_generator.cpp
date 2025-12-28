@@ -62,6 +62,9 @@ void IRVisitor::RecursiveInitialize(const Node *expression_ptr, const int ptr_id
           function.blocks_[block_stack_.back()].AddVariableStore(integrated_type->element_type,
               expression_ptr->children_[1]->IR_ID_, element_ptr_id);
         }
+      } else if (expression_ptr->children_[1]->value_.int_value == 0) {
+        function.blocks_[block_stack_.back()].AddBuiltinMemset(static_cast<int>(expression_ptr->children_[3]
+            ->value_.int_value * 4), 0, ptr_id, true);
       } else {
         for (int i = 0; i < integrated_type->size; ++i) {
           const int element_ptr_id = function.var_id_++;
@@ -2744,6 +2747,21 @@ void IRVisitor::Print(std::ofstream &file, const IRInstruction &instruction) {
       file << " " << instruction.operand_1_id_ << ", ";
       OutputType(file, instruction.another_type_);
       file << " " << instruction.operand_2_id_;
+      break;
+    }
+    case builtin_memset_: {
+      file << "call void @builtin_memset(ptr %var." << instruction.pointer_ << ", i32 ";
+      if (instruction.condition_id_ == 0) {
+        file << "%var." << instruction.operand_1_id_;
+      } else {
+        file << instruction.operand_1_id_;
+      }
+      file << ", i32 " << instruction.result_id_ << ")";
+      break;
+    }
+    case builtin_memcpy_: {
+      file << "call void @builtin_memcpy(ptr %var." << instruction.destination_
+          << ", ptr %var." << instruction.pointer_ << ", i32 " << instruction.result_id_ << ")";
       break;
     }
     default:;

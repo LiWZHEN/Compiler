@@ -13,7 +13,8 @@ enum IRInstructionType {
   const_var_icmp_, non_void_call_, void_call_, builtin_call_,
   phi_, value_select_ii_, value_select_iv_, value_select_vi_,
   value_select_vv_, variable_select_ii_, variable_select_iv_,
-  variable_select_vi_, variable_select_vv_
+  variable_select_vi_, variable_select_vv_, builtin_memset_,
+  builtin_memcpy_
 };
 
 enum BinaryOperator {
@@ -245,6 +246,16 @@ struct IRBlock {
     }
   } /* is_value varies from 0b000 to 0b111,
   the three bits represent the condition / first value / second value is literal value */
+  void AddBuiltinMemset(const int size, const int content, const int dest_ptr, const int content_is_const) {
+    instructions_.push_back(IRInstruction(builtin_memset_, size, add_, nullptr,
+        content, 0, content_is_const, 0, 0, 0, dest_ptr,
+        equal_, 0));
+  }
+  void AddBuiltinMemcpy(const int size, const int dest_ptr, const int src_ptr) {
+    instructions_.push_back(IRInstruction(builtin_memcpy_, size, add_, nullptr,
+        0, 0, 0, 0, 0, dest_ptr, src_ptr,
+        equal_, 0));
+  }
 };
 
 struct IRFunctionNode {
