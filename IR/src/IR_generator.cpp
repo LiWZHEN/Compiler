@@ -89,8 +89,12 @@ void IRVisitor::RecursiveInitialize(const Node *expression_ptr, const int ptr_id
           expression_ptr->children_[2 * i + 1]->Accept(this);
           function.blocks_[block_stack_.back()].AddVariableStore(integrated_type->element_type,
               expression_ptr->children_[2 * i + 1]->IR_var_ID_, element_ptr_id);
-        } else if (basic_type == array_type || basic_type == struct_type
-            || !expression_ptr->children_[2 * i + 1]->integrated_type_->is_const) {
+        } else if (basic_type == array_type || basic_type == struct_type) {
+          expression_ptr->children_[2 * i + 1]->Accept(this);
+          functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddBuiltinMemcpy(
+              GetTypeSize(expression_ptr->children_[2 * i + 1]->integrated_type_).first,
+              element_ptr_id, expression_ptr->children_[2 * i + 1]->IR_var_ID_);
+        } else if (!expression_ptr->children_[2 * i + 1]->integrated_type_->is_const) {
           expression_ptr->children_[2 * i + 1]->Accept(this);
           if (expression_ptr->children_[2 * i + 1]->IR_ID_ == -1 &&
               expression_ptr->children_[2 * i + 1]->IR_var_ID_ != -1) {
@@ -167,13 +171,7 @@ void IRVisitor::RecursiveInitialize(const Node *expression_ptr, const int ptr_id
           block_stack_.back() = loop_end;
           wrapping_loops_.pop_back();
         } else {
-          // todo: remove after complete function that returns array/struct
-          for (int i = 0; i < integrated_type->size; ++i) {
-            const int element_ptr_id = function.var_id_++;
-            function.blocks_[block_stack_.back()].AddGetElementPtrByValue(element_ptr_id, integrated_type, ptr_id, i);
-            function.blocks_[block_stack_.back()].AddVariableStore(integrated_type->element_type,
-                expression_ptr->children_[1]->IR_ID_, element_ptr_id);
-          }
+          IRThrow("Array/struct without pointer cannot be memcpy.");
         }
       } else if (!expression_ptr->children_[1]->integrated_type_->is_const) {
         expression_ptr->children_[1]->Accept(this);
@@ -271,8 +269,12 @@ void IRVisitor::RecursiveInitialize(const Node *expression_ptr, const int ptr_id
         struct_expr_fields->children_[2 * i]->children_[2]->Accept(this);
         function.blocks_[block_stack_.back()].AddVariableStore(item_expr_ptr->integrated_type_,
             struct_expr_fields->children_[2 * i]->children_[2]->IR_var_ID_, target_item_id);
-      } else if (basic_type == array_type || basic_type == struct_type
-          || !item_expr_ptr->integrated_type_->is_const) {
+      } else if (basic_type == array_type || basic_type == struct_type) {
+        struct_expr_fields->children_[2 * i]->children_[2]->Accept(this);
+        function.blocks_[block_stack_.back()].AddBuiltinMemcpy(
+            GetTypeSize(struct_expr_fields->children_[2 * i]->children_[2]->integrated_type_).first,
+            target_item_id, struct_expr_fields->children_[2 * i]->children_[2]->IR_var_ID_);
+      } else if (!item_expr_ptr->integrated_type_->is_const) {
         struct_expr_fields->children_[2 * i]->children_[2]->Accept(this);
         if (struct_expr_fields->children_[2 * i]->children_[2]->IR_ID_ == -1 &&
             struct_expr_fields->children_[2 * i]->children_[2]->IR_var_ID_ != -1) {
@@ -609,7 +611,6 @@ void IRVisitor::Visit(LetStatement *let_statement_ptr) {
   } else if (let_statement_ptr->children_[1]->integrated_type_->basic_type == array_type ||
       let_statement_ptr->children_[1]->integrated_type_->basic_type == struct_type) {
     let_statement_ptr->children_[5]->Accept(this);
-    // todo: use memcpy
     function.blocks_[block_stack_.back()].AddBuiltinMemcpy(
         GetTypeSize(let_statement_ptr->children_[1]->integrated_type_).first,
         let_statement_ptr->children_[1]->IR_var_ID_, let_statement_ptr->children_[5]->IR_var_ID_);
