@@ -636,7 +636,7 @@ Expression::Expression(const std::vector<Token> &tokens, int &ptr, ExprType expr
           AddChild(type_expression);
         } catch (...) {
           Restore(size_before_trying_expression, ptr_before_trying_expression);
-          std::cerr << "BreakExpr: Successfully handle expression try failure.\n";
+          // std::cerr << "BreakExpr: Successfully handle expression try failure.\n";
           return;
         }
       }
@@ -652,7 +652,7 @@ Expression::Expression(const std::vector<Token> &tokens, int &ptr, ExprType expr
           AddChild(type_expression);
         } catch (...) {
           Restore(size_before_trying_expression, ptr_before_trying_expression);
-          std::cerr << "ReturnExpr: Successfully handle expression try failure.\n";
+          // std::cerr << "ReturnExpr: Successfully handle expression try failure.\n";
           return;
         }
       }
@@ -737,7 +737,7 @@ Expression::Expression(const std::vector<Token> &tokens, int &ptr, ExprType expr
           } catch (...) {
             delete lhs;
             lhs = nullptr;
-            std::cerr << "Expression: Successfully handle the struct expression try failure.\n";
+            // std::cerr << "Expression: Successfully handle the struct expression try failure.\n";
             lhs = new Expression(tokens_, ptr_, path_in_expr, 0.0);
           }
         }
@@ -887,7 +887,7 @@ StructExprFields::StructExprFields(const std::vector<Token> &tokens, int &ptr) :
         AddChild(type_struct_expr_field);
       } catch (...) {
         Restore(size_before_trying_expression, ptr_before_trying_expression);
-        std::cerr << "StructExprFields: Successfully handle expression try failure.\n";
+        // std::cerr << "StructExprFields: Successfully handle expression try failure.\n";
         return;
       }
     }

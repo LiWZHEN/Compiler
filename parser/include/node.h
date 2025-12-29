@@ -69,7 +69,7 @@ struct IntegratedType {
     }
     possible_types.erase(to_be_removed);
     if (is_int && possible_types.empty()) {
-      std::cerr << "Error: No valid int type!\n";
+      // std::cerr << "Error: No valid int type!\n";
       throw "";
     }
     if (!possible_types.contains(basic_type)) {

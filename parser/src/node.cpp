@@ -211,7 +211,7 @@ void Node::AddChild(const NodeType node_type) {
       type_.push_back(type_associated_item);
       break;
     default:
-      std::cerr << "Invalid type: " << node_type << "!\n";
+      // std::cerr << "Invalid type: " << node_type << "!\n";
       throw "";
   }
 }
@@ -219,145 +219,145 @@ void Node::AddChild(const NodeType node_type) {
 void Node::ThrowErr(const NodeType node_type, const std::string &info) const {
   switch (node_type) {
     case type_crate:
-      std::cerr << "Crate: ";
+      // std::cerr << "Crate: ";
       break;
     case type_item:
-      std::cerr << "Item: ";
+      // std::cerr << "Item: ";
       break;
     case type_function:
-      std::cerr << "Function: ";
+      // std::cerr << "Function: ";
       break;
     case type_struct:
-      std::cerr << "Struct: ";
+      // std::cerr << "Struct: ";
       break;
     case type_enumeration:
-      std::cerr << "Enumeration: ";
+      // std::cerr << "Enumeration: ";
       break;
     case type_constant_item:
-      std::cerr << "ConstantItem: ";
+      // std::cerr << "ConstantItem: ";
       break;
     case type_trait:
-      std::cerr << "Trait: ";
+      // std::cerr << "Trait: ";
       break;
     case type_implementation:
-      std::cerr << "Implementation: ";
+      // std::cerr << "Implementation: ";
       break;
     case type_keyword:
-      std::cerr << "Keyword: ";
+      // std::cerr << "Keyword: ";
       break;
     case type_identifier:
-      std::cerr << "Identifier: ";
+      // std::cerr << "Identifier: ";
       break;
     case type_punctuation:
-      std::cerr << "Punctuation: ";
+      // std::cerr << "Punctuation: ";
       break;
     case type_function_parameters:
-      std::cerr << "FunctionParameters: ";
+      // std::cerr << "FunctionParameters: ";
       break;
     case type_function_return_type:
-      std::cerr << "ReturnType: ";
+      // std::cerr << "ReturnType: ";
       break;
     case type_block_expression:
-      std::cerr << "BlockExpression: ";
+      // std::cerr << "BlockExpression: ";
       break;
     case type_self_param:
-      std::cerr << "SelfParam: ";
+      // std::cerr << "SelfParam: ";
       break;
     case type_function_param:
-      std::cerr << "FunctionParam: ";
+      // std::cerr << "FunctionParam: ";
       break;
     case type_shorthand_self:
-      std::cerr << "ShorthandSelf: ";
+      // std::cerr << "ShorthandSelf: ";
       break;
     case type_type:
-      std::cerr << "Type: ";
+      // std::cerr << "Type: ";
       break;
     case type_pattern:
-      std::cerr << "Pattern: ";
+      // std::cerr << "Pattern: ";
       break;
     case type_reference_pattern:
-      std::cerr << "ReferencePattern: ";
+      // std::cerr << "ReferencePattern: ";
       break;
     case type_identifier_pattern:
-      std::cerr << "IdentifierPattern: ";
+      // std::cerr << "IdentifierPattern: ";
       break;
     case type_path_in_expression:
-      std::cerr << "PathInExpression: ";
+      // std::cerr << "PathInExpression: ";
       break;
     case type_path_expr_segment:
-      std::cerr << "PathExprSegment: ";
+      // std::cerr << "PathExprSegment: ";
       break;
     case type_reference_type:
-      std::cerr << "ReferenceType: ";
+      // std::cerr << "ReferenceType: ";
       break;
     case type_array_type:
-      std::cerr << "ArrayType: ";
+      // std::cerr << "ArrayType: ";
       break;
     case type_type_path:
-      std::cerr << "TypePath: ";
+      // std::cerr << "TypePath: ";
       break;
     case type_unit_type:
-      std::cerr << "UnitType: ";
+      // std::cerr << "UnitType: ";
       break;
     case type_expression:
-      std::cerr << "Expression: ";
+      // std::cerr << "Expression: ";
       break;
     case type_statements:
-      std::cerr << "Statements: ";
+      // std::cerr << "Statements: ";
       break;
     case type_statement:
-      std::cerr << "Statement: ";
+      // std::cerr << "Statement: ";
       break;
     case type_let_statement:
-      std::cerr << "LetStatement: ";
+      // std::cerr << "LetStatement: ";
       break;
     case type_expression_statement:
-      std::cerr << "ExpressionStatement: ";
+      // std::cerr << "ExpressionStatement: ";
       break;
     case type_struct_expr_fields:
-      std::cerr << "StructExprFields: ";
+      // std::cerr << "StructExprFields: ";
       break;
     case type_struct_expr_field:
-      std::cerr << "StructExprField: ";
+      // std::cerr << "StructExprField: ";
       break;
     case type_char_literal:
-      std::cerr << "CharLiteral: ";
+      // std::cerr << "CharLiteral: ";
       break;
     case type_string_literal:
-      std::cerr << "StringLiteral: ";
+      // std::cerr << "StringLiteral: ";
       break;
     case type_raw_string_literal:
-      std::cerr << "RawStringLiteral: ";
+      // std::cerr << "RawStringLiteral: ";
       break;
     case type_c_string_literal:
-      std::cerr << "CStringLiteral: ";
+      // std::cerr << "CStringLiteral: ";
       break;
     case type_raw_c_string_literal:
-      std::cerr << "RawCStringLiteral: ";
+      // std::cerr << "RawCStringLiteral: ";
       break;
     case type_integer_literal:
-      std::cerr << "IntegerLiteral: ";
+      // std::cerr << "IntegerLiteral: ";
       break;
     case type_struct_fields:
-      std::cerr << "StructFields: ";
+      // std::cerr << "StructFields: ";
       break;
     case type_struct_field:
-      std::cerr << "StructField: ";
+      // std::cerr << "StructField: ";
       break;
     case type_enum_variants:
-      std::cerr << "EnumVariants: ";
+      // std::cerr << "EnumVariants: ";
       break;
     case type_associated_item:
-      std::cerr << "AssociatedItem: ";
+      // std::cerr << "AssociatedItem: ";
       break;
     default:
-      std::cerr << "No matched type!\n";
+      // std::cerr << "No matched type!\n";
       throw "";
   }
   if (ptr_ >= tokens_.size()) {
-    std::cerr << "Unexpected ending!\n";
+    // std::cerr << "Unexpected ending!\n";
   } else {
-    std::cerr << "line " << tokens_[ptr_].GetLine() << " column " << tokens_[ptr_].GetColumn() << ": " << info << "\n";
+    // std::cerr << "line " << tokens_[ptr_].GetLine() << " column " << tokens_[ptr_].GetColumn() << ": " << info << "\n";
   }
   throw "";
 }

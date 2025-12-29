@@ -405,7 +405,7 @@ void Function::AddSymbol(ScopeNode *target_scope, const bool need_type_add, cons
       case type_struct: {
         const auto target_struct_ptr = dynamic_cast<Struct *>(target_node.node);
         if (target_struct_ptr->associated_items_.contains(function_name)) {
-          std::cerr << "The name '" << function_name << "' is already in the associated item namespace.\n";
+          // std::cerr << "The name '" << function_name << "' is already in the associated item namespace.\n";
           throw "";
         }
         target_struct_ptr->associated_items_[function_name] = node_info;
@@ -414,7 +414,7 @@ void Function::AddSymbol(ScopeNode *target_scope, const bool need_type_add, cons
       case type_trait: {
         const auto target_trait_ptr = dynamic_cast<Trait *>(target_node.node);
         if (target_trait_ptr->associated_items_.contains(function_name)) {
-          std::cerr << "The name \"" << function_name << "\" is already in the associated item namespace.\n";
+          // std::cerr << "The name \"" << function_name << "\" is already in the associated item namespace.\n";
           throw "";
         }
         target_trait_ptr->associated_items_[function_name] = node_info;
@@ -462,7 +462,7 @@ void ConstantItem::AddSymbol(ScopeNode *target_scope, const bool need_type_add, 
       case type_struct: {
         const auto target_struct_ptr = dynamic_cast<Struct *>(target_node.node);
         if (target_struct_ptr->associated_items_.contains(const_item_name)) {
-          std::cerr << "The name \"" << const_item_name << "\" is already in the associated item namespace.\n";
+          // std::cerr << "The name \"" << const_item_name << "\" is already in the associated item namespace.\n";
           throw "";
         }
         target_struct_ptr->associated_items_[const_item_name] = {this->children_[1], type_constant_item};
@@ -471,7 +471,7 @@ void ConstantItem::AddSymbol(ScopeNode *target_scope, const bool need_type_add, 
       case type_trait: {
         const auto target_trait_ptr = dynamic_cast<Trait *>(target_node.node);
         if (target_trait_ptr->associated_items_.contains(const_item_name)) {
-          std::cerr << "The name \"" << const_item_name << "\" is already in the associated item namespace.\n";
+          // std::cerr << "The name \"" << const_item_name << "\" is already in the associated item namespace.\n";
           throw "";
         }
         target_trait_ptr->associated_items_[const_item_name] = {this->children_[1], type_constant_item};

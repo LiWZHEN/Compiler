@@ -21,7 +21,7 @@ FunctionParameters::FunctionParameters(const std::vector<Token> &tokens, int &pt
         }
       } catch (...) {
         Restore(0, ptr_before_try);
-        std::cerr << "FunctionParameters: Successfully handle the failure.\n";
+        // std::cerr << "FunctionParameters: Successfully handle the failure.\n";
       }
       // FunctionParam
       AddChild(type_function_param);
@@ -40,13 +40,13 @@ FunctionParameters::FunctionParameters(const std::vector<Token> &tokens, int &pt
           AddChild(type_function_param);
         } catch (...) {
           Restore(size_before_trying_function_param, ptr_before_trying_function_param);
-          std::cerr << "FunctionParameters: Successfully handle the try-failure.\n";
+          // std::cerr << "FunctionParameters: Successfully handle the try-failure.\n";
           return;
         }
       }
     } catch (...) {
       Restore(0, ptr_before_try);
-      std::cerr << "FunctionParameters: Successfully handle the failure.\n";
+      // std::cerr << "FunctionParameters: Successfully handle the failure.\n";
       // SelfParam,?
       AddChild(type_self_param);
       if (ptr < tokens.size() && tokens[ptr].GetStr() == ",") {

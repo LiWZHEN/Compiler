@@ -9,7 +9,7 @@
 #include <unordered_set>
 
 void Throw(const std::string &info) {
-  std::cerr << "Error in value_type check: " << info << '\n';
+  // std::cerr << "Error in value_type check: " << info << '\n';
   throw "";
 }
 

@@ -5,7 +5,7 @@
 #include "fstream"
 
 void IRThrow(const std::string &err_info) {
-  std::cerr << "[IR Error] " << err_info << '\n';
+  // std::cerr << "[IR Error] " << err_info << '\n';
   throw "";
 }
 
@@ -2631,16 +2631,21 @@ void IRVisitor::Print(std::ostream &file, const IRInstruction &instruction) {
 
 void IRVisitor::Output(std::ostream &file) {
   // output the builtin function declarations
-  std::ifstream builtin_functions("../RCompiler-Testcases/IR-1/builtin/builtin.ll");
+  std::ifstream builtin_functions("../RCompiler-Testcases/IR-1/builtin/builtin.c");
   std::string line_in_file;
   if (builtin_functions.is_open()) {
     while (std::getline(builtin_functions, line_in_file)) {
-      file << line_in_file << '\n';
+      std::cerr << line_in_file << '\n';
     }
     builtin_functions.close();
   } else {
-    std::cerr << "Cannot open builtin functions file!\n";
+    // std::cerr << "Cannot open builtin functions file!\n";
   }
+  file << "declare void @builtin_memcpy(ptr, ptr, i32)\n";
+  file << "declare void @builtin_memset(ptr, i32, i32)\n";
+  file << "declare i32 @getInt()\n";
+  file << "declare void @printlnInt(i32)\n";
+  file << "declare void @printInt(i32)\n";
   file << "\n";
   // output struct definitions
   for (int i = 0; i < structs_.size(); ++i) {
