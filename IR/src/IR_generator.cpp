@@ -115,8 +115,67 @@ void IRVisitor::RecursiveInitialize(const Node *expression_ptr, const int ptr_id
           function.blocks_[block_stack_.back()].AddVariableStore(integrated_type->element_type,
               expression_ptr->children_[1]->IR_var_ID_, element_ptr_id);
         }
-      } else if (basic_type == array_type || basic_type == struct_type
-          || !expression_ptr->children_[1]->integrated_type_->is_const) {
+      } else if (basic_type == array_type || basic_type == struct_type) {
+        expression_ptr->children_[1]->Accept(this);
+        if (expression_ptr->children_[1]->IR_var_ID_ != -1) {
+          const int rounds = static_cast<int>(integrated_type->size);
+          const int var_in_loop = function.var_id_++;
+          function.AddAlloca(var_in_loop, expression_ptr->children_[3]->integrated_type_);
+          function.blocks_[block_stack_.back()].AddValueStore(expression_ptr->children_[3]->integrated_type_,
+              0, var_in_loop);
+          // initialize elements in loop structure
+          const int condition_check = function.var_id_++;
+          function.blocks_[condition_check] = IRBlock();
+          const int loop_begin = function.var_id_++;
+          function.blocks_[loop_begin] = IRBlock();
+          const int loop_end = function.var_id_++;
+          function.blocks_[loop_end] = IRBlock();
+          wrapping_loops_.push_back({condition_check, loop_end});
+          function.blocks_[block_stack_.back()].AddUnconditionalBranch(condition_check);
+          // complete condition_check
+          block_stack_.back() = condition_check;
+          const int loaded_var_in_loop = function.var_id_++;
+          function.blocks_[block_stack_.back()].AddLoad(loaded_var_in_loop,
+            expression_ptr->children_[3]->integrated_type_, var_in_loop);
+          const int compare_result = function.var_id_++;
+          function.blocks_[block_stack_.back()].AddVarConstIcmp(compare_result, unsigned_less_than_,
+              expression_ptr->children_[3]->integrated_type_, loaded_var_in_loop, rounds);
+          function.blocks_[block_stack_.back()].AddConditionalBranch(compare_result,
+              loop_begin, loop_end);
+          // complete loop_begin
+          block_stack_.back() = loop_begin;
+          const int element_ptr = function.var_id_++;
+          const int loaded_index = function.var_id_++;
+          function.blocks_[block_stack_.back()].AddLoad(loaded_index,
+              expression_ptr->children_[3]->integrated_type_, var_in_loop);
+          function.blocks_[block_stack_.back()].AddGetElementPtrByVariable(element_ptr,
+              expression_ptr->integrated_type_, ptr_id, loaded_index);
+          function.blocks_[block_stack_.back()].AddBuiltinMemcpy(
+              GetTypeSize(expression_ptr->integrated_type_->element_type).first,
+              element_ptr, expression_ptr->children_[1]->IR_var_ID_);
+          // *var_in_loop += 1
+          const int original_value = function.var_id_++;
+          function.blocks_[block_stack_.back()].AddLoad(original_value,
+              expression_ptr->children_[3]->integrated_type_, var_in_loop);
+          const int temp_add_result = function.var_id_++;
+          function.blocks_[block_stack_.back()].AddVarConstBinaryOperation(expression_ptr->children_[3]->integrated_type_,
+              add_, temp_add_result, original_value, 1);
+          function.blocks_[block_stack_.back()].AddVariableStore(expression_ptr->children_[3]->integrated_type_,
+              temp_add_result, var_in_loop);
+          function.blocks_[block_stack_.back()].AddUnconditionalBranch(condition_check);
+          // loop end
+          block_stack_.back() = loop_end;
+          wrapping_loops_.pop_back();
+        } else {
+          // todo: remove after complete function that returns array/struct
+          for (int i = 0; i < integrated_type->size; ++i) {
+            const int element_ptr_id = function.var_id_++;
+            function.blocks_[block_stack_.back()].AddGetElementPtrByValue(element_ptr_id, integrated_type, ptr_id, i);
+            function.blocks_[block_stack_.back()].AddVariableStore(integrated_type->element_type,
+                expression_ptr->children_[1]->IR_ID_, element_ptr_id);
+          }
+        }
+      } else if (!expression_ptr->children_[1]->integrated_type_->is_const) {
         expression_ptr->children_[1]->Accept(this);
         if (expression_ptr->children_[1]->IR_ID_ == -1 &&
             expression_ptr->children_[1]->IR_var_ID_ != -1) {
@@ -140,12 +199,53 @@ void IRVisitor::RecursiveInitialize(const Node *expression_ptr, const int ptr_id
           function.blocks_[block_stack_.back()].AddBuiltinMemset(type_size.first, true, ptr_id);
         } else {
           // todo: create a loop in IR to initialize the array
-          for (int i = 0; i < integrated_type->size; ++i) {
-            const int element_ptr_id = function.var_id_++;
-            function.blocks_[block_stack_.back()].AddGetElementPtrByValue(element_ptr_id, integrated_type, ptr_id, i);
-            function.blocks_[block_stack_.back()].AddValueStore(integrated_type->element_type,
-                static_cast<int>(expression_ptr->children_[1]->value_.int_value), element_ptr_id);
-          }
+          const int rounds = static_cast<int>(integrated_type->size);
+          const int var_in_loop = function.var_id_++;
+          function.AddAlloca(var_in_loop, expression_ptr->children_[3]->integrated_type_);
+          function.blocks_[block_stack_.back()].AddValueStore(expression_ptr->children_[3]->integrated_type_,
+              0, var_in_loop);
+          // initialize elements in loop structure
+          const int condition_check = function.var_id_++;
+          function.blocks_[condition_check] = IRBlock();
+          const int loop_begin = function.var_id_++;
+          function.blocks_[loop_begin] = IRBlock();
+          const int loop_end = function.var_id_++;
+          function.blocks_[loop_end] = IRBlock();
+          wrapping_loops_.push_back({condition_check, loop_end});
+          function.blocks_[block_stack_.back()].AddUnconditionalBranch(condition_check);
+          // complete condition_check
+          block_stack_.back() = condition_check;
+          const int loaded_var_in_loop = function.var_id_++;
+          function.blocks_[block_stack_.back()].AddLoad(loaded_var_in_loop,
+            expression_ptr->children_[3]->integrated_type_, var_in_loop);
+          const int compare_result = function.var_id_++;
+          function.blocks_[block_stack_.back()].AddVarConstIcmp(compare_result, unsigned_less_than_,
+              expression_ptr->children_[3]->integrated_type_, loaded_var_in_loop, rounds);
+          function.blocks_[block_stack_.back()].AddConditionalBranch(compare_result,
+              loop_begin, loop_end);
+          // complete loop_begin
+          block_stack_.back() = loop_begin;
+          const int element_ptr = function.var_id_++;
+          const int loaded_index = function.var_id_++;
+          function.blocks_[block_stack_.back()].AddLoad(loaded_index,
+              expression_ptr->children_[3]->integrated_type_, var_in_loop);
+          function.blocks_[block_stack_.back()].AddGetElementPtrByVariable(element_ptr,
+              expression_ptr->integrated_type_, ptr_id, loaded_index);
+          function.blocks_[block_stack_.back()].AddValueStore(integrated_type->element_type,
+                static_cast<int>(expression_ptr->children_[1]->value_.int_value), element_ptr);
+          // *var_in_loop += 1
+          const int original_value = function.var_id_++;
+          function.blocks_[block_stack_.back()].AddLoad(original_value,
+              expression_ptr->children_[3]->integrated_type_, var_in_loop);
+          const int temp_add_result = function.var_id_++;
+          function.blocks_[block_stack_.back()].AddVarConstBinaryOperation(expression_ptr->children_[3]->integrated_type_,
+              add_, temp_add_result, original_value, 1);
+          function.blocks_[block_stack_.back()].AddVariableStore(expression_ptr->children_[3]->integrated_type_,
+              temp_add_result, var_in_loop);
+          function.blocks_[block_stack_.back()].AddUnconditionalBranch(condition_check);
+          // loop end
+          block_stack_.back() = loop_end;
+          wrapping_loops_.pop_back();
         }
       }
     }
