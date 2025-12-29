@@ -37,6 +37,13 @@ void IRVisitor::RecursiveInitialize(const Node *expression_ptr, const int ptr_id
         } else if (basic_type == array_type || basic_type == struct_type
             || !expression_ptr->children_[2 * i + 1]->integrated_type_->is_const) {
           expression_ptr->children_[2 * i + 1]->Accept(this);
+          if (expression_ptr->children_[2 * i + 1]->IR_ID_ == -1 &&
+              expression_ptr->children_[2 * i + 1]->IR_var_ID_ != -1) {
+            expression_ptr->children_[2 * i + 1]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                expression_ptr->children_[2 * i + 1]->IR_ID_, expression_ptr->children_[2 * i + 1]->integrated_type_,
+                expression_ptr->children_[2 * i + 1]->IR_var_ID_);
+          }
           function.blocks_[block_stack_.back()].AddVariableStore(integrated_type->element_type,
               expression_ptr->children_[2 * i + 1]->IR_ID_, element_ptr_id);
         } else {
@@ -56,6 +63,13 @@ void IRVisitor::RecursiveInitialize(const Node *expression_ptr, const int ptr_id
       } else if (basic_type == array_type || basic_type == struct_type
           || !expression_ptr->children_[1]->integrated_type_->is_const) {
         expression_ptr->children_[1]->Accept(this);
+        if (expression_ptr->children_[1]->IR_ID_ == -1 &&
+            expression_ptr->children_[1]->IR_var_ID_ != -1) {
+          expression_ptr->children_[1]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+          functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+              expression_ptr->children_[1]->IR_ID_, expression_ptr->children_[1]->integrated_type_,
+              expression_ptr->children_[1]->IR_var_ID_);
+        }
         for (int i = 0; i < integrated_type->size; ++i) {
           const int element_ptr_id = function.var_id_++;
           function.blocks_[block_stack_.back()].AddGetElementPtrByValue(element_ptr_id, integrated_type, ptr_id, i);
@@ -97,6 +111,14 @@ void IRVisitor::RecursiveInitialize(const Node *expression_ptr, const int ptr_id
       } else if (basic_type == array_type || basic_type == struct_type
           || !item_expr_ptr->integrated_type_->is_const) {
         struct_expr_fields->children_[2 * i]->children_[2]->Accept(this);
+        if (struct_expr_fields->children_[2 * i]->children_[2]->IR_ID_ == -1 &&
+            struct_expr_fields->children_[2 * i]->children_[2]->IR_var_ID_ != -1) {
+          struct_expr_fields->children_[2 * i]->children_[2]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+          functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+              struct_expr_fields->children_[2 * i]->children_[2]->IR_ID_,
+              struct_expr_fields->children_[2 * i]->children_[2]->integrated_type_,
+              struct_expr_fields->children_[2 * i]->children_[2]->IR_var_ID_);
+        }
         function.blocks_[block_stack_.back()].AddVariableStore(item_expr_ptr->integrated_type_,
             struct_expr_fields->children_[2 * i]->children_[2]->IR_ID_, target_item_id);
       } else {
@@ -299,6 +321,13 @@ void IRVisitor::Visit(Statements *statements_ptr) {
     if (basic_type == array_type || basic_type == struct_type || basic_type == pointer_type
         || !statements_ptr->children_.back()->integrated_type_->is_const) {
       statements_ptr->children_.back()->Accept(this);
+      if (statements_ptr->children_.back()->IR_ID_ == -1 &&
+          statements_ptr->children_.back()->IR_var_ID_ != -1) {
+        statements_ptr->children_.back()->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+        functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+            statements_ptr->children_.back()->IR_ID_, statements_ptr->children_.back()->integrated_type_,
+            statements_ptr->children_.back()->IR_var_ID_);
+      }
       statements_ptr->IR_ID_ = statements_ptr->children_.back()->IR_ID_;
     } else {
       statements_ptr->IR_var_ID_ = functions_[wrapping_functions_.back()].var_id_++;
@@ -340,27 +369,35 @@ void IRVisitor::Visit(LetStatement *let_statement_ptr) {
           static_cast<int>(let_statement_ptr->children_[5]->value_.int_value), let_statement_ptr->children_[1]->IR_var_ID_);
     } else {
       let_statement_ptr->children_[5]->Accept(this);
+      if (let_statement_ptr->children_[5]->IR_ID_ == -1 &&
+          let_statement_ptr->children_[5]->IR_var_ID_ != -1) {
+        let_statement_ptr->children_[5]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+        functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+            let_statement_ptr->children_[5]->IR_ID_, let_statement_ptr->children_[5]->integrated_type_,
+            let_statement_ptr->children_[5]->IR_var_ID_);
+      }
       function.blocks_[block_stack_.back()].AddVariableStore(let_statement_ptr->children_[1]->integrated_type_,
           let_statement_ptr->children_[5]->IR_ID_, let_statement_ptr->children_[1]->IR_var_ID_);
     }
   } else if (let_statement_ptr->children_[1]->integrated_type_->basic_type == array_type ||
       let_statement_ptr->children_[1]->integrated_type_->basic_type == struct_type) {
     let_statement_ptr->children_[5]->Accept(this);
+    if (let_statement_ptr->children_[5]->IR_ID_ == -1 &&
+        let_statement_ptr->children_[5]->IR_var_ID_ != -1) {
+      let_statement_ptr->children_[5]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+      functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+          let_statement_ptr->children_[5]->IR_ID_, let_statement_ptr->children_[5]->integrated_type_,
+          let_statement_ptr->children_[5]->IR_var_ID_);
+    }
     function.blocks_[block_stack_.back()].AddVariableStore(let_statement_ptr->children_[1]->integrated_type_,
         let_statement_ptr->children_[5]->IR_ID_, let_statement_ptr->children_[1]->IR_var_ID_);
   } else if (let_statement_ptr->children_[1]->integrated_type_->basic_type == pointer_type) {
     let_statement_ptr->children_[5]->Accept(this);
-    if (let_statement_ptr->children_[5]->IR_ID_ != -1) {
-      function.blocks_[block_stack_.back()].AddVariableStore(let_statement_ptr->children_[1]->integrated_type_,
-        let_statement_ptr->children_[5]->IR_ID_, let_statement_ptr->children_[1]->IR_var_ID_);
-    } else if (let_statement_ptr->children_[5]->IR_var_ID_ != -1) {
-      const int loaded_var_id = function.var_id_++;
-      function.blocks_[block_stack_.back()].AddLoad(loaded_var_id,
-          let_statement_ptr->children_[5]->integrated_type_, let_statement_ptr->children_[5]->IR_var_ID_);
-      function.blocks_[block_stack_.back()].AddVariableStore(let_statement_ptr->children_[1]->integrated_type_,
-          loaded_var_id, let_statement_ptr->children_[1]->IR_var_ID_);
+    if (let_statement_ptr->children_[5]->IR_var_ID_ != -1) {
+      let_statement_ptr->children_[1]->IR_var_ID_ = let_statement_ptr->children_[5]->IR_var_ID_;
     } else {
-      IRThrow("Invalid let statement of pointer type value.");
+      function.blocks_[block_stack_.back()].AddVariableStore(let_statement_ptr->children_[1]->integrated_type_,
+          let_statement_ptr->children_[5]->IR_ID_, let_statement_ptr->children_[1]->IR_var_ID_);
     }
   } else {
     IRThrow("There is a basic type that not implemented in LetStatement!");
@@ -372,6 +409,14 @@ void IRVisitor::Visit(ExpressionStatement *expression_statement_ptr) {
       || !expression_statement_ptr->children_[0]->integrated_type_->is_const) {
     expression_statement_ptr->children_[0]->Accept(this);
     if (expression_statement_ptr->children_.size() == 1) {
+      if (expression_statement_ptr->children_[0]->IR_ID_ == -1 &&
+          expression_statement_ptr->children_[0]->IR_var_ID_ != -1) {
+        expression_statement_ptr->children_[0]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+        functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+            expression_statement_ptr->children_[0]->IR_ID_,
+            expression_statement_ptr->children_[0]->integrated_type_,
+            expression_statement_ptr->children_[0]->IR_var_ID_);
+      }
       expression_statement_ptr->IR_ID_ = expression_statement_ptr->children_[0]->IR_ID_;
     }
   } else if (expression_statement_ptr->children_.size() == 1) {
@@ -470,6 +515,14 @@ void IRVisitor::Visit(Expression *expression_ptr) {
         // complete condition_check
         block_stack_.back() = condition_check;
         expression_ptr->children_[2]->Accept(this);
+        if (expression_ptr->children_[2]->IR_ID_ == -1 &&
+            expression_ptr->children_[2]->IR_var_ID_ != -1) {
+          expression_ptr->children_[2]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+          functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+              expression_ptr->children_[2]->IR_ID_,
+              expression_ptr->children_[2]->integrated_type_,
+              expression_ptr->children_[2]->IR_var_ID_);
+        }
         functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].
             AddConditionalBranch(expression_ptr->children_[2]->IR_ID_, loop_begin,
                 loop_end);
@@ -500,6 +553,13 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           expression_ptr->children_[5]->Accept(this);
         } else { // whether enter "if" block depends on the condition expression
           expression_ptr->children_[2]->Accept(this);
+          if (expression_ptr->children_[2]->IR_ID_ == -1 &&
+              expression_ptr->children_[2]->IR_var_ID_ != -1) {
+            expression_ptr->children_[2]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                expression_ptr->children_[2]->IR_ID_, expression_ptr->children_[2]->integrated_type_,
+                expression_ptr->children_[2]->IR_var_ID_);
+          }
           const int if_block_id = functions_[wrapping_functions_.back()].var_id_++;
           functions_[wrapping_functions_.back()].blocks_[if_block_id] = IRBlock();
           const int exit_if_block_id = functions_[wrapping_functions_.back()].var_id_++;
@@ -537,14 +597,17 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             expression_ptr->IR_ID_ = GetBlockValue(expression_ptr->children_[5], expression_ptr->integrated_type_);
           } else { // always false
             expression_ptr->children_.back()->Accept(this);
-            expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
-            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddSelect(0b100,
-                expression_ptr->IR_ID_, 1, expression_ptr->integrated_type_,
-                expression_ptr->children_.back()->IR_ID_, expression_ptr->integrated_type_,
-                expression_ptr->children_.back()->IR_ID_);
+            expression_ptr->IR_ID_ = expression_ptr->children_.back()->IR_ID_;
           }
         } else { // entering which block depends on condition expression
           expression_ptr->children_[2]->Accept(this);
+          if (expression_ptr->children_[2]->IR_ID_ == -1 &&
+              expression_ptr->children_[2]->IR_var_ID_ != -1) {
+            expression_ptr->children_[2]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                expression_ptr->children_[2]->IR_ID_, expression_ptr->children_[2]->integrated_type_,
+                expression_ptr->children_[2]->IR_var_ID_);
+          }
           const int if_block_id = functions_[wrapping_functions_.back()].var_id_++;
           functions_[wrapping_functions_.back()].blocks_[if_block_id] = IRBlock();
           const int else_block_id = functions_[wrapping_functions_.back()].var_id_++;
@@ -642,10 +705,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
       break;
     }
     case path_in_expr: {
-      expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
       expression_ptr->IR_var_ID_ = expression_ptr->GetDefInfo().node->IR_var_ID_;
-      functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(expression_ptr->IR_ID_,
-          expression_ptr->integrated_type_, expression_ptr->IR_var_ID_);
       break;
     }
     case grouped_expr: {
@@ -659,9 +719,6 @@ void IRVisitor::Visit(Expression *expression_ptr) {
       expression_ptr->IR_var_ID_ = functions_[wrapping_functions_.back()].var_id_++;
       functions_[wrapping_functions_.back()].AddAlloca(expression_ptr->IR_var_ID_, expression_ptr->integrated_type_);
       RecursiveInitialize(expression_ptr, expression_ptr->IR_var_ID_);
-      expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
-      functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(expression_ptr->IR_ID_,
-          expression_ptr->integrated_type_, expression_ptr->IR_var_ID_);
       break;
     }
     case index_expr: {
@@ -677,6 +734,13 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               expression_ptr->children_[0]->IR_var_ID_, static_cast<int>(expression_ptr->children_[1]->value_.int_value));
         } else {
           expression_ptr->children_[1]->Accept(this);
+          if (expression_ptr->children_[1]->IR_ID_ == -1 &&
+              expression_ptr->children_[1]->IR_var_ID_ != -1) {
+            expression_ptr->children_[1]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                expression_ptr->children_[1]->IR_ID_, expression_ptr->children_[1]->integrated_type_,
+                expression_ptr->children_[1]->IR_var_ID_);
+          }
           functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddGetElementPtrByVariable(
               expression_ptr->IR_var_ID_, expression_ptr->children_[0]->integrated_type_,
               expression_ptr->children_[0]->IR_var_ID_, expression_ptr->children_[1]->IR_ID_);
@@ -695,14 +759,18 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               dereferenced_id, static_cast<int>(expression_ptr->children_[1]->value_.int_value));
         } else {
           expression_ptr->children_[1]->Accept(this);
+          if (expression_ptr->children_[1]->IR_ID_ == -1 &&
+              expression_ptr->children_[1]->IR_var_ID_ != -1) {
+            expression_ptr->children_[1]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                expression_ptr->children_[1]->IR_ID_, expression_ptr->children_[1]->integrated_type_,
+                expression_ptr->children_[1]->IR_var_ID_);
+          }
           functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddGetElementPtrByVariable(
               expression_ptr->IR_var_ID_, expression_ptr->children_[0]->integrated_type_->element_type,
               dereferenced_id, expression_ptr->children_[1]->IR_ID_);
         }
       }
-      expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
-      functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(expression_ptr->IR_ID_,
-          expression_ptr->integrated_type_, expression_ptr->IR_var_ID_);
       break;
     }
     case call_expr: {
@@ -719,6 +787,14 @@ void IRVisitor::Visit(Expression *expression_ptr) {
                 nullptr, 0, argument_list);
           } else {
             expression_ptr->children_[1]->children_[0]->Accept(this);
+            if (expression_ptr->children_[1]->children_[0]->IR_ID_ == -1 &&
+                expression_ptr->children_[1]->children_[0]->IR_var_ID_ != -1) {
+              expression_ptr->children_[1]->children_[0]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+              functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                  expression_ptr->children_[1]->children_[0]->IR_ID_,
+                  expression_ptr->children_[1]->children_[0]->integrated_type_,
+                  expression_ptr->children_[1]->children_[0]->IR_var_ID_);
+            }
             argument_list[0].type_ = expression_ptr->children_[1]->children_[0]->integrated_type_;
             argument_list[0].is_variable_ = true;
             argument_list[0].value_ = expression_ptr->children_[1]->children_[0]->IR_ID_;
@@ -735,6 +811,14 @@ void IRVisitor::Visit(Expression *expression_ptr) {
                 nullptr, 1, argument_list);
           } else {
             expression_ptr->children_[1]->children_[0]->Accept(this);
+            if (expression_ptr->children_[1]->children_[0]->IR_ID_ == -1 &&
+                expression_ptr->children_[1]->children_[0]->IR_var_ID_ != -1) {
+              expression_ptr->children_[1]->children_[0]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+              functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                  expression_ptr->children_[1]->children_[0]->IR_ID_,
+                  expression_ptr->children_[1]->children_[0]->integrated_type_,
+                  expression_ptr->children_[1]->children_[0]->IR_var_ID_);
+            }
             argument_list[0].type_ = expression_ptr->children_[1]->children_[0]->integrated_type_;
             argument_list[0].is_variable_ = true;
             argument_list[0].value_ = expression_ptr->children_[1]->children_[0]->IR_ID_;
@@ -746,16 +830,6 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddBuiltinCall(
               expression_ptr->IR_ID_, expression_ptr->integrated_type_, 2);
         } else if (function_name == "exit") {
-          /*if (expression_ptr->children_[1]->children_[0]->integrated_type_->is_const) {
-            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddValueReturn(
-                expression_ptr->children_[1]->children_[0]->integrated_type_,
-                static_cast<int>(expression_ptr->children_[1]->children_[0]->value_.int_value));
-          } else {
-            expression_ptr->children_[1]->children_[0]->Accept(this);
-            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddVariableReturn(
-                expression_ptr->children_[1]->children_[0]->integrated_type_,
-                expression_ptr->children_[1]->children_[0]->IR_ID_);
-          }*/
           functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddVoidReturn();
         } else {
           IRThrow("Invalid builtin (including print, println and getString).");
@@ -768,6 +842,14 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             if (!expression_ptr->children_[1]->children_[i]->integrated_type_->is_const ||
                 basic_type == array_type || basic_type == struct_type || basic_type == pointer_type) {
               expression_ptr->children_[1]->children_[i]->Accept(this);
+              if (expression_ptr->children_[1]->children_[i]->IR_ID_ == -1 &&
+                  expression_ptr->children_[1]->children_[i]->IR_var_ID_ != -1) {
+                expression_ptr->children_[1]->children_[i]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+                functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                    expression_ptr->children_[1]->children_[i]->IR_ID_,
+                    expression_ptr->children_[1]->children_[i]->integrated_type_,
+                    expression_ptr->children_[1]->children_[i]->IR_var_ID_);
+              }
               argument_list.push_back(FunctionCallArgument(expression_ptr->children_[1]
                   ->children_[i]->integrated_type_, true,
                   expression_ptr->children_[1]->children_[i]->IR_ID_));
@@ -800,6 +882,13 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           switch (function_def_node->children_[3]->children_[0]->children_[0]->children_.size()) {
             case 1: { // self
               expression_ptr->children_[0]->Accept(this);
+              if (expression_ptr->children_[0]->IR_ID_ == -1 &&
+                  expression_ptr->children_[0]->IR_var_ID_ != -1) {
+                expression_ptr->children_[0]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+                functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                    expression_ptr->children_[0]->IR_ID_, expression_ptr->children_[0]->integrated_type_,
+                    expression_ptr->children_[0]->IR_var_ID_);
+              }
               const int loaded_reference_self_id = functions_[wrapping_functions_.back()].var_id_++;
               functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
                   loaded_reference_self_id, expression_ptr->children_[0]->integrated_type_->element_type,
@@ -811,6 +900,13 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             case 2:
             case 3: { // &self or &mut self
               expression_ptr->children_[0]->Accept(this);
+              if (expression_ptr->children_[0]->IR_ID_ == -1 &&
+                  expression_ptr->children_[0]->IR_var_ID_ != -1) {
+                expression_ptr->children_[0]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+                functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                    expression_ptr->children_[0]->IR_ID_, expression_ptr->children_[0]->integrated_type_,
+                    expression_ptr->children_[0]->IR_var_ID_);
+              }
               argument_list.push_back(FunctionCallArgument(expression_ptr->children_[0]->integrated_type_,
                   true, expression_ptr->children_[0]->IR_ID_));
               break;
@@ -821,6 +917,13 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           switch (function_def_node->children_[3]->children_[0]->children_[0]->children_.size()) {
             case 1: { // self
               expression_ptr->children_[0]->Accept(this);
+              if (expression_ptr->children_[0]->IR_ID_ == -1 &&
+                  expression_ptr->children_[0]->IR_var_ID_ != -1) {
+                expression_ptr->children_[0]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+                functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                    expression_ptr->children_[0]->IR_ID_, expression_ptr->children_[0]->integrated_type_,
+                    expression_ptr->children_[0]->IR_var_ID_);
+              }
               argument_list.push_back(FunctionCallArgument(expression_ptr->children_[0]->integrated_type_,
                   true, expression_ptr->children_[0]->IR_ID_));
               break;
@@ -855,6 +958,13 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             if (!expression_ptr->children_[2]->children_[i]->integrated_type_->is_const ||
                 basic_type == array_type || basic_type == struct_type || basic_type == pointer_type) {
               expression_ptr->children_[2]->children_[i]->Accept(this);
+              if (expression_ptr->children_[2]->children_[i]->IR_ID_ == -1 &&
+                  expression_ptr->children_[2]->children_[i]->IR_var_ID_ != -1) {
+                expression_ptr->children_[2]->children_[i]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+                functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                    expression_ptr->children_[2]->children_[i]->IR_ID_, expression_ptr->children_[2]->children_[i]->integrated_type_,
+                    expression_ptr->children_[2]->children_[i]->IR_var_ID_);
+              }
               argument_list.push_back(FunctionCallArgument(expression_ptr->children_[2]
                   ->children_[i]->integrated_type_, true,
                   expression_ptr->children_[2]->children_[i]->IR_ID_));
@@ -888,9 +998,6 @@ void IRVisitor::Visit(Expression *expression_ptr) {
         functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddGetElementPtrByValue(
             expression_ptr->IR_var_ID_, expression_ptr->children_[0]->integrated_type_,
             expression_ptr->children_[0]->IR_var_ID_, item_index);
-        expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
-        functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(expression_ptr->IR_ID_,
-            expression_ptr->integrated_type_, expression_ptr->IR_var_ID_);
       } else { // expression_ptr->children_[0]->integrated_type_->basic_type == pointer_type
         expression_ptr->children_[0]->Accept(this);
         const int dereferenced_id = functions_[wrapping_functions_.back()].var_id_++;
@@ -905,9 +1012,6 @@ void IRVisitor::Visit(Expression *expression_ptr) {
         functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddGetElementPtrByValue(
             expression_ptr->IR_var_ID_, expression_ptr->children_[0]->integrated_type_->element_type,
             dereferenced_id, item_index);
-        expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
-        functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(expression_ptr->IR_ID_,
-            expression_ptr->integrated_type_, expression_ptr->IR_var_ID_);
       }
       break;
     }
@@ -933,6 +1037,13 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               static_cast<int>(expression_ptr->children_[1]->value_.int_value));
         } else {
           expression_ptr->children_[1]->Accept(this);
+          if (expression_ptr->children_[1]->IR_ID_ == -1 &&
+              expression_ptr->children_[1]->IR_var_ID_ != -1) {
+            expression_ptr->children_[1]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                expression_ptr->children_[1]->IR_ID_, expression_ptr->children_[1]->integrated_type_,
+                expression_ptr->children_[1]->IR_var_ID_);
+          }
           functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].
               AddSelect(0b100, wrapping_loops_.back().var_id, 1,
               expression_ptr->children_[1]->integrated_type_, expression_ptr->children_[1]->IR_ID_,
@@ -955,6 +1066,13 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               static_cast<int>(expression_ptr->children_[1]->value_.int_value));
         } else {
           expression_ptr->children_[1]->Accept(this);
+          if (expression_ptr->children_[1]->IR_ID_ == -1 &&
+              expression_ptr->children_[1]->IR_var_ID_ != -1) {
+            expression_ptr->children_[1]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                expression_ptr->children_[1]->IR_ID_, expression_ptr->children_[1]->integrated_type_,
+                expression_ptr->children_[1]->IR_var_ID_);
+          }
           functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddVariableReturn(
               expression_ptr->children_[1]->integrated_type_, expression_ptr->children_[1]->IR_ID_);
         }
@@ -966,18 +1084,36 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           ->GetContent().GetStr();
       if (prefix == "-") {
         expression_ptr->children_[1]->Accept(this);
+        if (expression_ptr->children_[1]->IR_ID_ == -1 &&
+            expression_ptr->children_[1]->IR_var_ID_ != -1) {
+          expression_ptr->children_[1]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+          functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+              expression_ptr->children_[1]->IR_ID_, expression_ptr->children_[1]->integrated_type_,
+              expression_ptr->children_[1]->IR_var_ID_);
+        }
         expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
         functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddConstVarBinaryOperation(
             expression_ptr->integrated_type_, sub_, expression_ptr->IR_ID_, 0,
             expression_ptr->children_[1]->IR_ID_);
       } else if (prefix == "*") {
         expression_ptr->children_[1]->Accept(this);
+        if (expression_ptr->children_[1]->IR_ID_ == -1 &&
+            expression_ptr->children_[1]->IR_var_ID_ != -1) {
+          expression_ptr->children_[1]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+          functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+              expression_ptr->children_[1]->IR_ID_, expression_ptr->children_[1]->integrated_type_,
+              expression_ptr->children_[1]->IR_var_ID_);
+        }
         expression_ptr->IR_var_ID_ = expression_ptr->children_[1]->IR_ID_;
-        expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
-        functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(expression_ptr->IR_ID_,
-            expression_ptr->integrated_type_, expression_ptr->IR_var_ID_);
       } else if (prefix == "!") {
         expression_ptr->children_[1]->Accept(this);
+        if (expression_ptr->children_[1]->IR_ID_ == -1 &&
+            expression_ptr->children_[1]->IR_var_ID_ != -1) {
+          expression_ptr->children_[1]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+          functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+              expression_ptr->children_[1]->IR_ID_, expression_ptr->children_[1]->integrated_type_,
+              expression_ptr->children_[1]->IR_var_ID_);
+        }
         expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
         if (expression_ptr->integrated_type_->basic_type == bool_type) {
           functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddConstVarBinaryOperation(
@@ -1003,9 +1139,6 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             functions_[wrapping_functions_.back()].AddAlloca(expression_ptr->IR_var_ID_, expression_ptr->integrated_type_);
             functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddPtrStore(new_left_value,
                 expression_ptr->IR_var_ID_);
-            expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
-            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(expression_ptr->IR_ID_,
-                expression_ptr->integrated_type_, expression_ptr->IR_var_ID_);
           } else {
             // the struct/array value has an allocated ptr %content_expr->IR_var_ID_
             expression_ptr->IR_var_ID_ = functions_[wrapping_functions_.back()].var_id_++;
@@ -1013,10 +1146,6 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             // store the ptr %content_expr->IR_var_ID_ into %expression_ptr->IR_var_ID_
             functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddPtrStore(content_expr_ptr->IR_var_ID_,
                 expression_ptr->IR_var_ID_);
-            // load the value from ptr %expression_ptr->IR_var_ID_ to variable %expression_ptr->IR_ID_
-            expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
-            functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(expression_ptr->IR_ID_,
-                expression_ptr->integrated_type_, expression_ptr->IR_var_ID_);
           }
         } else {
           IRThrow("Invalid type for borrow expression in IR.");
@@ -1157,6 +1286,13 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             } else {
               // false || _ = _
               expression_ptr->children_[1]->Accept(this);
+              if (expression_ptr->children_[1]->IR_ID_ == -1 &&
+                  expression_ptr->children_[1]->IR_var_ID_ != -1) {
+                expression_ptr->children_[1]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+                functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                    expression_ptr->children_[1]->IR_ID_, expression_ptr->children_[1]->integrated_type_,
+                    expression_ptr->children_[1]->IR_var_ID_);
+              }
               expression_ptr->IR_ID_ = function.var_id_++;
               function.blocks_[block_stack_.back()].AddSelect(0b100, expression_ptr->IR_ID_, 1,
                   expression_ptr->children_[1]->integrated_type_, expression_ptr->children_[1]->IR_ID_,
@@ -1164,6 +1300,13 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             }
           } else {
             expression_ptr->children_[0]->Accept(this);
+            if (expression_ptr->children_[0]->IR_ID_ == -1 &&
+                expression_ptr->children_[0]->IR_var_ID_ != -1) {
+              expression_ptr->children_[0]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+              functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                  expression_ptr->children_[0]->IR_ID_, expression_ptr->children_[0]->integrated_type_,
+                  expression_ptr->children_[0]->IR_var_ID_);
+            }
             // a || b : if a == true, expression = true; if a == false, expression = b.
             const int if_true_block_label = function.var_id_++;
             function.blocks_[if_true_block_label] = IRBlock();
@@ -1195,6 +1338,13 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               }
             } else {
               expression_ptr->children_[1]->Accept(this);
+              if (expression_ptr->children_[1]->IR_ID_ == -1 &&
+                  expression_ptr->children_[1]->IR_var_ID_ != -1) {
+                expression_ptr->children_[1]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+                functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                    expression_ptr->children_[1]->IR_ID_, expression_ptr->children_[1]->integrated_type_,
+                    expression_ptr->children_[1]->IR_var_ID_);
+              }
               function.blocks_[block_stack_.back()].AddSelect(0b011, false_block_ans_id,
                   expression_ptr->children_[1]->IR_ID_, expression_ptr->children_[1]->integrated_type_,
                   1, expression_ptr->children_[1]->integrated_type_, 0);
@@ -1216,6 +1366,13 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             if (expression_ptr->children_[0]->value_.int_value == 1) {
               // true && _ = _
               expression_ptr->children_[1]->Accept(this);
+              if (expression_ptr->children_[1]->IR_ID_ == -1 &&
+                  expression_ptr->children_[1]->IR_var_ID_ != -1) {
+                expression_ptr->children_[1]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+                functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                    expression_ptr->children_[1]->IR_ID_, expression_ptr->children_[1]->integrated_type_,
+                    expression_ptr->children_[1]->IR_var_ID_);
+              }
               expression_ptr->IR_ID_ = function.var_id_++;
               function.blocks_[block_stack_.back()].AddSelect(0b100, expression_ptr->IR_ID_, 1,
                   expression_ptr->children_[1]->integrated_type_, expression_ptr->children_[1]->IR_ID_,
@@ -1229,6 +1386,13 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             }
           } else {
             expression_ptr->children_[0]->Accept(this);
+            if (expression_ptr->children_[0]->IR_ID_ == -1 &&
+                expression_ptr->children_[0]->IR_var_ID_ != -1) {
+              expression_ptr->children_[0]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+              functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                  expression_ptr->children_[0]->IR_ID_, expression_ptr->children_[0]->integrated_type_,
+                  expression_ptr->children_[0]->IR_var_ID_);
+            }
             // a && b : if a == true, expression = b; if a == false, expression = false.
             const int if_true_block_label = function.var_id_++;
             function.blocks_[if_true_block_label] = IRBlock();
@@ -1253,6 +1417,13 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               }
             } else {
               expression_ptr->children_[1]->Accept(this);
+              if (expression_ptr->children_[1]->IR_ID_ == -1 &&
+                  expression_ptr->children_[1]->IR_var_ID_ != -1) {
+                expression_ptr->children_[1]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+                functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                    expression_ptr->children_[1]->IR_ID_, expression_ptr->children_[1]->integrated_type_,
+                    expression_ptr->children_[1]->IR_var_ID_);
+              }
               function.blocks_[block_stack_.back()].AddSelect(0b011, true_block_ans_id,
                   expression_ptr->children_[1]->IR_ID_, expression_ptr->children_[1]->integrated_type_,
                   1, expression_ptr->children_[1]->integrated_type_, 0);
@@ -1287,11 +1458,25 @@ void IRVisitor::Visit(Expression *expression_ptr) {
                   static_cast<int>(expression_ptr->children_[1]->value_.int_value), variable_id);
             } else {
               expression_ptr->children_[1]->Accept(this);
+              if (expression_ptr->children_[1]->IR_ID_ == -1 &&
+                  expression_ptr->children_[1]->IR_var_ID_ != -1) {
+                expression_ptr->children_[1]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+                functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                    expression_ptr->children_[1]->IR_ID_, expression_ptr->children_[1]->integrated_type_,
+                    expression_ptr->children_[1]->IR_var_ID_);
+              }
               function.blocks_[block_stack_.back()].AddVariableStore(expression_ptr->children_[0]->integrated_type_,
                   expression_ptr->children_[1]->IR_ID_, variable_id);
             }
           } else if (basic_type == array_type || basic_type == struct_type || basic_type == pointer_type) {
             expression_ptr->children_[1]->Accept(this);
+            if (expression_ptr->children_[1]->IR_ID_ == -1 &&
+                expression_ptr->children_[1]->IR_var_ID_ != -1) {
+              expression_ptr->children_[1]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+              functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                  expression_ptr->children_[1]->IR_ID_, expression_ptr->children_[1]->integrated_type_,
+                  expression_ptr->children_[1]->IR_var_ID_);
+            }
             functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddVariableStore(
                 expression_ptr->children_[1]->integrated_type_, expression_ptr->children_[1]->IR_ID_,
                 variable_id);
@@ -1363,9 +1548,23 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           // expression_ptr->children[0]->integrated_type->is_const is always false, otherwise the whole expression is const.
           if (expression_ptr->children_[0]->integrated_type_->is_int) {
             expression_ptr->children_[0]->Accept(this);
+            if (expression_ptr->children_[0]->IR_ID_ == -1 &&
+                expression_ptr->children_[0]->IR_var_ID_ != -1) {
+              expression_ptr->children_[0]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+              functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                  expression_ptr->children_[0]->IR_ID_, expression_ptr->children_[0]->integrated_type_,
+                  expression_ptr->children_[0]->IR_var_ID_);
+            }
             expression_ptr->IR_ID_ = expression_ptr->children_[0]->IR_ID_;
           } else { // expression_ptr->children_[0]->integrated_type_->basic_type == bool_type
             expression_ptr->children_[0]->Accept(this);
+            if (expression_ptr->children_[0]->IR_ID_ == -1 &&
+                expression_ptr->children_[0]->IR_var_ID_ != -1) {
+              expression_ptr->children_[0]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+              functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                  expression_ptr->children_[0]->IR_ID_, expression_ptr->children_[0]->integrated_type_,
+                  expression_ptr->children_[0]->IR_var_ID_);
+            }
             expression_ptr->IR_ID_ = function.var_id_++;
             function.blocks_[block_stack_.back()].AddSelect(0b011, expression_ptr->IR_ID_,
                 expression_ptr->children_[0]->IR_ID_, expression_ptr->integrated_type_,
@@ -1379,19 +1578,47 @@ void IRVisitor::Visit(Expression *expression_ptr) {
         case 0: {
           if (expression_ptr->children_[0]->integrated_type_->is_const) { // const op var
             expression_ptr->children_[1]->Accept(this);
+            if (expression_ptr->children_[1]->IR_ID_ == -1 &&
+                expression_ptr->children_[1]->IR_var_ID_ != -1) {
+              expression_ptr->children_[1]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+              functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                  expression_ptr->children_[1]->IR_ID_, expression_ptr->children_[1]->integrated_type_,
+                  expression_ptr->children_[1]->IR_var_ID_);
+            }
             expression_ptr->IR_ID_ = function.var_id_++;
             function.blocks_[block_stack_.back()].AddConstVarBinaryOperation(expression_ptr->integrated_type_,
                 binary_operator, expression_ptr->IR_ID_, static_cast<int>(expression_ptr->children_[0]->value_.int_value),
                 expression_ptr->children_[1]->IR_ID_);
           } else if (expression_ptr->children_[1]->integrated_type_->is_const) { // var op const
             expression_ptr->children_[0]->Accept(this);
+            if (expression_ptr->children_[0]->IR_ID_ == -1 &&
+                expression_ptr->children_[0]->IR_var_ID_ != -1) {
+              expression_ptr->children_[0]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+              functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                  expression_ptr->children_[0]->IR_ID_, expression_ptr->children_[0]->integrated_type_,
+                  expression_ptr->children_[0]->IR_var_ID_);
+            }
             expression_ptr->IR_ID_ = function.var_id_++;
             function.blocks_[block_stack_.back()].AddVarConstBinaryOperation(expression_ptr->integrated_type_,
                 binary_operator, expression_ptr->IR_ID_, expression_ptr->children_[0]->IR_ID_,
                 static_cast<int>(expression_ptr->children_[1]->value_.int_value));
           } else { // var op var
             expression_ptr->children_[0]->Accept(this);
+            if (expression_ptr->children_[0]->IR_ID_ == -1 &&
+                expression_ptr->children_[0]->IR_var_ID_ != -1) {
+              expression_ptr->children_[0]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+              functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                  expression_ptr->children_[0]->IR_ID_, expression_ptr->children_[0]->integrated_type_,
+                  expression_ptr->children_[0]->IR_var_ID_);
+            }
             expression_ptr->children_[1]->Accept(this);
+            if (expression_ptr->children_[1]->IR_ID_ == -1 &&
+                expression_ptr->children_[1]->IR_var_ID_ != -1) {
+              expression_ptr->children_[1]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+              functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                  expression_ptr->children_[1]->IR_ID_, expression_ptr->children_[1]->integrated_type_,
+                  expression_ptr->children_[1]->IR_var_ID_);
+            }
             expression_ptr->IR_ID_ = function.var_id_++;
             function.blocks_[block_stack_.back()].AddTwoVarBinaryOperation(expression_ptr->integrated_type_,
                 binary_operator, expression_ptr->IR_ID_, expression_ptr->children_[0]->IR_ID_,
@@ -1402,6 +1629,13 @@ void IRVisitor::Visit(Expression *expression_ptr) {
         case 1: {
           if (expression_ptr->children_[0]->integrated_type_->is_const) { // const <icmp_cond> var
             expression_ptr->children_[1]->Accept(this);
+            if (expression_ptr->children_[1]->IR_ID_ == -1 &&
+                expression_ptr->children_[1]->IR_var_ID_ != -1) {
+              expression_ptr->children_[1]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+              functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                  expression_ptr->children_[1]->IR_ID_, expression_ptr->children_[1]->integrated_type_,
+                  expression_ptr->children_[1]->IR_var_ID_);
+            }
             expression_ptr->IR_ID_ = function.var_id_++;
             function.blocks_[block_stack_.back()].AddConstVarIcmp(expression_ptr->IR_ID_, icmp_cond,
                 expression_ptr->children_[0]->integrated_type_,
@@ -1409,6 +1643,13 @@ void IRVisitor::Visit(Expression *expression_ptr) {
                 expression_ptr->children_[1]->IR_ID_);
           } else if (expression_ptr->children_[1]->integrated_type_->is_const) { // var <icmp_cond> const
             expression_ptr->children_[0]->Accept(this);
+            if (expression_ptr->children_[0]->IR_ID_ == -1 &&
+                expression_ptr->children_[0]->IR_var_ID_ != -1) {
+              expression_ptr->children_[0]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+              functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                  expression_ptr->children_[0]->IR_ID_, expression_ptr->children_[0]->integrated_type_,
+                  expression_ptr->children_[0]->IR_var_ID_);
+            }
             expression_ptr->IR_ID_ = function.var_id_++;
             function.blocks_[block_stack_.back()].AddVarConstIcmp(expression_ptr->IR_ID_, icmp_cond,
                 expression_ptr->children_[0]->integrated_type_,
@@ -1416,7 +1657,21 @@ void IRVisitor::Visit(Expression *expression_ptr) {
                 static_cast<int>(expression_ptr->children_[1]->value_.int_value));
           } else { // var <icmp_cond> var
             expression_ptr->children_[0]->Accept(this);
+            if (expression_ptr->children_[0]->IR_ID_ == -1 &&
+                expression_ptr->children_[0]->IR_var_ID_ != -1) {
+              expression_ptr->children_[0]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+              functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                  expression_ptr->children_[0]->IR_ID_, expression_ptr->children_[0]->integrated_type_,
+                  expression_ptr->children_[0]->IR_var_ID_);
+            }
             expression_ptr->children_[1]->Accept(this);
+            if (expression_ptr->children_[1]->IR_ID_ == -1 &&
+                expression_ptr->children_[1]->IR_var_ID_ != -1) {
+              expression_ptr->children_[1]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+              functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                  expression_ptr->children_[1]->IR_ID_, expression_ptr->children_[1]->integrated_type_,
+                  expression_ptr->children_[1]->IR_var_ID_);
+            }
             expression_ptr->IR_ID_ = function.var_id_++;
             function.blocks_[block_stack_.back()].AddTwoVarIcmp(expression_ptr->IR_ID_, icmp_cond,
                 expression_ptr->children_[0]->integrated_type_, expression_ptr->children_[0]->IR_ID_,
@@ -1440,6 +1695,13 @@ void IRVisitor::Visit(Expression *expression_ptr) {
                 loaded_var_id, static_cast<int>(expression_ptr->children_[1]->value_.int_value));
           } else {
             expression_ptr->children_[1]->Accept(this);
+            if (expression_ptr->children_[1]->IR_ID_ == -1 &&
+                expression_ptr->children_[1]->IR_var_ID_ != -1) {
+              expression_ptr->children_[1]->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
+              functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddLoad(
+                  expression_ptr->children_[1]->IR_ID_, expression_ptr->children_[1]->integrated_type_,
+                  expression_ptr->children_[1]->IR_var_ID_);
+            }
             function.blocks_[block_stack_.back()].AddTwoVarBinaryOperation(
                 expression_ptr->children_[0]->integrated_type_, binary_operator, temp_result_id,
                 loaded_var_id, expression_ptr->children_[1]->IR_ID_);
