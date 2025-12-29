@@ -1975,7 +1975,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
   }
 }
 
-void IRVisitor::OutputType(std::ofstream &file, const std::shared_ptr<IntegratedType> &integrated_type) {
+void IRVisitor::OutputType(std::ostream &file, const std::shared_ptr<IntegratedType> &integrated_type) {
   switch (integrated_type->basic_type) {
     case bool_type: {
       file << "i1";
@@ -2007,7 +2007,7 @@ void IRVisitor::OutputType(std::ofstream &file, const std::shared_ptr<Integrated
   }
 }
 
-void IRVisitor::Print(std::ofstream &file, const IRInstruction &instruction) {
+void IRVisitor::Print(std::ostream &file, const IRInstruction &instruction) {
   file << '\t';
   switch (instruction.instruction_type_) {
     case two_var_binary_operation_: {
@@ -2629,7 +2629,7 @@ void IRVisitor::Print(std::ofstream &file, const IRInstruction &instruction) {
   file << '\n';
 }
 
-void IRVisitor::Output(std::ofstream &file) {
+void IRVisitor::Output(std::ostream &file) {
   // output the builtin function declarations
   std::ifstream builtin_functions("../RCompiler-Testcases/IR-1/builtin/builtin.ll");
   std::string line_in_file;

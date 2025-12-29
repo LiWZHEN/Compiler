@@ -329,7 +329,7 @@ public:
   void Visit(StructField *struct_field_ptr) override;
   void Visit(EnumVariants *enum_variants_ptr) override;
   void Visit(AssociatedItem *associated_item_ptr) override;
-  void Output(std::ofstream &file);
+  void Output(std::ostream &file);
 private:
   void AddFunction(const std::shared_ptr<IntegratedType> &return_type);
   void AddStruct();
@@ -338,8 +338,8 @@ private:
   void RecursiveInitialize(const Node *expression_ptr, int ptr_id);
   void DeclareItems(const std::shared_ptr<ScopeNode> &new_scope);
   int GetBlockValue(Node *visited_statements_ptr, const std::shared_ptr<IntegratedType> &expected_type);
-  void OutputType(std::ofstream &file, const std::shared_ptr<IntegratedType> &integrated_type);
-  void Print(std::ofstream &file, const IRInstruction &instruction);
+  void OutputType(std::ostream &file, const std::shared_ptr<IntegratedType> &integrated_type);
+  void Print(std::ostream &file, const IRInstruction &instruction);
   std::vector<IRFunctionNode> functions_;
   std::vector<IRStructNode> structs_;
   std::vector<int> wrapping_functions_;
