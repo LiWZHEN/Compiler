@@ -246,9 +246,9 @@ struct IRBlock {
     }
   } /* is_value varies from 0b000 to 0b111,
   the three bits represent the condition / first value / second value is literal value */
-  void AddBuiltinMemset(const int size, const int content, const int dest_ptr, const int content_is_const) {
+  void AddBuiltinMemset(const int size, const bool is_all_1, const int dest_ptr) {
     instructions_.push_back(IRInstruction(builtin_memset_, size, add_, nullptr,
-        content, 0, content_is_const, 0, 0, 0, dest_ptr,
+        (is_all_1 ? 1 : 0), 0, 0, 0, 0, 0, dest_ptr,
         equal_, 0));
   }
   void AddBuiltinMemcpy(const int size, const int dest_ptr, const int src_ptr) {
@@ -333,6 +333,8 @@ public:
 private:
   void AddFunction(const std::shared_ptr<IntegratedType> &return_type);
   void AddStruct();
+  std::pair<int, bool> GetTypeSize(const std::shared_ptr<IntegratedType> &type); // the returned pair is <size, has_int>
+  void InitializeArrayByLoop();
   void RecursiveInitialize(const Node *expression_ptr, int ptr_id);
   void DeclareItems(const std::shared_ptr<ScopeNode> &new_scope);
   int GetBlockValue(Node *visited_statements_ptr, const std::shared_ptr<IntegratedType> &expected_type);

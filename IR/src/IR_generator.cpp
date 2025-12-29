@@ -16,6 +16,61 @@ void IRVisitor::AddStruct() {
   structs_.push_back(IRStructNode());
 }
 
+std::pair<int, bool> IRVisitor::GetTypeSize(const std::shared_ptr<IntegratedType> &type) {
+  switch (type->basic_type) {
+    case bool_type: {
+      return {1, false};
+    }
+    case i32_type:
+    case u32_type:
+    case isize_type:
+    case usize_type:
+    case enumeration_type:
+    case pointer_type: {
+      return {4, true};
+    }
+    case array_type: {
+      const auto element_size = GetTypeSize(type->element_type);
+      return {static_cast<int>(type->size * element_size.first), element_size.second};
+    }
+    case struct_type: {
+      bool has_int = false;
+      auto item_index_map = dynamic_cast<Struct *>(type->struct_node)->field_item_index_;
+      auto item_info_map = dynamic_cast<Struct *>(type->struct_node)->field_items_;
+      std::vector<int> sizes(item_index_map.size());
+      std::vector<bool> element_basic_types(item_index_map.size());
+      for (const auto &[name, index] : item_index_map) {
+        const auto &item_info = item_info_map[name];
+        const auto &[item_size, is_aligned] = GetTypeSize(item_info.node->integrated_type_);
+        sizes[index] = item_size;
+        element_basic_types[index] = is_aligned;
+        if (is_aligned) {
+          has_int = true;
+        }
+      }
+      int total_size = 0;
+      if (has_int) {
+        for (int i = 0; i < sizes.size(); ++i) {
+          if (element_basic_types[i]) {
+            total_size = (total_size + 3) / 4 * 4;
+          }
+          total_size += sizes[i];
+        }
+        total_size = (total_size + 3) / 4 * 4;
+      } else {
+        for (const int element_size : sizes) {
+          total_size += element_size;
+        }
+      }
+      return {total_size, has_int};
+    }
+    default: {
+      IRThrow("Invalid type to get size.");
+    }
+  }
+  return {0, false};
+}
+
 void IRVisitor::RecursiveInitialize(const Node *expression_ptr, const int ptr_id) {
   auto &function = functions_[wrapping_functions_.back()];
   const auto &integrated_type = expression_ptr->integrated_type_;
@@ -77,11 +132,20 @@ void IRVisitor::RecursiveInitialize(const Node *expression_ptr, const int ptr_id
               expression_ptr->children_[1]->IR_ID_, element_ptr_id);
         }
       } else {
-        for (int i = 0; i < integrated_type->size; ++i) {
-          const int element_ptr_id = function.var_id_++;
-          function.blocks_[block_stack_.back()].AddGetElementPtrByValue(element_ptr_id, integrated_type, ptr_id, i);
-          function.blocks_[block_stack_.back()].AddValueStore(integrated_type->element_type,
-              static_cast<int>(expression_ptr->children_[1]->value_.int_value), element_ptr_id);
+        if (expression_ptr->children_[1]->value_.int_value == 0) {
+          const auto type_size = GetTypeSize(expression_ptr->integrated_type_);
+          function.blocks_[block_stack_.back()].AddBuiltinMemset(type_size.first, false, ptr_id);
+        } else if (expression_ptr->children_[1]->value_.int_value == -1) {
+          const auto type_size = GetTypeSize(expression_ptr->integrated_type_);
+          function.blocks_[block_stack_.back()].AddBuiltinMemset(type_size.first, true, ptr_id);
+        } else {
+          // todo: create a loop in IR to initialize the array
+          for (int i = 0; i < integrated_type->size; ++i) {
+            const int element_ptr_id = function.var_id_++;
+            function.blocks_[block_stack_.back()].AddGetElementPtrByValue(element_ptr_id, integrated_type, ptr_id, i);
+            function.blocks_[block_stack_.back()].AddValueStore(integrated_type->element_type,
+                static_cast<int>(expression_ptr->children_[1]->value_.int_value), element_ptr_id);
+          }
         }
       }
     }
@@ -2358,13 +2422,8 @@ void IRVisitor::Print(std::ofstream &file, const IRInstruction &instruction) {
       break;
     }
     case builtin_memset_: {
-      file << "call void @builtin_memset(ptr %var." << instruction.pointer_ << ", i32 ";
-      if (instruction.condition_id_ == 0) {
-        file << "%var." << instruction.operand_1_id_;
-      } else {
-        file << instruction.operand_1_id_;
-      }
-      file << ", i32 " << instruction.result_id_ << ")";
+      file << "call void @builtin_memset(ptr %var." << instruction.pointer_ << ", i32 "
+          << (instruction.operand_1_id_ == 0 ? 0 : -1) << ", i32 " << instruction.result_id_ << ")";
       break;
     }
     case builtin_memcpy_: {
