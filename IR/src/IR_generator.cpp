@@ -198,7 +198,6 @@ void IRVisitor::RecursiveInitialize(const Node *expression_ptr, const int ptr_id
           const auto type_size = GetTypeSize(expression_ptr->integrated_type_);
           function.blocks_[block_stack_.back()].AddBuiltinMemset(type_size.first, true, ptr_id);
         } else {
-          // todo: create a loop in IR to initialize the array
           const int rounds = static_cast<int>(integrated_type->size);
           const int var_in_loop = function.var_id_++;
           function.AddAlloca(var_in_loop, expression_ptr->children_[3]->integrated_type_);
@@ -1632,7 +1631,19 @@ void IRVisitor::Visit(Expression *expression_ptr) {
               function.blocks_[block_stack_.back()].AddVariableStore(expression_ptr->children_[0]->integrated_type_,
                   expression_ptr->children_[1]->IR_ID_, variable_id);
             }
-          } else if (basic_type == array_type || basic_type == struct_type || basic_type == pointer_type) {
+          } else if (basic_type == array_type || basic_type == struct_type) {
+            expression_ptr->children_[1]->Accept(this);
+            if (expression_ptr->children_[1]->IR_var_ID_ != -1) {
+              functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddBuiltinMemcpy(
+                  GetTypeSize(expression_ptr->children_[0]->integrated_type_).first,
+                  variable_id, expression_ptr->children_[1]->IR_var_ID_);
+            } else {
+              // todo: remove after complete function that returns array/struct
+              functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddVariableStore(
+                  expression_ptr->children_[1]->integrated_type_, expression_ptr->children_[1]->IR_ID_,
+                  variable_id);
+            }
+          } else if (basic_type == pointer_type) {
             expression_ptr->children_[1]->Accept(this);
             if (expression_ptr->children_[1]->IR_ID_ == -1 &&
                 expression_ptr->children_[1]->IR_var_ID_ != -1) {
@@ -1739,7 +1750,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
         default:;
       }
       switch (status) {
-        case 0: {
+        case 0: { // binary operation
           if (expression_ptr->children_[0]->integrated_type_->is_const) { // const op var
             expression_ptr->children_[1]->Accept(this);
             if (expression_ptr->children_[1]->IR_ID_ == -1 &&
@@ -1790,7 +1801,7 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           }
           break;
         }
-        case 1: {
+        case 1: { // comparison
           if (expression_ptr->children_[0]->integrated_type_->is_const) { // const <icmp_cond> var
             expression_ptr->children_[1]->Accept(this);
             if (expression_ptr->children_[1]->IR_ID_ == -1 &&
@@ -1843,10 +1854,10 @@ void IRVisitor::Visit(Expression *expression_ptr) {
           }
           break;
         }
-        case 2: {
+        case 2: { // ignore
           break;
         }
-        case 3: {
+        case 3: { // compute and assign
           expression_ptr->children_[0]->Accept(this);
           const int pointer_id = expression_ptr->children_[0]->IR_var_ID_;
           const int loaded_var_id = function.var_id_++;
