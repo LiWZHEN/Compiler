@@ -246,12 +246,6 @@ struct IRBlock {
     }
   } /* is_value varies from 0b000 to 0b111,
   the three bits represent the condition / first value / second value is literal value */
-  void AddPhi(const int result, const std::shared_ptr<IntegratedType> &result_type, const int value1_id,
-      const int label1, const int value2_id, const int label2) {
-    instructions_.push_back(IRInstruction(phi_, result, add_, result_type,
-        value1_id, value2_id, 0, label1, label2, 0,
-        0, equal_, 0));
-  }
   void AddBuiltinMemset(const int size, const bool is_all_1, const int dest_ptr) {
     instructions_.push_back(IRInstruction(builtin_memset_, size, add_, nullptr,
         (is_all_1 ? 1 : 0), 0, 0, 0, 0, 0, dest_ptr,
