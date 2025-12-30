@@ -877,10 +877,9 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             block_stack_.back() = exit_if_block_id;
             if (if_block_value != -1 && expression_ptr->children_.back()->IR_ID_ != -1) {
               expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
-              functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddSelect(0b000,
-                  expression_ptr->IR_ID_, expression_ptr->children_[2]->IR_ID_,
-                  expression_ptr->integrated_type_, if_block_value,
-                  expression_ptr->integrated_type_, expression_ptr->children_.back()->IR_ID_);
+              functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddPhi(expression_ptr->IR_ID_,
+                  expression_ptr->integrated_type_, if_block_value, if_block_id,
+                  expression_ptr->children_.back()->IR_ID_, else_block_id);
             } else if (if_block_value != -1) {
               expression_ptr->IR_ID_ = functions_[wrapping_functions_.back()].var_id_++;
               functions_[wrapping_functions_.back()].blocks_[block_stack_.back()].AddSelect(0b100,
@@ -1598,10 +1597,9 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             // merge
             block_stack_.back() = merged_label;
             expression_ptr->IR_ID_ = function.var_id_++;
-            function.blocks_[block_stack_.back()].AddSelect(0b000, expression_ptr->IR_ID_,
-                expression_ptr->children_[0]->IR_ID_, expression_ptr->children_[1]->integrated_type_,
-                true_block_ans_id, expression_ptr->children_[1]->integrated_type_,
-                false_block_ans_id);
+            function.blocks_[block_stack_.back()].AddPhi(expression_ptr->IR_ID_,
+                expression_ptr->children_[1]->integrated_type_, true_block_ans_id, if_true_block_label,
+                false_block_ans_id, if_false_block_label);
           }
           break;
         }
@@ -1684,10 +1682,9 @@ void IRVisitor::Visit(Expression *expression_ptr) {
             // merge
             block_stack_.back() = merged_label;
             expression_ptr->IR_ID_ = function.var_id_++;
-            function.blocks_[block_stack_.back()].AddSelect(0b000, expression_ptr->IR_ID_,
-                expression_ptr->children_[0]->IR_ID_, expression_ptr->children_[1]->integrated_type_,
-                true_block_ans_id, expression_ptr->children_[1]->integrated_type_,
-                false_block_ans_id);
+            function.blocks_[block_stack_.back()].AddPhi(expression_ptr->IR_ID_,
+                expression_ptr->children_[1]->integrated_type_, true_block_ans_id, if_true_block_label,
+                false_block_ans_id, if_false_block_label);
           }
           break;
         }
@@ -2503,7 +2500,10 @@ void IRVisitor::Print(std::ostream &file, const IRInstruction &instruction) {
       break;
     }
     case phi_: {
-      IRThrow("No phi function.");
+      file << "%var." << instruction.result_id_ << " = phi ";
+      OutputType(file, instruction.result_type_);
+      file << " [ %var." << instruction.operand_1_id_ << ", %label_" << instruction.if_true_
+          << " ], [ %var." << instruction.operand_2_id_ << ", %label_" << instruction.if_false_ << " ]";
       break;
     }
     case value_select_ii_: {
