@@ -2631,7 +2631,7 @@ void IRVisitor::Print(std::ostream &file, const IRInstruction &instruction) {
 
 void IRVisitor::Output(std::ostream &file) {
   // output the builtin function declarations
-  std::ifstream builtin_functions("../builtin/builtin.c");
+  std::ifstream builtin_functions("../builtin.c");
   std::string line_in_file;
   if (builtin_functions.is_open()) {
     while (std::getline(builtin_functions, line_in_file)) {
