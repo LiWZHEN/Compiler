@@ -6,4 +6,4 @@ build:
 
 run:
 	@./build/code
-    @cat builtin.c >&2
+	@cat builtin.c >&2
