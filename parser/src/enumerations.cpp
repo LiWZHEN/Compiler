@@ -22,7 +22,7 @@ EnumVariants::EnumVariants(const std::vector<Token> &tokens, int &ptr) : Node(to
         AddChild(type_identifier);
       } catch (...) {
         Restore(size_before_trying_identifier, ptr_before_trying_identifier);
-        // std::cerr << "EnumVariants: Successfully handle identifier try failure.\n";
+        std::cerr << "EnumVariants: Successfully handle identifier try failure.\n";
         break;
       }
     }

@@ -117,7 +117,7 @@ void Identifier::AddSymbol(ScopeNode *target_scope, const bool need_type_add, co
   if (target_node.node_type == type_enumeration) {
     const auto enum_ptr = dynamic_cast<Enumeration *>(target_node.node);
     if (enum_ptr->enum_variants_.contains(identifier_name)) {
-      // std::cerr << "Error: The name '" << identifier_name << "' is defined multiple times.\n";
+      std::cerr << "Error: The name '" << identifier_name << "' is defined multiple times.\n";
       throw "";
     }
     const int new_element_index = static_cast<int>(enum_ptr->enum_variants_.size());
@@ -125,7 +125,7 @@ void Identifier::AddSymbol(ScopeNode *target_scope, const bool need_type_add, co
   } else if (target_node.node_type == type_struct) {
     const auto struct_ptr = dynamic_cast<Struct *>(target_node.node);
     if (struct_ptr->field_items_.contains(identifier_name)) {
-      // std::cerr << "Error: Field '" << identifier_name << "' is already declared.\n";
+      std::cerr << "Error: Field '" << identifier_name << "' is already declared.\n";
       throw "";
     }
     struct_ptr->field_items_[identifier_name] = node_info;

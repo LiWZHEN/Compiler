@@ -36,7 +36,7 @@ Statements::Statements(const std::vector<Token> &tokens, int &ptr) : Node(tokens
       }
     } catch (...) {
       Restore(size_before_trying_expression_without_block, ptr_before_trying_expression_without_block);
-      // std::cerr << "Statements: Successfully handle the expression without block try failure.\n";
+      std::cerr << "Statements: Successfully handle the expression without block try failure.\n";
       if (!has_statement) {
         ThrowErr(type_statements, "Expect at least a statement or an expression without block.");
       }
@@ -60,7 +60,7 @@ Statement::Statement(const std::vector<Token> &tokens, int &ptr) : Node (tokens,
         AddChild(type_item);
       } catch (...) {
         Restore(0, ptr_before_try);
-        // std::cerr << "Statement: Successfully handle the item try failure.\n";
+        std::cerr << "Statement: Successfully handle the item try failure.\n";
         AddChild(type_expression_statement);
       }
     }

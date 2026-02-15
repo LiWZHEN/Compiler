@@ -19,7 +19,7 @@ StructFields::StructFields(const std::vector<Token> &tokens, int &ptr): Node(tok
         AddChild(type_struct_field);
       } catch (...) {
         Restore(size_before_trying_struct_field, ptr_before_trying_struct_field);
-        // std::cerr << "StructFields: Successfully handle the struct field trying failure.\n";
+        std::cerr << "StructFields: Successfully handle the struct field trying failure.\n";
         break;
       }
     }

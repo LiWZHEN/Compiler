@@ -33,14 +33,14 @@ struct ScopeNode {
   }
   void TypeAdd(const std::string &name, const ScopeNodeContent scope_node_content) {
     if (type_namespace.contains(name)) {
-      // std::cerr << "The name \"" << name << "\" is already in the type namespace.\n";
+      std::cerr << "The name \"" << name << "\" is already in the type namespace.\n";
       throw "";
     }
     type_namespace[name] = scope_node_content;
   }
   void ValueAdd(const std::string &name, const ScopeNodeContent scope_node_content) {
     if (value_namespace.contains(name)) {
-      // std::cerr << "The name \"" << name << "\" is already in the value namespace.\n";
+      std::cerr << "The name \"" << name << "\" is already in the value namespace.\n";
       throw "";
     }
     value_namespace[name] = scope_node_content;

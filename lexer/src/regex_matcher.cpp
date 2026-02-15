@@ -324,7 +324,7 @@ MatchResult RegexMatcher::GetNext() {
     result = tmp;
   }
   if (result.matched_str_.empty()) {
-    // std::cerr << "No matched type!\n";
+    std::cerr << "No matched type!\n";
     throw "";
   }
   return result;

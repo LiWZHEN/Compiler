@@ -132,12 +132,12 @@ void SymbolVisitor::Visit(Implementation *implementation_ptr) {
   if (target_type->type_[0] == type_type_path) {
     type_name = dynamic_cast<LeafNode *>(target_type->children_[0])->GetContent().GetStr();
   } else {
-    // std::cerr << "Expect a name of a struct or an enumeration.\n";
+    std::cerr << "Expect a name of a struct or an enumeration.\n";
     throw "";
   }
   ScopeNodeContent type_content = current_scope_node_->FindInType(type_name);
   if (type_content.node == nullptr) {
-    // std::cerr << "Cannot find target struct / enumeration.\n";
+    std::cerr << "Cannot find target struct / enumeration.\n";
     throw "";
   }
   if (type_content.node_type == type_struct) {
@@ -182,7 +182,7 @@ void SymbolVisitor::Visit(Implementation *implementation_ptr) {
       }
     }
   } else {
-    // std::cerr << "The type does not correspond to a struct or an enumeration.\n";
+    std::cerr << "The type does not correspond to a struct or an enumeration.\n";
     throw "";
   }
 }
